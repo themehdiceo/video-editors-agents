@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Write(jobs/**)",
+      "Edit(jobs/**)",
+      "Edit(style/**)",
+      "Edit(.claude/skills/**)",
+      "WebFetch",
+      "WebSearch",
+      "Bash(ffmpeg:*)",
+      "Bash(ffprobe:*)",
+      "Bash(yt-dlp:*)",
+      "Bash(python3 tools/:*)",
+      "Bash(npx hyperframes:*)",
+      "Bash(blender -b:*)",
+      "Bash(curl -sSL -o jobs/:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir -p jobs/:*)",
+      "Bash(cp:*)",
+      "Bash(mv jobs/:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(echo:*)",
+      "Bash(git add -A style .claude:*)",
+      "Bash(git commit -m:*)",
+      "Bash(git push:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Task"
+    ],
+    "deny": [
+      "Read(/etc/video-editors-agents/**)",
+      "Read(**/.env)",
+      "Bash(sudo:*)",
+      "Bash(rm -rf /:*)"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "format": {"w": 1080, "h": 1920, "fps": 30},
+  "language": "fr",
+  "pacing": {
+    "max_pause_s": 0.25,
+    "broll_every_s": [1.8, 3.6],
+    "target_duration_s": [30, 60]
+  },
+  "layout_default": "top",
+  "subtitles": {
+    "font": "Montserrat ExtraBold",
+    "size": 84,
+    "color": "FFFFFF",
+    "highlight": "FF2BD6",
+    "outline": 6,
+    "y": 0.52,
+    "max_words": 3,
+    "uppercase": true
+  },
+  "music": {"volume": 0.12, "duck": true, "mood": "énergique, moderne, sans voix"},
+  "loudness_lufs": -14,
+  "hook": "Le premier plan montre la chose en action. Pas d'intro, pas de logo.",
+  "notes": []
+}

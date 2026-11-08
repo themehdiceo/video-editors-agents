@@ -1,0 +1,224 @@
+#!/usr/bin/env python3
+"""Bot Telegram privé : la porte d'entrée de l'équipe de montage.
+
+Commandes (seul TELEGRAM_ALLOWED_USER_ID est écouté) :
+  /script <lien>        recherche + script
+  /clip <lien> [n]      vidéo longue -> n shorts (1 par défaut)
+  (envoi d'une vidéo)   montage d'un A-roll ; légende "clip" ou "clip 3" = vidéo longue
+  (réponse à un rendu)  retour -> nouvelle version + mise à jour des skills
+  /statut               job en cours et file d'attente
+  /bilan                propose des améliorations des skills
+  /annuler              annule la dernière mise à jour des skills (git revert)
+"""
+import asyncio
+import json
+import logging
+import os
+import re
+import subprocess
+from pathlib import Path
+
+from telegram import Update
+from telegram.ext import (Application, CommandHandler, ContextTypes, MessageHandler, filters)
+
+from runner import JOBS, REPO, new_job, run_job
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+log = logging.getLogger("bot")
+
+TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+ALLOWED = int(os.environ["TELEGRAM_ALLOWED_USER_ID"])
+API_URL = os.environ.get("TELEGRAM_API_URL", "")  # ex: http://127.0.0.1:8081/bot (serveur Bot API local)
+URL_RE = re.compile(r"https?://\S+")
+INDEX = JOBS / "index.json"  # message_id Telegram -> job id (pour les retours)
+
+queue: asyncio.Queue = asyncio.Queue()
+current: dict = {}
+
+
+def load_index() -> dict:
+    try:
+        return json.loads(INDEX.read_text())
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def remember(message_id: int, job_id: str) -> None:
+    idx = load_index()
+    idx[str(message_id)] = job_id
+    INDEX.write_text(json.dumps(idx))
+
+
+def only_me(fn):
+    async def wrap(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+        if not update.effective_user or update.effective_user.id != ALLOWED:
+            return
+        return await fn(update, ctx)
+    return wrap
+
+
+async def enqueue(update: Update, job_dir: Path, label: str) -> None:
+    await queue.put((update.effective_chat.id, job_dir))
+    pos = queue.qsize() + (1 if current else 0)
+    msg = f"✅ Job {label} reçu ({job_dir.name})."
+    if pos > 1:
+        msg += f" Position dans la file : {pos}."
+    await update.message.reply_text(msg)
+
+
+@only_me
+async def cmd_start(update: Update, ctx):
+    await update.message.reply_text(__doc__.split("\n\n", 1)[1])
+
+
+@only_me
+async def cmd_script(update: Update, ctx):
+    urls = URL_RE.findall(update.message.text or "")
+    if not urls:
+        await update.message.reply_text("Donne-moi un lien : /script https://...")
+        return
+    note = URL_RE.sub("", update.message.text.replace("/script", "")).strip()
+    await enqueue(update, new_job("script", url=urls[0], note=note), "script")
+
+
+@only_me
+async def cmd_clip(update: Update, ctx):
+    text = update.message.text or ""
+    urls = URL_RE.findall(text)
+    if not urls:
+        await update.message.reply_text("Envoie la vidéo avec la légende « clip », ou /clip https://...")
+        return
+    n = re.search(r"\s(\d)\s*$", text)
+    await enqueue(update, new_job("clip", url=urls[0], count=int(n.group(1)) if n else 1), "clip")
+
+
+@only_me
+async def on_video(update: Update, ctx):
+    m = update.message
+    media = m.video or m.document
+    caption = (m.caption or "").strip()
+    kind = "clip" if caption.lower().startswith("clip") else "edit"
+    count = int(re.search(r"\d", caption).group()) if kind == "clip" and re.search(r"\d", caption) else 1
+    job_dir = new_job(kind, note=caption, count=count, input_file="input/source.mp4")
+    await m.reply_text("⬇️ Je récupère la vidéo…")
+    f = await ctx.bot.get_file(media.file_id)
+    await f.download_to_drive(job_dir / "input" / "source.mp4")
+    await enqueue(update, job_dir, "montage" if kind == "edit" else "clip")
+
+
+@only_me
+async def on_text(update: Update, ctx):
+    m = update.message
+    if m.reply_to_message:
+        parent = load_index().get(str(m.reply_to_message.message_id))
+        if parent:
+            await enqueue(update, new_job("feedback", parent=parent, feedback=m.text), "retour")
+            return
+    urls = URL_RE.findall(m.text or "")
+    if urls:
+        await enqueue(update, new_job("script", url=urls[0], note=URL_RE.sub("", m.text).strip()), "script")
+        return
+    await m.reply_text("Envoie un lien (script), une vidéo (montage), ou réponds à un rendu pour donner un retour.")
+
+
+@only_me
+async def cmd_statut(update: Update, ctx):
+    if not current:
+        await update.message.reply_text("Rien en cours.")
+        return
+    lines = Path(current["dir"], "progress.log").read_text().strip().splitlines()[-5:]
+    await update.message.reply_text(f"En cours : {current['dir'].name}\nEn attente : {queue.qsize()}\n\n"
+                                    + "\n".join(lines))
+
+
+@only_me
+async def cmd_bilan(update: Update, ctx):
+    await enqueue(update, new_job("bilan"), "bilan")
+
+
+@only_me
+async def cmd_annuler(update: Update, ctx):
+    last = subprocess.run(["git", "log", "-1", "--format=%H %s", "--grep=^skills:"], cwd=REPO,
+                          capture_output=True, text=True).stdout.strip()
+    if not last:
+        await update.message.reply_text("Aucune mise à jour de skills à annuler.")
+        return
+    sha, subject = last.split(" ", 1)
+    r = subprocess.run(["git", "revert", "--no-edit", sha], cwd=REPO, capture_output=True, text=True)
+    await update.message.reply_text(f"↩️ Annulé : {subject}" if r.returncode == 0 else f"Échec : {r.stderr[-300:]}")
+
+
+async def send_outputs(app: Application, chat_id: int, job_dir: Path, code: int) -> None:
+    out = job_dir / "out"
+    sent_any = False
+    for script in sorted(out.glob("*.md")):
+        if script.name in ("summary.md", "skill_update.md"):
+            continue
+        text = script.read_text()
+        for i in range(0, len(text), 3900):
+            msg = await app.bot.send_message(chat_id, text[i:i + 3900])
+            remember(msg.message_id, job_dir.name)
+        sent_any = True
+    for video in sorted(out.glob("*.mp4")):
+        with open(video, "rb") as fh:
+            msg = await app.bot.send_video(chat_id, fh, caption=f"{job_dir.name} · {video.name}",
+                                           supports_streaming=True, read_timeout=600, write_timeout=600)
+        remember(msg.message_id, job_dir.name)
+        sent_any = True
+    for name in ("summary.md", "skill_update.md"):
+        p = out / name
+        if p.exists():
+            msg = await app.bot.send_message(chat_id, p.read_text()[:3900])
+            remember(msg.message_id, job_dir.name)
+    if not sent_any:
+        await app.bot.send_message(chat_id, f"⚠️ Job {job_dir.name} terminé sans livrable (code {code}). "
+                                            f"Journal : {job_dir / 'claude.log'}")
+    else:
+        await app.bot.send_message(chat_id, "Réponds à la vidéo ou au script pour demander des corrections.")
+
+
+async def worker(app: Application) -> None:
+    while True:
+        chat_id, job_dir = await queue.get()
+        current.update(dir=job_dir)
+        await app.bot.send_message(chat_id, f"🎬 Je commence {job_dir.name}")
+        task = asyncio.create_task(run_job(job_dir))
+        seen = 0
+        while not task.done():
+            await asyncio.sleep(20)
+            lines = (job_dir / "progress.log").read_text().splitlines()
+            if len(lines) > seen:
+                await app.bot.send_message(chat_id, "\n".join("• " + x for x in lines[seen:])[-3900:])
+                seen = len(lines)
+        try:
+            await send_outputs(app, chat_id, job_dir, task.result())
+        except Exception as e:  # noqa: BLE001
+            log.exception("envoi")
+            await app.bot.send_message(chat_id, f"⚠️ Erreur à l'envoi : {e}")
+        current.clear()
+        queue.task_done()
+
+
+async def post_init(app: Application) -> None:
+    JOBS.mkdir(parents=True, exist_ok=True)
+    asyncio.get_running_loop().create_task(worker(app))
+
+
+def main() -> None:
+    b = Application.builder().token(TOKEN).post_init(post_init)
+    if API_URL:
+        b = b.base_url(API_URL).base_file_url(API_URL.replace("/bot", "/file/bot")).local_mode(True)
+    app = b.read_timeout(600).write_timeout(600).build()
+    app.add_handler(CommandHandler(["start", "aide"], cmd_start))
+    app.add_handler(CommandHandler("script", cmd_script))
+    app.add_handler(CommandHandler("clip", cmd_clip))
+    app.add_handler(CommandHandler("statut", cmd_statut))
+    app.add_handler(CommandHandler("bilan", cmd_bilan))
+    app.add_handler(CommandHandler("annuler", cmd_annuler))
+    app.add_handler(MessageHandler(filters.VIDEO | filters.Document.VIDEO, on_video))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
+    app.run_polling(allowed_updates=Update.ALL_TYPES)
+
+
+if __name__ == "__main__":
+    main()
