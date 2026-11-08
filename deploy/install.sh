@@ -23,12 +23,20 @@ fi
 
 echo "==> Paquets système"
 export DEBIAN_FRONTEND=noninteractive
-# Ubuntu fait souvent ses mises à jour automatiques au démarrage : on attend qu'apt soit libre (15 min max).
-for i in $(seq 1 180); do
-  pgrep -x apt-get >/dev/null || pgrep -x apt >/dev/null || pgrep -f unattended-upgr >/dev/null || pgrep -x dpkg >/dev/null || break
+# Ubuntu fait souvent ses mises à jour automatiques au démarrage : on attend qu'apt soit libre.
+# Un apt bloqué depuis plus de 20 min (ancienne installation restée en plan) est arrêté.
+apt_pids() { pgrep -x apt-get; pgrep -x apt; pgrep -f unattended-upgr; pgrep -x dpkg; } 2>/dev/null
+for i in $(seq 1 60); do
+  P=$(apt_pids); [ -z "$P" ] && break
   [ "$i" = 1 ] && echo "==> Attente de la fin des mises à jour automatiques d'Ubuntu…"
+  for p in $P; do
+    age=$(ps -o etimes= -p "$p" 2>/dev/null | tr -d ' ')
+    if [ -n "$age" ] && [ "$age" -gt 1200 ]; then echo "==> apt bloqué depuis $((age/60)) min : je l'arrête"; kill -9 "$p" 2>/dev/null; fi
+  done
   sleep 5
 done
+P=$(apt_pids); [ -n "$P" ] && { echo "==> apt toujours occupé après 5 min : je l'arrête"; kill -9 $P 2>/dev/null; sleep 2; }
+dpkg --configure -a || true
 APT="-o DPkg::Lock::Timeout=600"
 apt-get $APT update -q
 apt-get $APT install -yq ffmpeg git curl unzip python3 python3-venv python3-pip fonts-dejavu-core \
