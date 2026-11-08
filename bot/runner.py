@@ -85,7 +85,8 @@ async def pretranscribe(job_dir: Path, job: dict) -> None:
     words = job_dir / "work" / "words.json"
     if words.exists():
         try:
-            if json.loads(words.read_text()).get("model") == target_model():
+            wj = json.loads(words.read_text())
+            if wj.get("model") == target_model() and ("events" in wj or wj.get("engine") != "scribe"):
                 return  # déjà transcrit avec le bon modèle (job précédent sur la même vidéo)
         except Exception:  # noqa: BLE001
             pass

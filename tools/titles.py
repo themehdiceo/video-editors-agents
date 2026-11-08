@@ -62,7 +62,7 @@ def main():
     ap.add_argument("--h", type=int, default=1080)
     ap.add_argument("--style")
     a = ap.parse_args()
-    st = {"font": "Montserrat Black", "color": "FFFFFF", "highlight": "E3173E", "keyword_scale": 1.25}
+    st = {"font": "Montserrat Black", "color": "FFFFFF", "highlight": "FFD400", "keyword_scale": 1.25}
     if a.style:
         sub = json.load(open(a.style)).get("subtitles", {})
         st.update({k: sub[k] for k in ("color", "highlight") if k in sub})

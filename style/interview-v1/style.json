@@ -14,7 +14,7 @@
     "font": "Montserrat ExtraBold",
     "size": 70,
     "color": "FFFFFF",
-    "highlight": "E3173E",
+    "highlight": "FFD400",
     "outline": 4,
     "y": 0.8,
     "max_words": 9,
@@ -29,7 +29,7 @@
     "duck": false,
     "mood": "aucune"
   },
-  "hook": "20-40 s d'extraits punchy non chronologiques, A/B en alternance, chiffre rouge tôt, puis écran noir 1,5-2 s, puis interview en split 50/50 sans coupe ni sous-titre.",
+  "hook": "20-35 s (idéal 25 s) d'extraits punchy non chronologiques, A/B en alternance, chiffre en jaune tôt, puis écran noir 1,5-2 s, puis interview en split 50/50 sans coupe ni sous-titre.",
   "notes": [
     "Interview = split 50/50, zéro coupe, zéro sous-titre, zéro B-roll.",
     "Entrées de plan : coupes sèches, pas de flou ni de zoom."

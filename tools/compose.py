@@ -30,6 +30,7 @@ plan.json :
   "titles": "work/titles.ass",          # textes animés (tools/titles.py), au-dessus des sous-titres
   "music": {"file": "assets/music/x.mp3", "volume": 0.12, "duck": true, "start": 0.0},
   "sfx": [{"file": "assets/sfx/whoosh.mp3", "at": 2.0, "volume": 0.6}],
+  "mute": [[12.4, 13.1]],          # plages où la voix est coupée (toux) ; temps de la vidéo montée
   "loudness": -14
 }
 """
@@ -184,6 +185,10 @@ def main() -> int:
         idx += 1
 
     labels = ["[voice]"]
+    if plan.get("mute"):  # toux, bruits : voix coupée sur ces plages (temps de la vidéo montée)
+        cond = "+".join(f"between(t,{float(m[0]):.3f},{float(m[1]):.3f})" for m in plan["mute"])
+        audio_mix.append(f"[voice]volume=0:enable='{cond}'[voicem]")
+        labels = ["[voicem]"]
     for e in extra_audio:
         if e.startswith("["):
             if e.endswith("]") and ";" not in e and "=" not in e:

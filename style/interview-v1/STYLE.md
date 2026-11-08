@@ -34,7 +34,7 @@ Le hook ne contient JAMAIS l'intro « bonjour, aujourd'hui avec X ». Il commenc
 - **Sous-titres (hook seulement)** :
   - Police : sans-serif ultra grasse type Montserrat ExtraBold / Black, blanc, contour noir fin + ombre douce.
   - La phrase **se construit mot à mot** (apparition progressive) et reste affichée jusqu'à la fin de la phrase : 2 à 3 lignes, 6 à 10 mots max à l'écran.
-  - **1 à 2 mots-clés par phrase** en **rouge vif** (≈ #E3173E), **italique gras, 1,5 à 2× plus gros** : chiffres (« 25 % », « €15.000 », « 10k », « 50K »), mots d'intensité (« VRAIMENT », « TOUT », « OBLIGATOIRE »), mots métier (« NICHE », « VSL », « TEAM »). Un mot sensible peut être masqué par `***`.
+  - **1 à 2 mots-clés par phrase** en **jaune** (#FFD400, Mehdi ne veut plus de rouge), **italique gras, 1,5 à 2× plus gros** : chiffres (« 25 % », « €15.000 », « 10k », « 50K »), mots d'intensité (« VRAIMENT », « TOUT », « OBLIGATOIRE »), mots métier (« NICHE », « VSL », « TEAM »). Un mot sensible peut être masqué par `***`.
   - Position : **moitié basse**, collée du côté du locuteur quand l'écran est splité ; en plein écran, bas-gauche ou bas-centre (y ≈ 0,70-0,88). Le texte se déplace légèrement d'une phrase à l'autre (ref2 @0:07 haut, @0:14 milieu).
   - Aucun sous-titre pendant l'interview.
 - **Étalonnage** : naturel, non retouché. Luma moyenne 90-140, saturation basse (7-12 sur 255). Pas de LUT, pas de N&B.
@@ -49,24 +49,31 @@ Le hook ne contient JAMAIS l'intro « bonjour, aujourd'hui avec X ». Il commenc
 
 ## Retours de Mehdi (prioritaires sur tout le reste)
 
+### 2026-11-08 – intro v2 : règles qui remplacent les précédentes en cas de conflit
+1. **Coupes logiques** : chaque extrait est une idée complète. Il commence au début d'une phrase (pas au milieu, pas sur « et », « donc », « parce que ») et finit APRÈS la fin de la phrase (ponctuation finale ou silence ≥ 0,3 s, + 0,15 s d'air). Le suspense vient de l'ordre des extraits, jamais d'une phrase coupée. Relis chaque extrait seul : s'il n'a pas de sens sans contexte, change-le.
+2. **Durée du hook : 20 à 35 s, idéal ~25 s.** Choisis ce qui rend le mieux dans cette fourchette.
+3. **Pas de titres en haut ni de cartes texte** (`titles.py` interdit sauf si Mehdi le demande). Uniquement les sous-titres, qui ont plu : sous-titres sur celui qui parle, phrase qui se construit. Moments choc = simples, sans effet.
+4. **Mots-clés en jaune (FFD400), plus jamais en rouge.**
+5. **Toux** : `words.json` contient `events` (toux, raclements… repérés par Scribe). Dans le hook, aucun extrait ne contient de toux (coupe avant/après, au silence). Dans l'interview, coupe la toux si elle tombe entre deux phrases ; si elle est au milieu d'une phrase utile, coupe la voix sur la toux avec `"mute": [[début, fin]]` dans plan.json (temps de la vidéo montée, via la timemap).
+
 ### 2026-11-08 – intro v1 jugée ratée
 1. **Zooms trop serrés** : en plein écran sur une personne, on prend TOUTE sa tuile Meet (tête + épaules visibles, de l'air au-dessus des cheveux, ≥ 8 % de la hauteur). Zoom supplémentaire max ×1,08, et seulement s'il garde la tête entière. Jamais le haut du crâne ou le menton coupés. Vérifie chaque plan sur la planche contact.
-2. **Il faut du texte** : sous-titres « phrase qui se construit » sur tout le hook (`subtitles.py --range`) ET 3 à 5 cartes de texte animées avec `tools/titles.py` : chiffres clés en compteur (« 12 000 DH » → « 60 000 $ / MOIS »), questions-choc de Mehdi en bandeau (`box`), mots-clés en rouge.
+2. **Il faut du texte** : sous-titres « phrase qui se construit » sur tout le hook (`subtitles.py --range`). ~~Cartes titles.py~~ : retiré par l'intro v2, Mehdi n'aime pas les titres en haut.
 3. **Les bons moments** : le hook = les questions-choc de Mehdi + les réponses les plus fortes d'Anas (chiffres, avant/après, peur, décision de quitter le salariat, preuve Shopify). Format : question de Mehdi (2-3 s) → réponse punch d'Anas, 3 ou 4 fois. Pas de phrases au hasard, pas de réponse hors sujet (ex. à « comment t'as quitté le salariat ? », la réponse doit parler de la décision, pas des chiffres). Relis la transcription avec les locuteurs (`speaker` de Scribe) pour associer chaque question à SA réponse.
 4. **Intro d'abord** : quand la note dit « intro seulement », ne rends que le hook (+ 1,8 s de noir), 30-45 s. Pas de rendu de l'interview. Objectif : brouillon livré en moins de 10 min.
 5. **Interview (quand Mehdi l'aura validée)** : on coupe les reprises et ratés (« on refait », « attends », « coupe », faux départs, problème technique, longs blancs). Le reste en écran partagé, sans effets.
 
 ## Garde-fous (vérifiables)
 
-1. Hook entre **20 et 40 s**, jamais plus. (ref1-5 : 22-38 s)
+1. Hook entre **20 et 35 s**, idéal 25 s (retour de Mehdi, intro v2).
 2. Hook ≥ **10 coupes/min** et aucun plan **> 8 s**. (ref1 @8,7 = 7,3 s max)
 3. Les **deux** personnes apparaissent avant **10 s** du hook.
 4. Alternance A/B : jamais 3 extraits d'affilée de la même personne.
-5. **1 à 2 mots rouges** par phrase de sous-titre ; au moins un **chiffre** rouge dans les 10 premières secondes quand l'invité en donne un.
+5. **1 à 2 mots-clés jaunes** par phrase de sous-titre ; au moins un **chiffre** en jaune dans les 10 premières secondes quand l'invité en donne un. Jamais de rouge.
 6. Écran noir de **1,5 à 2 s** entre hook et interview (4-6 s seulement avec carte titre).
 7. Interview : **split 50/50, 0 sous-titre, 0 B-roll, 0 zoom** ; coupes seulement pour enlever reprises, ratés et longs blancs (retour de Mehdi).
 10. Plein écran : tête entière visible, zoom ≤ ×1,08 (retour de Mehdi).
-11. Hook : au moins 3 cartes de texte animées + sous-titres du début à la fin.
+11. Hook : sous-titres du début à la fin, **0 carte titre** (sauf demande de Mehdi). Chaque extrait = phrase complète. 0 toux audible.
 8. Pas de musique ; voix à **-14 LUFS**.
 9. Pas d'image générée, pas de B-roll (aucune dans les refs).
 
@@ -77,7 +84,7 @@ Le hook ne contient JAMAIS l'intro « bonjour, aujourd'hui avec X ». Il commenc
 | Hook d'extraits, coupes serrées | `cut.py` + `keep.json` (extraits choisis à la transcription) | OK |
 | Plein écran sur A ou sur B (recadrage d'un flux splité) | `compose.py` `vf` (crop) sur les segments | OK, à vérifier au 1er job |
 | Split 50/50 pour l'interview | source déjà splitée = `layout: full` sans modification | OK si la source arrive splitée |
-| Sous-titres blanc + mots-clés rouges plus gros, phrase qui se construit | `subtitles.py --style style/interview-v1/style.json --range 0,<fin du hook>` (mode build : phrase cumulée, mots-clés auto ou `"k": true` dans words.json) | OK (ajouté le 2026-11-08) |
+| Sous-titres blanc + mots-clés jaunes plus gros, phrase qui se construit | `subtitles.py --style style/interview-v1/style.json --range 0,<fin du hook>` (mode build : phrase cumulée, mots-clés auto ou `"k": true` dans words.json) | OK (ajouté le 2026-11-08) |
 | Carte titre sur fond noir quadrillé | motion-designer (HyperFrames) | OK |
 | Écran noir 1,8 s | `compose.py` plan noir | OK |
 | Interview sans sous-titres | `--range` limite les sous-titres au hook | OK |

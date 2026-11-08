@@ -18,6 +18,7 @@ Sortie JSON:
 import argparse
 import math
 import json
+import re
 import os
 import subprocess
 import sys
@@ -44,7 +45,7 @@ def scribe(src: str, out: str, lang) -> bool:
                         "-c:a", "aac", "-b:a", "48k", audio], check=True)
         data = open(audio, "rb").read()
     b = uuid.uuid4().hex
-    fields = {"model_id": model, "timestamps_granularity": "word", "diarize": "true", "tag_audio_events": "false"}
+    fields = {"model_id": model, "timestamps_granularity": "word", "diarize": "true", "tag_audio_events": "true"}
     if lang:
         fields["language_code"] = lang
     body = b"".join(f'--{b}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode()
@@ -60,7 +61,12 @@ def scribe(src: str, out: str, lang) -> bool:
         print(f"Scribe indisponible ({e}), passage à Whisper.", file=sys.stderr)
         return False
     words, segs, cur = [], [], None
+    events = []  # toux, rires, raclements de gorge… (Scribe les note entre parenthèses)
     for w in res.get("words", []):
+        if w.get("type") == "audio_event":
+            events.append({"event": w["text"].strip(), "start": round(w["start"], 3), "end": round(w["end"], 3),
+                           "speaker": w.get("speaker_id")})
+            continue
         if w.get("type") != "word":
             continue
         item = {"w": w["text"].strip(), "start": round(w["start"], 3), "end": round(w["end"], 3),
@@ -78,7 +84,9 @@ def scribe(src: str, out: str, lang) -> bool:
         segs.append(cur)
     dur = words[-1]["end"] if words else 0.0
     json.dump({"language": res.get("language_code"), "model": model, "engine": "scribe", "duration": dur,
-               "words": words, "segments": segs}, open(out, "w"), ensure_ascii=False, indent=1)
+               "words": words, "segments": segs, "events": events}, open(out, "w"), ensure_ascii=False, indent=1)
+    coughs = sum(1 for e in events if re.search(r"cough|tou|throat|gorge", e["event"], re.I))
+    print(f"{len(events)} bruits repérés dont {coughs} toux.")
     print(f"{len(words)} mots (Scribe {model}), langue={res.get('language_code')} -> {out}")
     return True
 

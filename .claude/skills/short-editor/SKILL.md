@@ -41,3 +41,7 @@ Lis `style/style.json` avant de commencer. C'est le goût de Mehdi, et il prime 
 
 ## Leçons apprises
 <!-- Le skill-keeper ajoute ici les retours de Mehdi, datés. -->
+- 2026-11-08 (toutes les vidéos, pas seulement les interviews) : une coupe ne laisse jamais une phrase inachevée ni un début de phrase sans contexte. Chaque extrait = idée complète, du début à la fin de la phrase. Le suspense vient de l'ordre des extraits.
+- 2026-11-08 : enlever les toux (`events` de words.json) : couper entre deux phrases, sinon `"mute"` dans plan.json.
+- 2026-11-08 : pas de titres animés en haut de l'écran sauf demande de Mehdi ; il aime les sous-titres seuls. Mots-clés en jaune, jamais en rouge.
+- 2026-11-08 : intro (hook) de 20 à 35 s, idéal 25 s.
