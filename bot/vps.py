@@ -5,6 +5,7 @@ puis le VPS prend le relais et le bot du Mac s'arrête.
 """
 import io
 import os
+import re
 import subprocess
 import sys
 import time
@@ -56,9 +57,20 @@ def install(ip: str, password: str, api_id: str, api_hash: str, report) -> tuple
             for f in files:
                 sftp.put(os.path.join(root, f), f"{remote}/{f}")
     sftp.close()
+    # Dernière version exacte du script (l'adresse « main » de GitHub peut rester en cache 5 min).
+    url = INSTALL_URL
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    try:
+        subprocess.run(["git", "-C", repo, "fetch", "-q", "origin", "main"], timeout=60, check=True)
+        sha = subprocess.run(["git", "-C", repo, "rev-parse", "origin/main"], capture_output=True, text=True,
+                             check=True).stdout.strip()
+        if re.fullmatch(r"[0-9a-f]{40}", sha):
+            url = INSTALL_URL.replace("/main/", f"/{sha}/")
+    except Exception:  # noqa: BLE001
+        pass
     report("📦 Installation en cours (10 à 20 min). Je te donne des nouvelles régulièrement.")
     # nohup : l'installation continue même si le Mac se déconnecte (à la fin, le VPS prend le relais du bot).
-    c.exec_command(f"nohup bash -c 'bash <(curl -fsSL {INSTALL_URL}) /root/vea.env; echo FIN:$?' "
+    c.exec_command(f"nohup bash -c 'bash <(curl -fsSL {url}) /root/vea.env; echo FIN:$?' "
                    "> /root/vea-install.log 2>&1 < /dev/null &")
     seen, start = 0, time.time()
     while time.time() - start < 45 * 60:
