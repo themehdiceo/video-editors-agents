@@ -65,6 +65,12 @@ def target_model() -> str:
 
 
 async def pretranscribe(job_dir: Path, job: dict) -> None:
+    if job["type"] == "feedback" and job.get("parent") and (JOBS / job["parent"] / "job.json").exists():
+        # Retour sur un rendu : on met à niveau la transcription du job d'origine (l'équipe la recopie).
+        plog_child = job_dir / "progress.log"
+        parent_dir = JOBS / job["parent"]
+        await pretranscribe(parent_dir, json.loads((parent_dir / "job.json").read_text()) | {"_log": str(plog_child)})
+        return
     if job["type"] not in ("edit", "clip"):
         return
     srcs = sorted((job_dir / "input").glob("source.*")) or sorted(p for p in (job_dir / "input").iterdir() if p.is_file())
@@ -80,7 +86,7 @@ async def pretranscribe(job_dir: Path, job: dict) -> None:
         words.rename(job_dir / "work" / "words_old.json")
     note = job.get("note", "")
     lang = "ar" if DARIJA_RE.search(note) else (os.environ.get("WHISPER_LANG") or "auto")
-    plog = job_dir / "progress.log"
+    plog = Path(job.get("_log") or job_dir / "progress.log")
     with open(plog, "a") as p:
         p.write("Étape 0 : transcription avec ElevenLabs Scribe (quelques minutes).\n" if os.environ.get("ELEVENLABS_API_KEY")
                 else f"Étape 0 : transcription soignée ({BIG_MODEL}, langue {lang}).\n")
