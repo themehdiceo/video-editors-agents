@@ -29,7 +29,7 @@ Clés demandées par `setup-secrets.sh` (stockées dans `/etc/video-editors-agen
 
 ```bash
 git clone https://github.com/themehdiceo/video-editors-agents.git ~/video-editors-agents
-bash ~/video-editors-agents/deploy/install-mac.sh   # Homebrew, ffmpeg, Whisper, clés
+bash ~/video-editors-agents/deploy/install-mac.sh   # ffmpeg, Whisper, Claude Code, clés (sans Homebrew)
 bash ~/video-editors-agents/deploy/run-mac.sh       # lance le bot (garde la fenêtre ouverte)
 ```
 

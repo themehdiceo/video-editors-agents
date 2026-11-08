@@ -4,7 +4,7 @@
 set -euo pipefail
 APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 set -a; . "$HOME/.video-editors-agents.env"; set +a
-export REPO_DIR="$APP_DIR" PATH="$APP_DIR/.venv/bin:$PATH"
+export REPO_DIR="$APP_DIR" PATH="$APP_DIR/.venv/bin:$HOME/.local/bin:$HOME/.local/node/bin:$HOME/.claude/local:$PATH"
 cd "$APP_DIR/bot"
 echo "Bot lancé. Écris /aide à ton bot sur Telegram."
 exec caffeinate -i python bot.py
