@@ -85,7 +85,7 @@ def scribe(src: str, out: str, lang) -> bool:
     dur = words[-1]["end"] if words else 0.0
     json.dump({"language": res.get("language_code"), "model": model, "engine": "scribe", "duration": dur,
                "words": words, "segments": segs, "events": events}, open(out, "w"), ensure_ascii=False, indent=1)
-    coughs = sum(1 for e in events if re.search(r"cough|tou|throat|gorge", e["event"], re.I))
+    coughs = sum(1 for e in events if re.search(r"cough|tou|throat|gorge|سعال|يسعل|كحة|يكح", e["event"], re.I))
     print(f"{len(events)} bruits repérés dont {coughs} toux.")
     print(f"{len(words)} mots (Scribe {model}), langue={res.get('language_code')} -> {out}")
     return True
