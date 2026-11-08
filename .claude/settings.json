@@ -12,7 +12,7 @@
       "Bash(ffprobe:*)",
       "Bash(yt-dlp:*)",
       "Bash(python3 tools/:*)",
-      "Bash(npx hyperframes:*)",
+      "Bash(npx -y hyperframes@0.9.22:*)",
       "Bash(blender -b:*)",
       "Bash(curl -sSL -o jobs/:*)",
       "Bash(ls:*)",
