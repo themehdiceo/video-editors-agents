@@ -85,6 +85,10 @@ Pour une pub Meta : jamais de promesse de revenus (retirer l'étape 1 chiffrée)
 3. **Autocritique obligatoire** (Mehdi, énervé) : avant de livrer, relis chaque correction demandée, vérifie-la sur la planche contact ET sur les mots de fin d'extrait, puis écris dans summary.md « vérifié : … ». Pas de « corrigé » sans preuve.
 6. **Mot soufflé inaudible** (2026-11-08, « 9der » à 26,64 s) : un mot de début d'extrait peut être 10-15 dB sous le reste (consonne douce, mot dit bas). Subtitle visible + son absent = Mehdi croit à un bug. Pour le 1er mot de chaque extrait, mesure l'énergie (astats, tranches de 10 ms) sur le rendu ; s'il est > 8 dB sous la phrase, ajoute `"boost": [[début_src, fin_src, dB]]` au shot dans plan.json (géré par `tools/hook_build.py`) et remesure.
 
+### 2026-11-08 – intro v10 (ordre validé par Mehdi)
+- **Ordre du hook : preuve d'abord** (plan Shopify dès la 1re image, avec le geste, ≥ 5 s), puis l'ouverture de Mehdi (12 000 DH → 60 000 $), puis le storytelling (peur, décision, 1re vente, conseil). Mehdi : « les preuves, c'est important ».
+- Style et règles précédentes **verrouillés** pour les vidéos interview : ne rien changer d'autre quand il demande seulement un réordonnancement.
+
 ## Garde-fous (vérifiables)
 
 1. Hook entre **20 et 35 s**, idéal 25 s (retour de Mehdi, intro v2).
