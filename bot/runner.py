@@ -33,6 +33,10 @@ HINT = "Interview en darija marocaine mélangée au français. Mehdi, Anas, Prof
 PROMPTS = {
     "script": "Job de type script. Suis la skill short-script, après avoir fait travailler l'agent chercheur.",
     "edit": "Job de type edit. Suis la skill short-editor.",
+    "plan": ("Job de type edit, phase plan. Suis la skill edit-plan : prépare les coupes et écris out/plan.md "
+             "avec 4 idées de scène par ligne. Ne monte pas la vidéo finale."),
+    "build": ("Job de type edit, phase build : Mehdi a validé le plan (champ choices de job.json, plan dans work/plan.md). "
+              "Suis la skill short-editor en montant exactement les scènes choisies."),
     "clip": "Job de type clip. Suis la skill long-to-short.",
     "feedback": ("Job de type feedback : Mehdi a donné un retour sur le job d'origine indiqué dans job.json "
                  "(champ parent). Refais une version corrigée en repartant des fichiers de work/ du job d'origine "
@@ -43,6 +47,10 @@ PROMPTS = {
 
 def new_job(kind: str, **fields) -> Path:
     jid = time.strftime("%Y%m%d-%H%M%S") + f"-{kind}"
+    n = 2
+    while (JOBS / jid).exists():  # deux jobs dans la même seconde
+        jid = time.strftime("%Y%m%d-%H%M%S") + f"-{kind}{n}"
+        n += 1
     d = JOBS / jid
     for sub in ("input", "work", "out"):
         (d / sub).mkdir(parents=True, exist_ok=True)
@@ -84,7 +92,7 @@ async def run_job(job_dir: Path) -> int:
     await pretranscribe(job_dir, job)
     rel = job_dir.relative_to(REPO)
     prompt = (
-        f"Nouveau job : dossier {rel}/. Lis {rel}/job.json. {PROMPTS[job['type']]} "
+        f"Nouveau job : dossier {rel}/. Lis {rel}/job.json. {PROMPTS[job.get('phase') or job['type']]} "
         f"Tous les chemins work/, out/, input/ et progress.log sont relatifs à {rel}/. "
         f"Écris l'avancement dans {rel}/progress.log au fil de l'eau et termine par {rel}/out/summary.md."
     )

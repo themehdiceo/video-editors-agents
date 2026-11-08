@@ -1,10 +1,16 @@
 ---
 name: short-editor
-description: Monter un A-roll face caméra en short vertical 9:16 fini - coupes propres, B-roll, split 50/50, sous-titres, musique, animations, contrôle qualité. Utiliser pour tout job de type edit.
+description: Monter une vidéo finie (YouTube 16:9 par défaut, ou short 9:16) - coupes propres, B-roll, titres et animations, sous-titres, musique, contrôle qualité. Utiliser pour tout job edit en phase build (ou sans phase).
 ---
-# Montage d'un short à partir d'un A-roll
+# Montage (phase build)
 
 Lis `style/style.json` avant de commencer. C'est le goût de Mehdi, et il prime sur tes choix par défaut.
+
+## Si le job vient d'un plan validé (`parent` et `choices` dans job.json)
+- Le dossier `work/` contient déjà le travail de la phase plan (words.json, silences.json, keep.json, plan_options.json) : réutilise-le, ne recommence pas.
+- Lis `work/plan.md` (le plan envoyé à Mehdi) et `choices` (sa réponse). « ok » = toutes les ⭐. « 1B 3A » = ces options, ⭐ pour les autres. Une idée écrite par Mehdi remplace l'option.
+- Monte EXACTEMENT ce qu'il a choisi, scène par scène. Ne rajoute pas d'effet non choisi.
+- Écris `work/cuesheet.md` : chaque scène, ce qui apparaît à l'écran, à quel moment, et le son qui va avec (whoosh à l'entrée d'un titre, pop sur une notification, montée sur un compteur). L'ingé son s'en sert.
 
 ## Étapes (une ligne dans progress.log par étape)
 1. **Préparer** : `ffprobe` la source `input/source.*` (durée, résolution, orientation, fps). Ne la copie pas : travaille directement dessus.
@@ -16,7 +22,12 @@ Lis `style/style.json` avant de commencer. C'est le goût de Mehdi, et il prime 
 7. **Assemblage et QA** → agent `controle-qualite`.
 8. **Résumé** dans `out/summary.md`.
 
-## Règles de montage
+## Règles de montage (YouTube 16:9, par défaut)
+- Plein écran sur celui qui parle. Recadre pour enlever navigateur, barre Meet et vignettes inutiles.
+- Titres et animations aux moments clés (chiffres, preuves, phrases fortes), pas en continu.
+- Sous-titres en bas (style.json), mot actif surligné.
+
+## Règles de montage (short 9:16, si demandé : réglages `short_9x16`)
 - Coupes : transcription ET forme d'onde. Jamais au milieu d'un mot. Pause maximale `pacing.max_pause_s`.
 - Les 2 premières secondes montrent la chose en action (B-roll plein écran), pas le visage.
 - Ensuite, alternance : split `top` (B-roll en haut, visage en bas) la plupart du temps, plein écran B-roll pour les moments forts, visage plein écran pour la chute.

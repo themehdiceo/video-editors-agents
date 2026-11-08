@@ -5,7 +5,9 @@ Commandes (seul TELEGRAM_ALLOWED_USER_ID est écouté) :
   /script <lien>        recherche + script
   /clip <lien> [n]      vidéo longue -> n shorts (1 par défaut)
   (envoi d'une vidéo)   montage d'un A-roll ; légende "clip" ou "clip 3" = vidéo longue
-  (chemin d'un fichier) mode Mac : /Users/.../video.mov, puis "clip 2" à la ligne suivante si vidéo longue
+  (chemin d'un fichier) mode Mac : /Users/.../video.mov, puis ton prompt à la ligne suivante
+  Montage en 2 temps : je t'envoie d'abord un PLAN (4 idées par scène). Réponds-y avec
+    tes choix (« 1B 2A… » ou « ok »), puis je monte. Écris « direct » dans ton prompt pour sauter le plan.
   (réponse à un rendu)  retour -> nouvelle version + mise à jour des skills
   « valide » en réponse  rendu final 1080p du brouillon (ffmpeg seul, sans Claude)
   /statut               job en cours et file d'attente
@@ -69,7 +71,36 @@ def only_me(fn):
     return wrap
 
 
+DIRECT_RE = re.compile(r"\b(direct|sans plan)\b", re.I)
+
+
+def set_phase(job_dir: Path) -> None:
+    """Montage : d'abord un plan que Mehdi valide, sauf s'il écrit « direct » ou « sans plan »."""
+    job = json.loads((job_dir / "job.json").read_text())
+    if job.get("type") == "edit" and not job.get("phase"):
+        job["phase"] = "build" if DIRECT_RE.search(job.get("note", "")) else "plan"
+        (job_dir / "job.json").write_text(json.dumps(job, ensure_ascii=False, indent=1))
+
+
+def start_build(parent_id: str, choices: str) -> Path:
+    """Réponse au plan : nouveau job qui reprend la vidéo et le travail de la phase plan."""
+    src = JOBS / parent_id
+    parent = json.loads((src / "job.json").read_text())
+    d = new_job("edit", phase="build", parent=parent_id, choices=choices, note=parent.get("note", ""),
+                input_file=parent.get("input_file"), source_path=parent.get("source_path"))
+    for f in (src / "input").iterdir():
+        if subprocess.run(["cp", "-c", str(f), str(d / "input" / f.name)], capture_output=True).returncode != 0:
+            shutil.copy2(f, d / "input" / f.name)
+    for f in (src / "work").iterdir():
+        if f.is_file():
+            shutil.copy2(f, d / "work" / f.name)
+    if (src / "out" / "plan.md").exists():
+        shutil.copy2(src / "out" / "plan.md", d / "work" / "plan.md")
+    return d
+
+
 async def enqueue(update: Update, job_dir: Path, label: str) -> None:
+    set_phase(job_dir)
     await queue.put((update.effective_chat.id, job_dir))
     pos = queue.qsize() + (1 if current else 0)
     msg = f"✅ Job {label} reçu ({job_dir.name})."
@@ -123,6 +154,11 @@ async def on_text(update: Update, ctx):
     m = update.message
     if m.reply_to_message:
         parent = load_index().get(str(m.reply_to_message.message_id))
+        pjob = JOBS / parent / "job.json" if parent else None
+        if pjob and pjob.exists() and json.loads(pjob.read_text()).get("phase") == "plan":
+            await m.reply_text("👍 Plan reçu, je lance le montage avec tes choix.")
+            await enqueue(update, await asyncio.to_thread(start_build, parent, m.text or "ok"), "montage")
+            return
         if parent and VALIDATE_RE.match(m.text or ""):
             await validate(update, ctx, parent)
             return
@@ -308,9 +344,13 @@ async def send_outputs(app: Application, chat_id: int, job_dir: Path, code: int)
         if p.exists():
             msg = await app.bot.send_message(chat_id, p.read_text()[:3900])
             remember(msg.message_id, job_dir.name)
+    is_plan = json.loads((job_dir / "job.json").read_text()).get("phase") == "plan"
     if not sent_any:
         await app.bot.send_message(chat_id, f"⚠️ Job {job_dir.name} terminé sans livrable (code {code}). "
                                             f"Journal : {job_dir / 'claude.log'}")
+    elif is_plan:
+        await app.bot.send_message(chat_id, "☝️ Réponds au PLAN (glisse le message vers la droite) avec tes choix : "
+                                            "« 1B 2A 3C… », tes idées, ou « ok » pour mes ⭐.")
     else:
         await app.bot.send_message(chat_id, "Brouillon en 480p. Réponds « valide » à la vidéo pour la version 1080p, "
                                             "ou réponds avec tes corrections.")

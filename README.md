@@ -1,9 +1,9 @@
 # video-editors-agents
 
-Une équipe d'agents Claude Code qui monte des shorts verticaux (9:16) sur un VPS, pilotée depuis Telegram.
+Une équipe d'agents Claude Code qui monte des vidéos YouTube (16:9) et des shorts (9:16) sur un VPS ou un Mac, pilotée depuis Telegram.
 
 - Tu envoies un **lien** et tu reçois un script : hook, note de potentiel, titres, shot list.
-- Tu envoies un **A-roll** (face caméra) et tu reçois le short monté : coupes propres, B-roll, split 50/50, sous-titres, musique, QA.
+- Tu envoies une **vidéo** avec ton prompt. Tu reçois d'abord un **plan** : le script ligne par ligne avec 4 idées de scène. Tu réponds avec tes choix (« 1B 2A… » ou « ok »), puis l'équipe monte : coupes, titres animés, sous-titres, musique, QA. Écris « direct » dans le prompt pour sauter le plan.
 - Tu envoies une **vidéo longue** avec la légende `clip` (ou `clip 3`) et tu reçois les meilleurs passages en shorts.
 - Tu **réponds à un rendu** pour donner un retour : l'équipe fait une nouvelle version et retient la leçon dans ses skills (commit Git, `/annuler` pour revenir en arrière).
 
