@@ -31,8 +31,11 @@ Clés demandées par `setup-secrets.sh` (stockées dans `/etc/video-editors-agen
 ```bash
 git clone https://github.com/themehdiceo/video-editors-agents.git ~/video-editors-agents
 bash ~/video-editors-agents/deploy/install-mac.sh   # ffmpeg, Whisper, Claude Code, clés (sans Homebrew)
-bash ~/video-editors-agents/deploy/run-mac.sh       # lance le bot (garde la fenêtre ouverte)
+bash ~/video-editors-agents/deploy/install-autostart.sh   # le bot démarre seul à chaque session
 ```
+
+Ensuite, plus besoin du Terminal : le bot se met à jour tout seul depuis GitHub (quand aucun job ne tourne)
+et redémarre. `/maj` sur Telegram force la mise à jour.
 
 Sur Mac, pour une grosse vidéo (plus de 20 Mo), n'envoie pas le fichier : envoie au bot son **chemin**. Glisse le fichier depuis le Finder dans un Terminal pour copier le chemin. Pour une vidéo longue, ajoute `clip 2` à la ligne suivante.
 

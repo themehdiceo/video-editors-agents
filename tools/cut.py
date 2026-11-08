@@ -63,11 +63,13 @@ def main() -> int:
         parts.append(f"[0:a]atrim=start={r['start']}:end={r['end']},asetpts=PTS-STARTPTS,"
                      f"afade=t=in:d=0.015,afade=t=out:st={fo:.3f}:d=0.015[a{i}];")
         labels.append(f"[v{i}][a{i}]")
-    graph = "".join(parts) + "".join(labels) + f"concat=n={len(ranges)}:v=1:a=1[v][a]"
-
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", a.src, "-filter_complex", graph,
-                    "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-preset", "medium", "-crf", "18",
-                    "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", a.out], check=True)
+    # 30 i/s (le rendu final est en 30 i/s) et preset rapide : 3 à 5 fois plus vite qu'avant, qualité gardée (crf 17).
+    graph = "".join(parts) + "".join(labels) + f"concat=n={len(ranges)}:v=1:a=1[vc][a];[vc]fps=30[v]"
+    import ffprogress
+    ffprogress.run(["ffmpeg", "-y", "-loglevel", "error", "-i", a.src, "-filter_complex", graph,
+                    "-map", "[v]", "-map", "[a]", "-c:v", "libx264", "-preset", "veryfast", "-crf", "17",
+                    "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", a.out],
+                   sum(r["end"] - r["start"] for r in ranges), ffprogress.find_log(a.out), "Découpe")
 
     t, tm = 0.0, []
     for r in ranges:

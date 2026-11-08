@@ -201,7 +201,9 @@ def main() -> int:
            "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", out]
     if os.environ.get("COMPOSE_DEBUG"):
         print(" ".join(cmd))
-    subprocess.run(cmd, check=True)
+    import ffprogress  # avancement + temps restant dans progress.log
+    ffprogress.run(cmd, total, ffprogress.find_log(plan_path),
+                   "Rendu final 1080p" if final else "Rendu du brouillon")
     print(f"Rendu {'FINAL' if final else 'brouillon'} OK : {out} ({total:.1f}s, {W}x{H})")
     return 0
 

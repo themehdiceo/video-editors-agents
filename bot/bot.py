@@ -13,6 +13,7 @@ Commandes (seul TELEGRAM_ALLOWED_USER_ID est écouté) :
   (réponse à un rendu)  retour -> nouvelle version + mise à jour des skills
   « valide » en réponse  rendu final 1080p du brouillon (ffmpeg seul, sans Claude)
   /statut               job en cours et file d'attente
+  /maj                  installe tout de suite les dernières améliorations (sinon : automatique)
   /bilan                propose des améliorations des skills
   /annuler              annule la dernière mise à jour des skills (git revert)
 """
@@ -338,6 +339,59 @@ async def cmd_annuler(update: Update, ctx):
     await update.message.reply_text(f"↩️ Annulé : {subject}" if r.returncode == 0 else f"Échec : {r.stderr[-300:]}")
 
 
+# ---------- Mises à jour automatiques (plus besoin du Terminal) ----------
+def git(*args) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True)
+
+
+def pull_updates():
+    """Récupère les nouveautés de GitHub. Renvoie (True, liste des changements), (False, erreur) ou None si rien."""
+    if git("fetch", "-q", "origin", "main").returncode != 0:
+        return None
+    if git("rev-list", "--count", "HEAD..origin/main").stdout.strip() in ("", "0"):
+        return None
+    news = git("log", "--format=• %s", "HEAD..origin/main").stdout.strip()
+    r = git("pull", "-q", "--rebase", "--autostash", "origin", "main")
+    if r.returncode != 0:
+        git("rebase", "--abort")
+        return False, r.stderr.strip()[-300:]
+    return True, news
+
+
+async def update_and_restart(app: Application, force_msg: bool = False) -> None:
+    res = await asyncio.to_thread(pull_updates)
+    if res is None:
+        if force_msg:
+            await app.bot.send_message(ALLOWED, "✅ Déjà à jour.")
+        return
+    ok, info = res
+    if not ok:
+        await app.bot.send_message(ALLOWED, "⚠️ Mise à jour impossible (conflit avec une modification locale). "
+                                            "Préviens Claude dans le projet.\n" + info)
+        return
+    await app.bot.send_message(ALLOWED, "🔄 Mise à jour installée, je redémarre (10 s) :\n" + "\n".join(info.splitlines()[:6]))
+    os._exit(0)  # le lanceur (run-mac.sh ou systemd) relance le bot avec le nouveau code
+
+
+async def updater(app: Application) -> None:
+    """Toutes les 10 min, quand aucun job ne tourne : installe les nouveautés et redémarre."""
+    while True:
+        await asyncio.sleep(600)
+        if not current and queue.empty():
+            try:
+                await update_and_restart(app)
+            except Exception:  # noqa: BLE001
+                log.exception("mise à jour")
+
+
+@only_me
+async def cmd_maj(update: Update, ctx):
+    if current or not queue.empty():
+        await update.message.reply_text("Un job est en cours : je me mettrai à jour tout seul dès qu'il sera fini.")
+        return
+    await update_and_restart(ctx.application, force_msg=True)
+
+
 async def send_outputs(app: Application, chat_id: int, job_dir: Path, code: int) -> None:
     out = job_dir / "out"
     sent_any = False
@@ -434,11 +488,17 @@ async def worker(app: Application) -> None:
             await app.bot.send_message(chat_id, f"⚠️ Erreur à l'envoi : {e}")
         current.clear()
         queue.task_done()
+        if queue.empty():  # job fini : on installe les améliorations en attente
+            try:
+                await update_and_restart(app)
+            except Exception:  # noqa: BLE001
+                log.exception("mise à jour")
 
 
 async def post_init(app: Application) -> None:
     JOBS.mkdir(parents=True, exist_ok=True)
     asyncio.get_running_loop().create_task(worker(app))
+    asyncio.get_running_loop().create_task(updater(app))
 
 
 def main() -> None:
@@ -452,6 +512,7 @@ def main() -> None:
     app.add_handler(CommandHandler("clip", cmd_clip))
     app.add_handler(CommandHandler("statut", cmd_statut))
     app.add_handler(CommandHandler("style", cmd_style))
+    app.add_handler(CommandHandler("maj", cmd_maj))
     app.add_handler(CommandHandler("bilan", cmd_bilan))
     app.add_handler(CommandHandler("annuler", cmd_annuler))
     app.add_handler(MessageHandler(filters.VIDEO | filters.Document.VIDEO, on_video))
