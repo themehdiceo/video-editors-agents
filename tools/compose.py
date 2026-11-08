@@ -3,7 +3,7 @@
 
 Usage: compose.py <plan.json> [--final]
 
-Par défaut : BROUILLON 480x854 (rendu rapide, fichier léger) -> out/final.mp4
+Par défaut : BROUILLON 480p (480x854 en 9:16, 854x480 en 16:9) (rendu rapide, fichier léger) -> out/final.mp4
 --final     : rendu 1080x1920 depuis les mêmes sources -> out/final_1080.mp4
               (lancé par le bot quand Mehdi répond « valide », sans Claude)
 Les chemins du plan sont relatifs au dossier du job (parent de work/).
@@ -69,7 +69,7 @@ def main() -> int:
 
     fmt = plan.get("format", {})
     FW, FH, FPS = fmt.get("w", 1080), fmt.get("h", 1920), fmt.get("fps", 30)
-    k = 1.0 if final else 480 / FW          # facteur d'échelle du brouillon
+    k = 1.0 if final else 480 / min(FW, FH)  # brouillon : petit côté à 480 px (9:16 ou 16:9)
     W, H = int(FW * k) // 2 * 2, int(FH * k) // 2 * 2
     aroll = P(plan["aroll"])
     total = probe_duration(aroll)

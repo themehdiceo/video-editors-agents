@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Transcription mot à mot avec faster-whisper.
 
-Usage: transcribe.py <video_ou_audio> <sortie.json> [--model small] [--lang fr]
+Usage: transcribe.py <video_ou_audio> <sortie.json> [--model small] [--lang fr|ar|auto]
 
 Sortie JSON:
 {"language": "fr", "duration": 61.2,
@@ -30,6 +30,8 @@ def main() -> int:
     ap.add_argument("--model", default=os.environ.get("WHISPER_MODEL", "small"))
     ap.add_argument("--lang", default=os.environ.get("WHISPER_LANG") or None)
     args = ap.parse_args()
+    if args.lang in ("auto", ""):
+        args.lang = None  # détection automatique
 
     from faster_whisper import WhisperModel  # import tardif: lourd
 

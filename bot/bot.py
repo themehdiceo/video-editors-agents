@@ -126,19 +126,65 @@ async def on_text(update: Update, ctx):
         if parent:
             await enqueue(update, new_job("feedback", parent=parent, feedback=m.text), "retour")
             return
-    # Mode Mac : un chemin de fichier local (glissé depuis le Finder) au lieu d'un envoi Telegram
-    local = Path(os.path.expanduser((m.text or "").strip().split("\n")[0].strip().strip("'\""))).resolve()
-    if local.suffix.lower() in (".mp4", ".mov", ".mkv", ".m4v", ".webm") and local.is_file():
-        rest = (m.text or "").split("\n", 1)[1].strip() if "\n" in (m.text or "") else ""
+    # Telegram découpe les longs messages : on regroupe ce qui arrive en quelques secondes.
+    buf = ctx.chat_data.setdefault("buf", [])
+    buf.append(m.text or "")
+    if t := ctx.chat_data.get("timer"):
+        t.cancel()
+    ctx.chat_data["timer"] = asyncio.get_running_loop().create_task(flush_text(update, ctx))
+
+
+VIDEO_EXT = (".mp4", ".mov", ".mkv", ".m4v", ".webm")
+SEARCH_DIRS = ("Movies", "Desktop", "Downloads", "Documents", "Pictures")
+
+
+def find_local_video(line: str):
+    """Chemin complet, ou simple nom de fichier cherché dans les dossiers habituels du Mac."""
+    line = line.strip().strip("'\"").replace("\\ ", " ")
+    if not line or len(line) > 300:
+        return None
+    p = Path(os.path.expanduser(line))
+    if p.is_absolute():
+        return p.resolve() if p.suffix.lower() in VIDEO_EXT and p.is_file() else None
+    norm = lambda x: re.sub(r"[\W_]+", "", x.lower())
+    want = norm(Path(line).stem if Path(line).suffix.lower() in VIDEO_EXT else line)
+    if len(want) < 6:
+        return None
+    for d in SEARCH_DIRS:
+        base = Path.home() / d
+        if not base.is_dir():
+            continue
+        for f in [*base.glob("*"), *base.glob("*/*"), *base.glob("*/*/*")]:
+            if f.suffix.lower() in VIDEO_EXT and norm(f.stem).startswith(want) and f.is_file():
+                return f.resolve()
+    return None
+
+
+async def flush_text(update: Update, ctx) -> None:
+    await asyncio.sleep(4)
+    text = "\n".join(ctx.chat_data.pop("buf", [])).strip()
+    ctx.chat_data.pop("timer", None)
+    m = update.message
+    first, _, rest = text.partition("\n")
+    local = find_local_video(first)
+    if local:
+        rest = rest.strip()
         kind = "clip" if rest.lower().startswith("clip") else "edit"
-        count = int(re.search(r"\d", rest).group()) if kind == "clip" and re.search(r"\d", rest) else 1
-        job_dir = new_job(kind, note=rest, count=count, input_file="input/source" + local.suffix.lower())
+        count = int(re.search(r"\d", rest[:10]).group()) if kind == "clip" and re.search(r"\d", rest[:10]) else 1
+        job_dir = new_job(kind, note=rest, count=count, input_file="input/source" + local.suffix.lower(),
+                          source_path=str(local))
         os.symlink(local, job_dir / "input" / ("source" + local.suffix.lower()))
+        await m.reply_text(f"🎞️ Vidéo trouvée : {local}")
         await enqueue(update, job_dir, "montage" if kind == "edit" else "clip")
         return
-    urls = URL_RE.findall(m.text or "")
+    urls = URL_RE.findall(text)
     if urls:
-        await enqueue(update, new_job("script", url=urls[0], note=URL_RE.sub("", m.text).strip()), "script")
+        await enqueue(update, new_job("script", url=urls[0], note=URL_RE.sub("", text).strip()), "script")
+        return
+    if len(first) < 300 and not first.startswith("/"):
+        await m.reply_text(f"Je ne trouve pas la vidéo « {first[:80]} » dans Vidéos, Bureau, Téléchargements "
+                           "ni Documents. Envoie son chemin complet (glisse le fichier dans le Terminal pour l'avoir), "
+                           "puis ton prompt à la ligne.")
         return
     await m.reply_text("Envoie un lien (script), une vidéo (montage), ou réponds à un rendu pour donner un retour.")
 
