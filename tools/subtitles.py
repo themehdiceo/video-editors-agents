@@ -56,7 +56,7 @@ def remap(words, timemap):
 def group(words, n, max_gap):
     groups, cur = [], []
     for w in words:
-        if cur and (len(cur) >= n or w["start"] - cur[-1]["end"] > max_gap
+        if cur and (len(cur) >= n or cur[-1].get("br") or w["start"] - cur[-1]["end"] > max_gap
                     or cur[-1]["w"].endswith((".", "!", "?", ","))):
             groups.append(cur)
             cur = []

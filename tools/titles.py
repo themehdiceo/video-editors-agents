@@ -96,6 +96,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         anim = (r"\an" + str(al) + rf"\pos({x},{y})\fs{size}\blur10\alpha&HFF&\fscx82\fscy82"
                 r"\t(0,250,\blur0\alpha&H00&\fscx104\fscy104)\t(250,380,\fscx100\fscy100)"
                 + rf"\fad(0,150)")
+        if c.get("label"):  # étiquette verte au-dessus + filet vert qui s'ouvre sous le texte (design « question »)
+            lab_y = y - int(0.075 * a.h)
+            ev.append(f"Dialogue: 2,{ts(at)},{ts(at + dur)},T,,0,0,0,,{{\\an8\\pos({x},{lab_y})\\fs{int(34 * k)}\\fsp{int(9 * k)}"
+                      f"\\c{hi}&\\bord0\\shad0\\alpha&HFF&\\t(0,200,\\alpha&H00&)\\fad(0,150)}}{c['label']}")
+            ly, hw = y + int(size * 1.55), int(150 * k)
+            ev.append(f"Dialogue: 2,{ts(at + 0.15)},{ts(at + dur)},T,,0,0,0,,{{\\an5\\pos({x},{ly})\\c{hi}&\\bord0\\shad0"
+                      f"\\p1\\fscx10\\t(0,350,\\fscx100)\\fad(0,150)}}m {-hw} 0 l {hw} 0 {hw} {max(4, int(7 * k))} {-hw} {max(4, int(7 * k))}{{\\p0}}")
         if "count" in c:
             cnt = c["count"]
             n0, n1 = float(cnt.get("from", 0)), float(cnt["to"])

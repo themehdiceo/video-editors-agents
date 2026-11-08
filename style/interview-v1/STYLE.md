@@ -73,6 +73,12 @@ Pour une pub Meta : jamais de promesse de revenus (retirer l'étape 1 chiffrée)
 4. **Intro d'abord** : quand la note dit « intro seulement », ne rends que le hook (+ 1,8 s de noir), 30-45 s. Pas de rendu de l'interview. Objectif : brouillon livré en moins de 10 min.
 5. **Interview (quand Mehdi l'aura validée)** : on coupe les reprises et ratés (« on refait », « attends », « coupe », faux départs, problème technique, longs blancs). Le reste en écran partagé, sans effets.
 
+### 2026-11-08 – intro v3 → v4 (remplace les règles 3 et 4 de la v2 en cas de conflit)
+1. **Raccord promesse** : quand Mehdi annonce le sujet (« Anas qui était salarié à 12 000 dh… maintenant 50-60 000 $ »), garde la phrase entière, y compris le lien (« kifach sawbna boutique li ktdkhel haliyan »). Jamais « 12 000 » puis saut direct au « 50 000 ». Vérifie `words.json` mot à mot autour des deux chiffres avant de couper.
+2. **Les cartes texte sont revenues** (Mehdi les a gardées, il veut juste mieux) : les questions de Mehdi en bandeau avec **étiquette verte QUESTION + filet vert** (`"label": "QUESTION"` dans la carte, `titles.py`), UNE seule ligne. Pas de carte à 2 lignes avec étiquette (le filet coupe le texte).
+3. **Mots-clés en vert émeraude 1FBF6F** (plus de jaune, plus de rouge). Mehdi : « vert pas foncé, vert sombre, stylé ».
+4. **Son** : le noir final doit avoir le même nombre de canaux que les extraits (mono), sinon `concat -c copy` casse l'audio de la fin. Contrôle le son sur les 5 dernières secondes.
+
 ## Garde-fous (vérifiables)
 
 1. Hook entre **20 et 35 s**, idéal 25 s (retour de Mehdi, intro v2).
