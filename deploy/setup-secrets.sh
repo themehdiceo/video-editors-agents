@@ -19,7 +19,7 @@ fi
 
 ask() { # nom, explication, secret(1/0)
   local cur; cur=$(grep -E "^$1=" $ENV | cut -d= -f2- || true)
-  [ "$IMPORT" = 1 ] && [ -n "$cur" ] && return
+  [ "$IMPORT" = 1 ] && return   # installation lancée par le bot : jamais de question
   echo; echo "$2"
   [ -n "$cur" ] && echo "(déjà défini : Entrée pour garder)"
   if [ "$3" = 1 ]; then read -rsp "$1 = " v; echo; else read -rp "$1 = " v; fi

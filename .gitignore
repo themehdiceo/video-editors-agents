@@ -5,3 +5,4 @@ __pycache__/
 .env
 assets/fonts/*.ttf
 .sur-vps
+.annonce-vps

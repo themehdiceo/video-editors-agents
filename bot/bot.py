@@ -596,9 +596,52 @@ async def worker(app: Application) -> None:
 
 async def post_init(app: Application) -> None:
     JOBS.mkdir(parents=True, exist_ok=True)
+    hello = REPO / ".annonce-vps"
+    if sys.platform.startswith("linux") and not hello.exists():
+        hello.write_text("ok\n")
+        await app.bot.send_message(ALLOWED, "🟢 Le VPS a pris le relais : je tourne maintenant 24 h/24. "
+                                            "Envoie tes vidéos directement ici.")
     for _ in range(MAX_JOBS):
         asyncio.get_running_loop().create_task(worker(app))
     asyncio.get_running_loop().create_task(updater(app))
+
+
+@only_me
+async def cmd_vps(update: Update, ctx):
+    """/vps IP MOTDEPASSE API_ID API_HASH : le bot installe le VPS lui-même, puis lui passe le relais."""
+    m = update.message
+    args = (m.text or "").split()[1:]
+    try:
+        await m.delete()  # le mot de passe ne reste pas dans la conversation
+        deleted = True
+    except Exception:  # noqa: BLE001
+        deleted = False
+    if len(args) != 4:
+        await ctx.bot.send_message(ALLOWED, "Écris : /vps IP MOTDEPASSE API_ID API_HASH (sur une ligne, séparés par des espaces).")
+        return
+    if current or not queue.empty():
+        await ctx.bot.send_message(ALLOWED, "Un montage est en cours : renvoie /vps quand il sera fini.")
+        return
+    ip, pwd, api_id, api_hash = args
+    await ctx.bot.send_message(ALLOWED, "🚀 Je m'occupe du VPS." + ("" if deleted else
+                               " Supprime ton message avec le mot de passe (appui long > Supprimer)."))
+    loop = asyncio.get_running_loop()
+    report = lambda t: asyncio.run_coroutine_threadsafe(ctx.bot.send_message(ALLOWED, t), loop)
+    import vps
+    try:
+        ok, tail = await asyncio.to_thread(vps.install, ip, pwd, api_id, api_hash, report)
+    except Exception as e:  # noqa: BLE001
+        await ctx.bot.send_message(ALLOWED, f"⚠️ Connexion au VPS impossible : {type(e).__name__} {e}. "
+                                            "Vérifie l'IP et le mot de passe, puis renvoie /vps.")
+        return
+    if not ok:
+        await ctx.bot.send_message(ALLOWED, "⚠️ L'installation a échoué. Fin du journal (à transmettre à Claude) :\n" + tail[-3000:])
+        return
+    VPS_MARK.write_text("Le bot tourne sur le VPS. Supprime ce fichier pour le relancer sur le Mac.\n")
+    await ctx.bot.send_message(ALLOWED, "✅ VPS installé, il prend le relais 24 h/24. Le bot du Mac s'arrête. "
+                                        "Envoie /aide dans 2 minutes pour vérifier. Envoie maintenant tes vidéos directement ici.")
+    await asyncio.sleep(2)
+    os._exit(3)
 
 
 VPS_MARK = REPO / ".sur-vps"  # sur le Mac : le VPS a pris le relais
@@ -641,6 +684,7 @@ def main() -> None:
     app.add_handler(CommandHandler("bilan", cmd_bilan))
     app.add_handler(CommandHandler("annuler", cmd_annuler))
     app.add_error_handler(on_error)
+    app.add_handler(CommandHandler("vps", cmd_vps))
     app.add_handler(CallbackQueryHandler(on_rate, pattern=r"^rate:"))
     app.add_handler(MessageHandler(filters.VIDEO | filters.Document.VIDEO, on_video))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
