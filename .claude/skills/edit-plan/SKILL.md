@@ -12,7 +12,8 @@ Lis `style/style.json` et la note de Mehdi dans job.json (elle prime).
 ## Étapes (une ligne dans progress.log par étape)
 1. **Préparer** : `ffprobe` la source. `work/words.json` existe déjà (transcription faite par le bot).
 2. **Silences** : `python3 tools/silences.py <source> work/silences.json`.
-3. **Sélection** → agent `monteur-aroll` : choisit les passages qui répondent à la note (durée demandée, phrases citées) et écrit `work/keep.json`. Pas encore de rendu final, mais fais `work/aroll_cut.mp4` (cut.py) pour vérifier.
+3. **Copy** → agent `copywriter-video-editor` : choisit les phrases les plus impactantes (hook, ordre des extraits) et propose les mots-clés des sous-titres. Écrit `work/copy.md`.
+   **Sélection** → agent `monteur-aroll` : part de `work/copy.md`, choisit les passages qui répondent à la note (durée demandée, phrases citées) et écrit `work/keep.json`. Pas encore de rendu final, mais fais `work/aroll_cut.mp4` (cut.py) pour vérifier.
 4. **Regarder** : planche contact de la source autour des passages retenus (`tools/frames.py --at …`). Note ce qui est à l'écran (qui parle, écran partagé, téléphone, chiffres).
 5. **Écrire `out/plan.md`** (format ci-dessous), puis `work/plan_options.json` avec les mêmes données (`[{"n", "src_start", "src_end", "text", "options": {"A": "...", ...}, "reco": "B"}]`).
 6. **Résumé** dans `out/summary.md` : 2 à 4 lignes (durée du montage prévu, doutes sur la transcription).
