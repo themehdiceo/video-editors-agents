@@ -76,6 +76,8 @@ def only_me(fn):
     return wrap
 
 
+# « demande à Jeremy / Hormozi / au copywriter … » : une question à l'équipe, sans montage.
+ASK_RE = re.compile(r"\b(demande|demandes|demander|pose|question)\b.{0,40}\b(j[eé]r[eé]m\w*|haynes|hormo\w*|alex|copy\s*writ\w*|copywriter)", re.I | re.S)
 PLAN_RE = re.compile(r"\b(mode plan|avec (le )?plan|plan d'abord)\b", re.I)
 
 
@@ -166,6 +168,12 @@ async def on_text(update: Update, ctx):
             return
         if parent and VALIDATE_RE.match(m.text or ""):
             await validate(update, ctx, parent)
+            return
+        if parent and json.loads((JOBS / parent / "job.json").read_text()).get("type") == "ask":
+            prev = json.loads((JOBS / parent / "job.json").read_text())
+            hist = prev.get("history", []) + [f"Question : {prev.get('question')}",
+                                                f"Réponse : {(JOBS / parent / 'out' / 'answer.md').read_text()[:3000] if (JOBS / parent / 'out' / 'answer.md').exists() else ''}"]
+            await enqueue(update, new_job("ask", question=m.text, history=hist), "question")
             return
         if parent:
             pdir = JOBS / parent
@@ -262,6 +270,10 @@ async def flush_text(update: Update, ctx) -> None:
     urls = URL_RE.findall(text)
     if urls:
         await enqueue(update, new_job("script", url=urls[0], note=URL_RE.sub("", text).strip()), "script")
+        return
+    if ASK_RE.search(text):
+        await m.reply_text("🧠 Je pose ta question à l'équipe (copywriter, Hormozi, Haynes), réponse dans quelques minutes.")
+        await enqueue(update, new_job("ask", question=text), "question")
         return
     # Pas de vidéo ni de lien : on continue sur la dernière vidéo travaillée (Mehdi n'a pas à tout redire).
     fb = ctx.chat_data.pop("feedback_for", None)
@@ -491,6 +503,10 @@ async def send_outputs(app: Application, chat_id: int, job_dir: Path, code: int)
             remember(msg.message_id, job_dir.name)
     job = json.loads((job_dir / "job.json").read_text())
     is_plan = job.get("phase") == "plan"
+    if job.get("type") == "ask":
+        if not sent_any:
+            await app.bot.send_message(chat_id, f"⚠️ Pas de réponse pour {job_dir.name} (code {code}).")
+        return
     if job.get("type") in ("style", "bilan") and (out / "summary.md").exists():
         if job["type"] == "style":
             await app.bot.send_message(chat_id, f"🎨 Style « {job.get('name')} » prêt. Écris « style {job.get('name')} » "

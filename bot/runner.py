@@ -47,6 +47,12 @@ PROMPTS = {
                  "Repars des fichiers de work/ du job parent (copie-les), ne refais que ce qui est demandé, "
                  "puis applique la skill skill-keeper pour que ce retour serve aux prochaines vidéos."),
     "style": "Job de type style. Suis la skill style-trainer.",
+    "ask": ("Job de type ask : Mehdi pose une question à son équipe (champ question de job.json ; history = l'échange "
+            "précédent). Pas de montage. Délègue à l'agent copywriter-video-editor, qui répond avec les méthodes de ses notes "
+            "privées (private/mentors : copywriter, Alex Hormozi, Jeremy Haynes) ; si Mehdi vise un seul mentor, réponds dans sa "
+            "voix et précise qui parle. Si la question porte sur une vidéo, lis les jobs récents (jobs/*/work/copy.md, words.json). "
+            "Écris la réponse en français dans out/answer.md : courte (moins de 25 lignes), concrète, avec les règles citées. "
+            "Si la réponse donne une règle de montage que Mehdi valide plus tard, le skill-keeper l'ajoutera. Pas de summary.md."),
     "bilan": ("Job de type bilan. Suis la section /bilan de la skill skill-keeper. Si job.json contient auto: true, "
               "c'est le bilan automatique toutes les 5 notes : applique toi-même les changements (section Bilan automatique)."),
 }
