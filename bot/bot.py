@@ -149,7 +149,7 @@ async def on_video(update: Update, ctx):
     caption = (m.caption or "").strip()
     kind = "clip" if caption.lower().startswith("clip") else "edit"
     count = int(re.search(r"\d", caption).group()) if kind == "clip" and re.search(r"\d", caption) else 1
-    job_dir = new_job(kind, note=caption, count=count, input_file="input/source.mp4")
+    job_dir = new_job(kind, note=caption, count=count, input_file="input/source.mp4", conseils=recent_advice())
     await m.reply_text("⬇️ Je récupère la vidéo…")
     f = await ctx.bot.get_file(media.file_id)
     await f.download_to_drive(job_dir / "input" / "source.mp4")
