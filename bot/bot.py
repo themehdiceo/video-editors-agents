@@ -27,7 +27,11 @@ from runner import JOBS, REPO, new_job, run_job
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("bot")
 
-TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+TOKEN = os.environ["TELEGRAM_BOT_TOKEN"].strip()
+if not re.fullmatch(r"\d+:[\w-]{30,}", TOKEN):
+    raise SystemExit("TELEGRAM_BOT_TOKEN mal copié : il doit ressembler à 123456789:AAH... "
+                     "(chiffres, deux-points, puis environ 35 caractères). Corrige-le avec : "
+                     "open -e ~/.video-editors-agents.env")
 ALLOWED = int(os.environ["TELEGRAM_ALLOWED_USER_ID"])
 API_URL = os.environ.get("TELEGRAM_API_URL", "")  # ex: http://127.0.0.1:8081/bot (serveur Bot API local)
 URL_RE = re.compile(r"https?://\S+")
