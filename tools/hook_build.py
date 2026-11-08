@@ -58,6 +58,10 @@ def main():
                     return f"crop={cw}:{tl['h']}:{cx}:{tl['y']}"
                 vf = (f"[0:v]split=2[p][q];[p]{crop(a)},scale={W // 2}:{H},setsar=1[l];"
                       f"[q]{crop(m)},scale={W // 2}:{H},setsar=1[r];[l][r]hstack,fps={FPS}[v]")
+            elif lay == "zoom":
+                # zoom sur une zone de la source (x, y, w, h en pixels source), plein cadre : cache ce qui est hors zone
+                zx, zy, zw, zh = sh["crop"]
+                vf = f"[0:v]crop={zw}:{zh}:{zx}:{zy},scale={W}:{H},setsar=1,fps={FPS}[v]"
             else:
                 tl = tiles[lay]
                 vf = (f"[0:v]crop={tl['w']}:{tl['h']}:{tl['x']}:{tl['y']},split=2[a][b];"

@@ -113,3 +113,7 @@ Pour une pub Meta : jamais de promesse de revenus (retirer l'étape 1 chiffrée)
 ## Ce que ces refs ne disent pas
 - Les refs ne montrent pas de musique ni de SFX : si Mehdi en veut, il le dira dans le retour.
 - La source de l'interview doit arriver avec les 2 flux déjà côte à côte ou 2 fichiers séparés ; si c'est un seul fichier plein cadre sur 1 personne, dire dans le résumé que le split est impossible.
+
+## Leçons apprises (retours de Mehdi)
+- **Vie privée à l'écran** : ne jamais montrer le nom de la boutique ni le logo (« BenzSkin », « Benz ») d'un dashboard partagé. Zoom sur la zone des chiffres sous l'en-tête : `"layout": "zoom", "crop": [x,y,w,h]` (pixels source) dans plan.json (`tools/hook_build.py`). Toujours vérifier la planche contact : aucun nom lisible.
+- **Toux de Mehdi pendant que l'invité parle** : si Scribe ne note pas de mot mais que l'énergie audio sursaute dans un trou de la voix de l'invité, c'est la toux. Finir l'extrait sur la dernière phrase complète avant (silence à l'énergie < 150). Vérifier l'énergie (rms 50 ms) de chaque extrait avant de livrer.
