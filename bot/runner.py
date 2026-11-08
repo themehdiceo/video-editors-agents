@@ -60,6 +60,10 @@ def new_job(kind: str, **fields) -> Path:
     return d
 
 
+def target_model() -> str:
+    return os.environ.get("SCRIBE_MODEL", "scribe_v1") if os.environ.get("ELEVENLABS_API_KEY") else BIG_MODEL
+
+
 async def pretranscribe(job_dir: Path, job: dict) -> None:
     if job["type"] not in ("edit", "clip"):
         return
@@ -69,7 +73,7 @@ async def pretranscribe(job_dir: Path, job: dict) -> None:
     words = job_dir / "work" / "words.json"
     if words.exists():
         try:
-            if json.loads(words.read_text()).get("model") == BIG_MODEL:
+            if json.loads(words.read_text()).get("model") == target_model():
                 return  # déjà transcrit avec le bon modèle (job précédent sur la même vidéo)
         except Exception:  # noqa: BLE001
             pass
@@ -78,7 +82,8 @@ async def pretranscribe(job_dir: Path, job: dict) -> None:
     lang = "ar" if DARIJA_RE.search(note) else (os.environ.get("WHISPER_LANG") or "auto")
     plog = job_dir / "progress.log"
     with open(plog, "a") as p:
-        p.write(f"Étape 0 : transcription soignée ({BIG_MODEL}, langue {lang}). Premier lancement : téléchargement du modèle (1,6 Go).\n")
+        p.write("Étape 0 : transcription avec ElevenLabs Scribe (quelques minutes).\n" if os.environ.get("ELEVENLABS_API_KEY")
+                else f"Étape 0 : transcription soignée ({BIG_MODEL}, langue {lang}).\n")
     cmd = [sys.executable, str(REPO / "tools" / "transcribe.py"), str(srcs[0]), str(words),
            "--model", BIG_MODEL, "--lang", lang, "--prompt", HINT, "--progress", str(plog)]
     with open(job_dir / "transcribe.log", "wb") as log:

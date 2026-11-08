@@ -4,7 +4,11 @@
 Usage: transcribe.py <video_ou_audio> <sortie.json> [--model small] [--lang fr|ar|auto]
                      [--prompt "noms, mots du sujet"] [--progress progress.log]
 
-Darija : utiliser --model large-v3-turbo --lang ar (small/base/medium donnent du bruit).
+Moteurs :
+- scribe : ElevenLabs Scribe (en ligne, très bon en darija, mots + qui parle). Utilisé automatiquement
+  si ELEVENLABS_API_KEY est défini. Modèle : SCRIBE_MODEL (défaut scribe_v1).
+- whisper : faster-whisper en local (gratuit). Darija : --model large-v3-turbo --lang ar.
+Si Scribe échoue, on retombe sur Whisper.
 
 Sortie JSON:
 {"language": "fr", "duration": 61.2,
@@ -12,6 +16,7 @@ Sortie JSON:
  "segments": [{"start": 0.42, "end": 3.1, "text": "..."}]}
 """
 import argparse
+import math
 import json
 import os
 import subprocess
@@ -23,6 +28,59 @@ MODEL_ALIASES = {  # faster-whisper < 1.1 ne connaît pas ces noms courts
     "turbo": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
     "large-v3-turbo": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
 }
+
+
+def scribe(src: str, out: str, lang) -> bool:
+    """ElevenLabs Speech-to-Text. Écrit le même format que Whisper (+ "speaker" par mot)."""
+    import urllib.request
+    import uuid
+    key = os.environ.get("ELEVENLABS_API_KEY")
+    if not key:
+        return False
+    model = os.environ.get("SCRIBE_MODEL", "scribe_v1")
+    with tempfile.TemporaryDirectory() as tmp:
+        audio = os.path.join(tmp, "a.m4a")  # audio compressé : envoi plus rapide
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", src, "-vn", "-ac", "1", "-ar", "16000",
+                        "-c:a", "aac", "-b:a", "48k", audio], check=True)
+        data = open(audio, "rb").read()
+    b = uuid.uuid4().hex
+    fields = {"model_id": model, "timestamps_granularity": "word", "diarize": "true", "tag_audio_events": "false"}
+    if lang:
+        fields["language_code"] = lang
+    body = b"".join(f'--{b}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode()
+                    for k, v in fields.items())
+    body += (f'--{b}\r\nContent-Disposition: form-data; name="file"; filename="a.m4a"\r\n'
+             f"Content-Type: audio/mp4\r\n\r\n").encode() + data + f"\r\n--{b}--\r\n".encode()
+    req = urllib.request.Request("https://api.elevenlabs.io/v1/speech-to-text", data=body, method="POST",
+                                 headers={"xi-api-key": key, "Content-Type": f"multipart/form-data; boundary={b}"})
+    try:
+        with urllib.request.urlopen(req, timeout=1800) as r:
+            res = json.load(r)
+    except Exception as e:  # noqa: BLE001  (la clé n'apparaît jamais dans le message)
+        print(f"Scribe indisponible ({e}), passage à Whisper.", file=sys.stderr)
+        return False
+    words, segs, cur = [], [], None
+    for w in res.get("words", []):
+        if w.get("type") != "word":
+            continue
+        item = {"w": w["text"].strip(), "start": round(w["start"], 3), "end": round(w["end"], 3),
+                "p": round(math.exp(min(0.0, float(w.get("logprob") or 0))), 3), "speaker": w.get("speaker_id")}
+        words.append(item)
+        # Segments : une phrase par changement de locuteur ou ponctuation finale.
+        if cur and (cur["speaker"] != item["speaker"] or cur["text"].endswith((".", "!", "?"))):
+            segs.append(cur)
+            cur = None
+        if cur is None:
+            cur = {"start": item["start"], "end": item["end"], "text": item["w"], "speaker": item["speaker"]}
+        else:
+            cur["end"], cur["text"] = item["end"], cur["text"] + " " + item["w"]
+    if cur:
+        segs.append(cur)
+    dur = words[-1]["end"] if words else 0.0
+    json.dump({"language": res.get("language_code"), "model": model, "engine": "scribe", "duration": dur,
+               "words": words, "segments": segs}, open(out, "w"), ensure_ascii=False, indent=1)
+    print(f"{len(words)} mots (Scribe {model}), langue={res.get('language_code')} -> {out}")
+    return True
 
 
 def extract_audio(src: str, dst: str) -> None:
@@ -40,7 +98,15 @@ def main() -> int:
     ap.add_argument("--lang", default=os.environ.get("WHISPER_LANG") or None)
     ap.add_argument("--prompt", default=None, help="vocabulaire attendu (noms propres, jargon)")
     ap.add_argument("--progress", default=None, help="fichier où ajouter l'avancement (toutes les ~2 min d'audio)")
+    ap.add_argument("--engine", choices=["auto", "scribe", "whisper"], default="auto")
     args = ap.parse_args()
+    if args.engine in ("auto", "scribe") and os.environ.get("ELEVENLABS_API_KEY"):
+        # Scribe attend un code ISO 639-3 ; « ar » de Whisper n'en est pas un : on laisse la détection auto.
+        lang3 = args.lang if args.lang and len(args.lang) == 3 else None
+        if scribe(args.src, args.out, lang3):
+            return 0
+        if args.engine == "scribe":
+            return 1
     model_name = args.model
     args.model = MODEL_ALIASES.get(args.model, args.model)
     if args.lang in ("auto", ""):
