@@ -116,4 +116,5 @@ Pour une pub Meta : jamais de promesse de revenus (retirer l'étape 1 chiffrée)
 
 ## Leçons apprises (retours de Mehdi)
 - **Vie privée à l'écran** : ne jamais montrer le nom de la boutique ni le logo (« BenzSkin », « Benz ») d'un dashboard partagé. Zoom sur la zone des chiffres sous l'en-tête : `"layout": "zoom", "crop": [x,y,w,h]` (pixels source) dans plan.json (`tools/hook_build.py`). Toujours vérifier la planche contact : aucun nom lisible.
+- 2026-11-08 (remplace le zoom ci-dessus, préféré par Mehdi) : garder la vue entière (layout "A") et cacher le nom avec une GROSSE carte à bandeau (2 lignes, size ~118, `"y": 0.21` = position verticale libre dans titles.py) qui reste tout le plan. Le téléphone bouge : le nom change de hauteur (50-260 px en 1080p). Vérifier une planche contact de CHAQUE image du plan (fps=3), pas une seule.
 - **Toux de Mehdi pendant que l'invité parle** : si Scribe ne note pas de mot mais que l'énergie audio sursaute dans un trou de la voix de l'invité, c'est la toux. Finir l'extrait sur la dernière phrase complète avant (silence à l'énergie < 150). Vérifier l'énergie (rms 50 ms) de chaque extrait avant de livrer.

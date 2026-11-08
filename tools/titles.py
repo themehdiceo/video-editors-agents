@@ -90,6 +90,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     for c in json.load(open(a.cards)):
         at, dur = float(c["at"]), float(c.get("dur", 2.5))
         al, rx, ry = POS.get(c.get("pos", "center"), POS["center"])
+        if "y" in c:  # position verticale libre (0-1), texte centré : pour cacher une zone précise
+            al, ry = 5, float(c["y"])
         x, y = int(rx * a.w), int(ry * a.h)
         style = "B" if c.get("box") else "T"
         size = int(c.get("size", 150 if "count" in c else 104) * k)
