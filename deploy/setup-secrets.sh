@@ -51,6 +51,6 @@ if grep -q '^TELEGRAM_API_ID=' $ENV; then
   sleep 5
 fi
 systemctl enable --now video-bot
-sleep 3; systemctl --no-pager status video-bot | head -5
+sleep 15; systemctl --no-pager status video-bot | head -5 || true
 echo; echo "C'est fini. Dans 1 à 2 minutes, le bot du Mac s'arrête tout seul et le VPS prend le relais."
 echo "Envoie /aide à ton bot sur Telegram pour tester. Tu peux fermer cette fenêtre."

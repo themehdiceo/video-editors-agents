@@ -444,6 +444,9 @@ async def updater(app: Application) -> None:
     """Toutes les 10 min, quand aucun job ne tourne : installe les nouveautés et redémarre."""
     while True:
         await asyncio.sleep(600)
+        if sys.platform == "darwin" and VPS_MARK.exists() and not current and queue.empty():
+            log.warning("Le VPS a pris le relais : le bot du Mac s'arrête.")
+            os._exit(3)
         if not current and queue.empty():
             try:
                 await update_and_restart(app)
