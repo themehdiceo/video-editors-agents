@@ -7,7 +7,7 @@ description: Monter un A-roll face caméra en short vertical 9:16 fini - coupes 
 Lis `style/style.json` avant de commencer. C'est le goût de Mehdi, et il prime sur tes choix par défaut.
 
 ## Étapes (une ligne dans progress.log par étape)
-1. **Préparer** : `ffprobe` la source (durée, résolution, orientation, fps). Copie-la en `input/aroll.<ext>` si besoin.
+1. **Préparer** : `ffprobe` la source `input/source.*` (durée, résolution, orientation, fps). Ne la copie pas : travaille directement dessus.
 2. **Coupes** → agent `monteur-aroll`. Résultat : `work/aroll_cut.mp4`, `work/words.json`, `work/words_cut.json`, timemap.
 3. **Script de référence** : s'il existe un `out/script.md` d'un job précédent (lien dans job.json), utilise sa shot list.
 4. **B-roll** → agent `documentaliste-broll` (en parallèle de l'étape 5).

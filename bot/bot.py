@@ -17,6 +17,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -161,10 +162,20 @@ def find_local_video(line: str):
 
 
 async def flush_text(update: Update, ctx) -> None:
-    await asyncio.sleep(4)
+    await asyncio.sleep(6)
     text = "\n".join(ctx.chat_data.pop("buf", [])).strip()
     ctx.chat_data.pop("timer", None)
     m = update.message
+    # Instructions attendues pour une vidéo déjà reçue (message éventuellement découpé, déjà regroupé)
+    if pending := ctx.chat_data.pop("awaiting_note", None):
+        job_dir, kind = Path(pending[0]), pending[1]
+        job = json.loads((job_dir / "job.json").read_text())
+        job["note"] = text
+        if text.lower().startswith("clip"):
+            job["type"] = kind = "clip"
+        (job_dir / "job.json").write_text(json.dumps(job, ensure_ascii=False, indent=1))
+        await enqueue(update, job_dir, "montage" if kind == "edit" else "clip")
+        return
     first, _, rest = text.partition("\n")
     local = find_local_video(first)
     if local:
@@ -173,8 +184,18 @@ async def flush_text(update: Update, ctx) -> None:
         count = int(re.search(r"\d", rest[:10]).group()) if kind == "clip" and re.search(r"\d", rest[:10]) else 1
         job_dir = new_job(kind, note=rest, count=count, input_file="input/source" + local.suffix.lower(),
                           source_path=str(local))
-        os.symlink(local, job_dir / "input" / ("source" + local.suffix.lower()))
-        await m.reply_text(f"🎞️ Vidéo trouvée : {local}")
+        dst = job_dir / "input" / ("source" + local.suffix.lower())
+        await m.reply_text(f"🎞️ Vidéo trouvée : {local}\nJe la copie dans le dossier du job…")
+        # Vraie copie (pas un lien) : les agents n'ont accès qu'au dossier du dépôt.
+        # Sur Mac, « cp -c » fait un clone APFS instantané qui ne prend pas de place en plus.
+        r = await asyncio.to_thread(subprocess.run, ["cp", "-c", str(local), str(dst)], capture_output=True)
+        if r.returncode != 0:
+            await asyncio.to_thread(shutil.copy2, local, dst)
+        if not rest:
+            ctx.chat_data["awaiting_note"] = (str(job_dir), kind)
+            await m.reply_text("✍️ Qu'est-ce que je dois en faire ? Envoie tes instructions dans ton prochain message "
+                               "(format, langue des sous-titres, ce que tu veux).")
+            return
         await enqueue(update, job_dir, "montage" if kind == "edit" else "clip")
         return
     urls = URL_RE.findall(text)
