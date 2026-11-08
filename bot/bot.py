@@ -53,6 +53,8 @@ def remember(message_id: int, job_id: str) -> None:
 def only_me(fn):
     async def wrap(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if not update.effective_user or update.effective_user.id != ALLOWED:
+            log.warning("Message ignoré : l'identifiant %s n'est pas TELEGRAM_ALLOWED_USER_ID (%s)",
+                        update.effective_user.id if update.effective_user else "?", ALLOWED)
             return
         return await fn(update, ctx)
     return wrap
@@ -221,6 +223,7 @@ async def post_init(app: Application) -> None:
 
 
 def main() -> None:
+    log.info("Bot démarré. Utilisateur autorisé : %s", ALLOWED)
     b = Application.builder().token(TOKEN).post_init(post_init)
     if API_URL:
         b = b.base_url(API_URL).base_file_url(API_URL.replace("/bot", "/file/bot")).local_mode(True)
