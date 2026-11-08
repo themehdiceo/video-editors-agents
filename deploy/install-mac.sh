@@ -13,13 +13,14 @@ if ! command -v brew >/dev/null; then
 fi
 
 echo "==> Outils : ffmpeg, Python, Node, yt-dlp"
-brew install ffmpeg python@3.12 node yt-dlp
+brew install ffmpeg node yt-dlp
+# Python via uv : version précompilée, pas de compilation (rapide même sur un macOS ancien)
+command -v uv >/dev/null || { curl -LsSf https://astral.sh/uv/install.sh | sh; export PATH="$HOME/.local/bin:$PATH"; }
 command -v claude >/dev/null || npm install -g @anthropic-ai/claude-code
 
 echo "==> Environnement Python"
-python3.12 -m venv "$APP_DIR/.venv"
-"$APP_DIR/.venv/bin/pip" install -q --upgrade pip
-"$APP_DIR/.venv/bin/pip" install -q -r "$APP_DIR/requirements.txt"
+uv venv --python 3.12 "$APP_DIR/.venv"
+VIRTUAL_ENV="$APP_DIR/.venv" uv pip install -q -r "$APP_DIR/requirements.txt"
 
 echo "==> Police Montserrat"
 for w in ExtraBold Bold Black; do
