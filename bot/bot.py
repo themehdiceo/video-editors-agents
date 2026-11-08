@@ -163,6 +163,21 @@ def find_local_video(line: str):
     return None
 
 
+def reuse_transcript(local: Path, job_dir: Path) -> None:
+    """Même vidéo déjà transcrite dans un job précédent : on recopie la transcription (gain de 10 min)."""
+    for prev in sorted(JOBS.glob("*/job.json"), reverse=True):
+        try:
+            if json.loads(prev.read_text()).get("source_path") != str(local):
+                continue
+        except Exception:  # noqa: BLE001
+            continue
+        for name in ("words.json", "silences.json"):
+            if (prev.parent / "work" / name).exists() and prev.parent != job_dir:
+                shutil.copy2(prev.parent / "work" / name, job_dir / "work" / name)
+        if (job_dir / "work" / "words.json").exists():
+            return
+
+
 async def flush_text(update: Update, ctx) -> None:
     await asyncio.sleep(6)
     text = "\n".join(ctx.chat_data.pop("buf", [])).strip()
@@ -193,6 +208,7 @@ async def flush_text(update: Update, ctx) -> None:
         r = await asyncio.to_thread(subprocess.run, ["cp", "-c", str(local), str(dst)], capture_output=True)
         if r.returncode != 0:
             await asyncio.to_thread(shutil.copy2, local, dst)
+        reuse_transcript(local, job_dir)
         if not rest:
             ctx.chat_data["awaiting_note"] = (str(job_dir), kind)
             await m.reply_text("✍️ Qu'est-ce que je dois en faire ? Envoie tes instructions dans ton prochain message "

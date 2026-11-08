@@ -38,6 +38,7 @@ Personne ne peut valider une commande pendant un job. Pour que rien ne soit bloq
 - Une seule commande par appel Bash. Pas de `cd`, pas de `&&` ni de `;`, pas de `nohup`, pas de `&`, pas de redirection `>` ou `>>`, pas de `cat`.
 - Pour lire un fichier, utilise l'outil Read. Pour écrire (progress.log, plan.json, keep.json, résumé), utilise Write ou Edit.
 - Commandes shell autorisées : `ffmpeg`, `ffprobe`, `yt-dlp`, `python3 tools/…`, `ls`, `head`, `tail`, `cp`, `wc`, `mkdir -p jobs/…`, `git` (skills). Si une commande est refusée, reformule-la ainsi. Ne demande jamais d'autorisation : personne ne répondra.
+- Si `work/words.json` existe déjà au début du job, c'est la transcription de la même vidéo faite lors d'un job précédent : réutilise-la, ne retranscris pas.
 - Transcription longue (20 min de vidéo, soit 5 à 15 min de calcul) : lance-la au premier plan avec un timeout Bash de 600000 ms. Pour une vidéo de plus de 10 min, commence par `--model base`.
 
 ## Outils disponibles (`tools/`)

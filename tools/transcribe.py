@@ -42,8 +42,14 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         wav = os.path.join(tmp, "a.wav")
         extract_audio(args.src, wav)
+        # On décode nous-mêmes le WAV en tableau numpy : évite av.open(metadata_errors=...)
+        # qui plante quand PyAV et faster-whisper ne sont pas compatibles.
+        import numpy as np
+        import wave
+        with wave.open(wav, "rb") as wf:
+            audio = np.frombuffer(wf.readframes(wf.getnframes()), dtype=np.int16).astype(np.float32) / 32768.0
         segments, info = model.transcribe(
-            wav,
+            audio,
             language=args.lang,
             word_timestamps=True,
             vad_filter=False,  # on garde les hésitations: c'est le monteur qui décide
