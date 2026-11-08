@@ -383,19 +383,50 @@ async def send_outputs(app: Application, chat_id: int, job_dir: Path, code: int)
                                             "ou réponds avec tes corrections.")
 
 
+def last_claude_text(log_path: Path) -> str:
+    """Dernière phrase écrite par Claude dans le journal stream-json (pour l'avancement entre deux étapes)."""
+    try:
+        with open(log_path, "rb") as f:
+            f.seek(0, 2)
+            f.seek(max(0, f.tell() - 200_000))
+            tail = f.read().decode("utf-8", "ignore").splitlines()
+    except OSError:
+        return ""
+    for line in reversed(tail):
+        try:
+            d = json.loads(line)
+        except ValueError:
+            continue
+        content = (d.get("message") or {}).get("content")
+        if d.get("type") == "assistant" and isinstance(content, list):
+            for c in reversed(content):
+                if c.get("type") == "text" and c.get("text", "").strip():
+                    return c["text"].strip().splitlines()[0]
+    return ""
+
+
 async def worker(app: Application) -> None:
     while True:
         chat_id, job_dir = await queue.get()
         current.update(dir=job_dir)
         await app.bot.send_message(chat_id, f"🎬 Je commence {job_dir.name}")
         task = asyncio.create_task(run_job(job_dir))
-        seen = 0
+        seen, quiet, last_note = 0, 0, ""
         while not task.done():
             await asyncio.sleep(20)
             lines = (job_dir / "progress.log").read_text().splitlines()
             if len(lines) > seen:
                 await app.bot.send_message(chat_id, "\n".join("• " + x for x in lines[seen:])[-3900:])
-                seen = len(lines)
+                seen, quiet = len(lines), 0
+                continue
+            quiet += 20
+            # Silence de plus de 3 min : on dit ce que l'équipe est en train de faire (dernier message de Claude).
+            if quiet >= 180:
+                note = last_claude_text(job_dir / "claude.log")
+                if note and note != last_note:
+                    await app.bot.send_message(chat_id, "⏳ " + note[:600])
+                    last_note = note
+                quiet = 0
         try:
             await send_outputs(app, chat_id, job_dir, task.result())
         except Exception as e:  # noqa: BLE001

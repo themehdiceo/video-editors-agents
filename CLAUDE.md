@@ -22,7 +22,8 @@ Types de job :
 
 - Délègue aux sous-agents de `.claude/agents/`. Ne fais pas tout toi-même : chaque étape a son spécialiste.
 - Tout fichier de travail va dans `jobs/<id>/work/`. Le livrable final va dans `jobs/<id>/out/`.
-- Écris l'avancement dans `jobs/<id>/progress.log` (une ligne par étape, en français). Le bot l'envoie à Mehdi.
+- Écris l'avancement dans `jobs/<id>/progress.log` (une ligne par étape, en français) **au moins toutes les 5 minutes**, même pour dire « toujours en recherche des phrases (3/5 trouvées) ». Le bot l'envoie à Mehdi, qui attend.
+- **Budget temps** : un montage doit arriver en moins de 45 min. Ne relance pas de transcription complète (le bot l'a faite). Si une phrase de la note reste introuvable après 10 min, prends le meilleur passage proche et note-le dans le résumé : Mehdi corrigera.
 - Termine toujours par `jobs/<id>/out/summary.md` : 3 à 6 lignes sur ce que tu as fait et ce qui reste douteux.
 - **Coupes** : décide-les avec la transcription ET la forme d'onde (`tools/silences.py`). Une coupe ne tombe jamais au milieu d'un mot.
 - **Contrôle qualité** : avant de livrer, regarde la planche contact (`tools/frames.py`). Lis l'image. Corrige ce qui ne va pas.
