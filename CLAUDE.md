@@ -12,9 +12,10 @@ Types de job :
 | type | entrée | skill à suivre | livrable |
 | --- | --- | --- | --- |
 | `script` | un lien (article, vidéo, page produit) | `short-script` | `out/script.md` |
-| `edit`, phase `plan` | une vidéo brute | `edit-plan` | `out/plan.md` (Mehdi choisit les scènes) |
-| `edit`, phase `build` | le plan validé par Mehdi | `short-editor` | `out/final.mp4` |
+| `edit` (phase `build`, par défaut) | une vidéo brute, ou le plan validé par Mehdi | `short-editor` | `out/final.mp4` |
+| `edit`, phase `plan` (« mode plan » dans le prompt) | une vidéo brute | `edit-plan` | `out/plan.md` (Mehdi choisit les scènes) |
 | `clip` | une vidéo longue (fichier ou lien YouTube) | `long-to-short` | `out/final.mp4` (+ `out/clip_2.mp4`… si demandé) |
+| `style` | 2 à 5 vidéos de référence | `style-trainer` | `style/<nom>/STYLE.md` + résumé |
 | `feedback` | un retour sur un rendu précédent | skill du job d'origine, puis `skill-keeper` | nouvelle version + mise à jour des skills |
 
 ## Règles de l'équipe
@@ -51,8 +52,20 @@ Personne ne peut valider une commande pendant un job. Pour que rien ne soit bloq
 | `silences.py src out.json` | silences détectés sur la forme d'onde |
 | `cut.py src keep.json out.mp4 --silences sil.json` | garde les passages listés, coupes calées sur les silences, écrit `out.mp4.timemap.json` |
 | `subtitles.py words.json subs.ass --timemap ...` | sous-titres ASS style short, mot actif surligné |
-| `compose.py work/plan.json` | assemblage 9:16 en BROUILLON 480p (le 1080p est rendu par le bot quand Mehdi valide, sans toi) : B-roll, split 50/50, overlays, sous-titres, musique avec ducking, SFX, loudnorm -14 LUFS |
+| `compose.py work/plan.json` | assemblage (16:9 ou 9:16) en BROUILLON 480p ; B-roll vidéo ou image avec `zoom`, `blur_in`, `vf` couleur ; (le 1080p est rendu par le bot quand Mehdi valide, sans toi) : B-roll, split 50/50, overlays, sous-titres, musique avec ducking, SFX, loudnorm -14 LUFS |
 | `frames.py video sheet.jpg` | planche contact pour vérifier visuellement |
+| `analyze_refs.py video dossier/` | analyse image par image d'une vidéo de référence : coupes/min, durée des plans, couleurs, planches 1re/dernière image de chaque plan |
+| `find_media.py "requête" dossier/ [--video]` | vraies images et vidéos libres (Openverse, Wikimedia, Pexels) + crédits |
 | `music.py "ambiance" out.mp3 --dur 60` | musique de fond (ElevenLabs si clé, sinon bibliothèque `assets/music/`) |
 
 Style par défaut : `style/style.json`. C'est la mémoire du goût de Mehdi. Le `skill-keeper` le met à jour après chaque retour.
+
+## Styles appris (`style/<nom>/`)
+- Si la note dit « style <nom> », lis `style/<nom>/STYLE.md` et applique `style/<nom>/style.json` par-dessus `style/style.json`. Respecte ses garde-fous chiffrés.
+- Si la note ne nomme aucun style : une seule personne face caméra → `solo-v1` ; deux personnes, interview ou témoignage → `interview-v1` (si le dossier contient un STYLE.md). Dis dans le résumé quel style tu as pris.
+- Les retours de Mehdi sur une vidéo montée avec un style modifient ce style (`style/<nom>/STYLE.md`), pas les règles générales.
+
+## Vraies images, pas d'images générées
+- Le B-roll vient de vraies sources : fichiers de Mehdi, captures de la vidéo elle-même, `tools/find_media.py` (Openverse, Wikimedia Commons, Pexels si clé), yt-dlp. Jamais d'image générée par IA sauf si Mehdi le demande.
+- Chaque média externe est noté dans `work/credits.json` ; résume les crédits à donner en description dans `out/credits.md`.
+- Montre la chose dont on parle, au mot près. Les jeux de mots visuels sont bienvenus (« fuite » → robinet qui goutte).

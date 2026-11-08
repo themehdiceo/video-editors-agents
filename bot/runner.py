@@ -41,6 +41,7 @@ PROMPTS = {
     "feedback": ("Job de type feedback : Mehdi a donné un retour sur le job d'origine indiqué dans job.json "
                  "(champ parent). Refais une version corrigée en repartant des fichiers de work/ du job d'origine "
                  "(copie-les), puis applique la skill skill-keeper pour que ce retour serve aux prochaines vidéos."),
+    "style": "Job de type style. Suis la skill style-trainer.",
     "bilan": "Job de type bilan. Suis la section /bilan de la skill skill-keeper.",
 }
 

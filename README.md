@@ -3,7 +3,8 @@
 Une équipe d'agents Claude Code qui monte des vidéos YouTube (16:9) et des shorts (9:16) sur un VPS ou un Mac, pilotée depuis Telegram.
 
 - Tu envoies un **lien** et tu reçois un script : hook, note de potentiel, titres, shot list.
-- Tu envoies une **vidéo** avec ton prompt. Tu reçois d'abord un **plan** : le script ligne par ligne avec 4 idées de scène. Tu réponds avec tes choix (« 1B 2A… » ou « ok »), puis l'équipe monte : coupes, titres animés, sous-titres, musique, QA. Écris « direct » dans le prompt pour sauter le plan.
+- Tu envoies une **vidéo** avec ton prompt. L'équipe monte dans le style choisi (« style interview-v1 ») : coupes, vraies images trouvées en ligne, titres animés, sous-titres, musique, QA. Écris « mode plan » pour recevoir d'abord un plan (4 idées par scène) et choisir toi-même.
+- `/style <nom> <liens>` : l'équipe apprend un style de montage sur 2 à 5 vidéos de référence, image par image.
 - Tu envoies une **vidéo longue** avec la légende `clip` (ou `clip 3`) et tu reçois les meilleurs passages en shorts.
 - Tu **réponds à un rendu** pour donner un retour : l'équipe fait une nouvelle version et retient la leçon dans ses skills (commit Git, `/annuler` pour revenir en arrière).
 

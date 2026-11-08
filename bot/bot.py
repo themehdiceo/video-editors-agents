@@ -6,8 +6,10 @@ Commandes (seul TELEGRAM_ALLOWED_USER_ID est écouté) :
   /clip <lien> [n]      vidéo longue -> n shorts (1 par défaut)
   (envoi d'une vidéo)   montage d'un A-roll ; légende "clip" ou "clip 3" = vidéo longue
   (chemin d'un fichier) mode Mac : /Users/.../video.mov, puis ton prompt à la ligne suivante
-  Montage en 2 temps : je t'envoie d'abord un PLAN (4 idées par scène). Réponds-y avec
-    tes choix (« 1B 2A… » ou « ok »), puis je monte. Écris « direct » dans ton prompt pour sauter le plan.
+  « style <nom> » dans le prompt : monte avec un style appris (sinon choix auto solo-v1 / interview-v1)
+  « mode plan » dans le prompt : je t'envoie d'abord un PLAN (4 idées par scène), tu réponds
+    avec tes choix (« 1B 2A… » ou « ok »), puis je monte.
+  /style <nom> [liens]  apprend un style de montage sur 2 à 5 vidéos (liens, ou style/<nom>/refs.txt)
   (réponse à un rendu)  retour -> nouvelle version + mise à jour des skills
   « valide » en réponse  rendu final 1080p du brouillon (ffmpeg seul, sans Claude)
   /statut               job en cours et file d'attente
@@ -71,14 +73,14 @@ def only_me(fn):
     return wrap
 
 
-DIRECT_RE = re.compile(r"\b(direct|sans plan)\b", re.I)
+PLAN_RE = re.compile(r"\b(mode plan|avec (le )?plan|plan d'abord)\b", re.I)
 
 
 def set_phase(job_dir: Path) -> None:
-    """Montage : d'abord un plan que Mehdi valide, sauf s'il écrit « direct » ou « sans plan »."""
+    """Montage direct par défaut. « mode plan » dans le prompt : d'abord un plan que Mehdi valide."""
     job = json.loads((job_dir / "job.json").read_text())
     if job.get("type") == "edit" and not job.get("phase"):
-        job["phase"] = "build" if DIRECT_RE.search(job.get("note", "")) else "plan"
+        job["phase"] = "plan" if PLAN_RE.search(job.get("note", "")) else "build"
         (job_dir / "job.json").write_text(json.dumps(job, ensure_ascii=False, indent=1))
 
 
@@ -291,6 +293,25 @@ async def validate(update: Update, ctx, job_id: str) -> None:
 
 
 @only_me
+async def cmd_style(update: Update, ctx):
+    text = (update.message.text or "").replace("/style", "", 1)
+    urls = URL_RE.findall(text)
+    name = re.sub(r"[^a-z0-9-]+", "-", URL_RE.sub("", text).strip().split("\n")[0].lower()).strip("-")[:40]
+    if not name:
+        have = sorted(p.name for p in (REPO / "style").iterdir() if p.is_dir())
+        await update.message.reply_text("Donne un nom : /style interview-v1 (puis des liens YouTube, ou rien pour "
+                                        f"utiliser style/<nom>/refs.txt). Styles existants : {', '.join(have) or 'aucun'}")
+        return
+    refs = REPO / "style" / name / "refs.txt"
+    if not urls and refs.exists():
+        urls = [x.strip() for x in refs.read_text().splitlines() if x.strip().startswith("http")]
+    if not urls:
+        await update.message.reply_text(f"Aucun lien pour le style {name}. Envoie : /style {name} <lien1> <lien2> …")
+        return
+    await enqueue(update, new_job("style", name=name, urls=urls, note=text.strip()), f"style {name}")
+
+
+@only_me
 async def cmd_statut(update: Update, ctx):
     if not current:
         await update.message.reply_text("Rien en cours.")
@@ -393,6 +414,7 @@ def main() -> None:
     app.add_handler(CommandHandler("script", cmd_script))
     app.add_handler(CommandHandler("clip", cmd_clip))
     app.add_handler(CommandHandler("statut", cmd_statut))
+    app.add_handler(CommandHandler("style", cmd_style))
     app.add_handler(CommandHandler("bilan", cmd_bilan))
     app.add_handler(CommandHandler("annuler", cmd_annuler))
     app.add_handler(MessageHandler(filters.VIDEO | filters.Document.VIDEO, on_video))

@@ -17,7 +17,11 @@ plan.json :
   "broll": [                          # temps sur la timeline montée
     {"file": "broll/a.mp4", "at": 2.0, "dur": 2.6, "src_start": 0.0,
      "layout": "full" | "top",        # top = B-roll en haut, A-roll en bas (50/50)
-     "volume": 0.0},                  # 0 = muet
+     "volume": 0.0,                   # 0 = muet
+     "zoom": 0.08,                    # optionnel : zoom avant lent (+8 % sur la durée du plan)
+     "blur_in": true,                 # optionnel : le plan entre flou puis devient net (0,25 s)
+     "vf": "eq=saturation=1.3"},      # optionnel : filtre ffmpeg (couleur : hue=s=0 pour N&B, etc.)
+                                      # file peut être une image (.jpg/.png/.webp) : elle est animée comme un plan
   ],
   "overlays": [                       # vidéos avec alpha (.mov ProRes 4444 / .webm VP9) ou PNG
     {"file": "gfx/title.mov", "at": 0.0, "dur": 2.0, "x": 0, "y": 0}
@@ -87,12 +91,31 @@ def main() -> int:
 
     half_windows = []
     for i, b in enumerate(plan.get("broll", [])):
-        inputs += ["-ss", str(b.get("src_start", 0)), "-t", str(b["dur"]), "-i", P(b["file"])]
         at, dur = float(b["at"]), float(b["dur"])
+        is_img = P(b["file"]).lower().endswith((".jpg", ".jpeg", ".png", ".webp"))
+        if is_img:
+            inputs += ["-loop", "1", "-framerate", str(FPS), "-t", str(dur), "-i", P(b["file"])]
+        else:
+            inputs += ["-ss", str(b.get("src_start", 0)), "-t", str(dur), "-i", P(b["file"])]
         lay = b.get("layout", "full")
         bh = H if lay == "full" else H // 2
-        g.append(f"[{idx}:v]setpts=PTS-STARTPTS+{at}/TB[b{i}raw];")
-        g.append(cover(f"b{i}raw", W, bh, f"b{i}", 0.5, FPS))
+        # Effets appliqués en temps local du plan (0 → dur), puis décalage sur la timeline.
+        g.append(f"[{idx}:v]setpts=PTS-STARTPTS[b{i}raw];")
+        g.append(cover(f"b{i}raw", W, bh, f"b{i}c", 0.5, FPS))
+        fx = []
+        if b.get("vf"):
+            fx.append(b["vf"])
+        if b.get("zoom"):
+            z = float(b["zoom"])
+            n = max(1, int(dur * FPS))
+            fx.append(f"zoompan=z='1+{z}*min(on,{n})/{n}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
+                      f":d=1:s={W}x{bh}:fps={FPS}")
+        if b.get("blur_in"):
+            r = max(2, int(12 * k))
+            fx.append(f"boxblur={r}:1:enable='lt(t,0.12)'")
+            fx.append(f"boxblur={max(1, r // 3)}:1:enable='between(t,0.12,0.25)'")
+        fx.append(f"setsar=1,setpts=PTS-STARTPTS+{at}/TB")
+        g.append(f"[b{i}c]{','.join(fx)}[b{i}];")
         en = f"between(t,{at},{at + dur})"
         g.append(f"[{cur}][b{i}]overlay=0:0:eof_action=pass:enable='{en}'[v{i}];")
         cur = f"v{i}"
