@@ -83,6 +83,7 @@ Pour une pub Meta : jamais de promesse de revenus (retirer l'étape 1 chiffrée)
 1. **Le conseil finit sa phrase** : un extrait s'arrête à la fin de la PHRASE de la personne (dernier mot avant un vrai silence / la prise de parole de l'autre), pas à la fin de la première proposition (« …un business » + « حيت… »). Vérifie `words.json` jusqu'au mot suivant l'autre locuteur. Fais un trou de contrôle : relis le dernier mot de chaque extrait, il doit conclure l'idée.
 2. **Toux de Mehdi pendant qu'Anas parle** : Scribe ne la note pas toujours dans `events` (ex. 857-858 s : pic d'énergie sans mot). Pour chaque extrait où l'autre personne parle, calcule l'énergie par 0,1 s (wav) et cherche les pics sans mot dans `words.json`. Termine l'extrait avant la toux, ou saute-la avec deux plages, plutôt que de la laisser.
 3. **Autocritique obligatoire** (Mehdi, énervé) : avant de livrer, relis chaque correction demandée, vérifie-la sur la planche contact ET sur les mots de fin d'extrait, puis écris dans summary.md « vérifié : … ». Pas de « corrigé » sans preuve.
+6. **Mot soufflé inaudible** (2026-11-08, « 9der » à 26,64 s) : un mot de début d'extrait peut être 10-15 dB sous le reste (consonne douce, mot dit bas). Subtitle visible + son absent = Mehdi croit à un bug. Pour le 1er mot de chaque extrait, mesure l'énergie (astats, tranches de 10 ms) sur le rendu ; s'il est > 8 dB sous la phrase, ajoute `"boost": [[début_src, fin_src, dB]]` au shot dans plan.json (géré par `tools/hook_build.py`) et remesure.
 
 ## Garde-fous (vérifiables)
 

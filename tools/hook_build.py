@@ -68,9 +68,13 @@ def main():
                       f"[b]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},boxblur=24:6,eq=brightness=-0.2[bg];"
                       f"[a]scale=-2:{H}[fg];[bg][fg]overlay=(W-w)/2:0,setsar=1,fps={FPS}[v]")
             out = os.path.join(seg_dir, f"s{si:02d}_{ri}.mp4")
+            # boost : mot soufflé trop faible ([début_src, fin_src, dB]) -> gain local avant le loudnorm
+            boosts = "".join(
+                f"volume={g}dB:enable='between(t,{b0 - (s - PAD_IN):.3f},{b1 - (s - PAD_IN):.3f})',"
+                for b0, b1, g in sh.get("boost", []) if s - PAD_IN <= b0 < e + PAD_OUT)
             run(["ffmpeg", "-y", "-v", "error", "-ss", f"{s - PAD_IN:.3f}", "-t", f"{d}", "-i", src,
                  "-filter_complex", vf, "-map", "[v]", "-map", "0:a:0",
-                 "-af", f"afade=t=in:d=0.02,afade=t=out:st={d - 0.03:.3f}:d=0.03,aresample=48000",
+                 "-af", f"{boosts}afade=t=in:d=0.02,afade=t=out:st={d - 0.03:.3f}:d=0.03,aresample=48000",
                  "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
                  "-c:a", "aac", "-b:a", "192k", "-ar", "48000", out])
             segs.append(out)
