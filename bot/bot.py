@@ -601,7 +601,7 @@ async def post_init(app: Application) -> None:
     asyncio.get_running_loop().create_task(updater(app))
 
 
-VPS_MARK = Path.home() / ".video-editors-agents.sur-vps"  # sur le Mac : le VPS a pris le relais
+VPS_MARK = REPO / ".sur-vps"  # sur le Mac : le VPS a pris le relais
 _conflict_since = [0.0]
 
 
