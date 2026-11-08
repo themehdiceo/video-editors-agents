@@ -44,6 +44,16 @@ def install(ip: str, password: str, api_id: str, api_hash: str, report) -> tuple
     with sftp.open("/root/vea.env", "w") as f:
         f.write(env_text(api_id, api_hash))
     sftp.chmod("/root/vea.env", 0o600)
+    # Notes privées des mentors (Obsidian, hors Git) : copiées telles quelles sur le VPS.
+    priv = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "private")
+    if os.path.isdir(priv):
+        report("📚 Copie des notes copywriter / Hormozi / Haynes…")
+        for root, _, files in os.walk(priv):
+            rel = os.path.relpath(root, priv)
+            remote = "/root/vea-private" + ("" if rel == "." else "/" + rel.replace(os.sep, "/"))
+            c.exec_command(f"mkdir -p '{remote}'")[1].channel.recv_exit_status()
+            for f in files:
+                sftp.put(os.path.join(root, f), f"{remote}/{f}")
     sftp.close()
     report("📦 Installation en cours (10 à 20 min). Je te donne des nouvelles régulièrement.")
     # nohup : l'installation continue même si le Mac se déconnecte (à la fin, le VPS prend le relais du bot).

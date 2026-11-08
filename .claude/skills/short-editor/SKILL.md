@@ -25,6 +25,7 @@ Lis `style/style.json` avant de commencer. C'est le goût de Mehdi, et il prime 
 ## Règles de montage (YouTube 16:9, par défaut)
 - Le style choisi (`style/<nom>/STYLE.md`) prime sur les règles ci-dessous.
 - **Rythme long format** : plein gaz sur le hook et au début de chaque chapitre (plans courts, B-roll, sons). Au milieu, on laisse respirer : plans de 1 à 2 s de plus, moins d'effets.
+- **Copy du hook (obligatoire)** : avant de couper le hook, délègue à `copywriter-video-editor` (choix des extraits, sous-titres percutants, titres, relecture Hormozi et Haynes, `work/copy.md`). Applique ses choix sauf s'ils contredisent une consigne de Mehdi. Résume son verdict dans `out/summary.md`.
 - **Hook d'interview / témoignage** : 20 à 40 s d'extraits coupés de l'interview (les phrases les plus fortes, chiffres, émotions), montés serrés pour donner envie de connaître la suite. Puis titre, puis l'interview.
 - Visage environ 1/3 du temps dans les parties rythmées ; le reste en vraies images liées à ce qui est dit.
 - Plein écran sur celui qui parle. Recadre pour enlever navigateur, barre Meet et vignettes inutiles.

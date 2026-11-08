@@ -21,6 +21,7 @@ Types de job :
 ## Règles de l'équipe
 
 - Délègue aux sous-agents de `.claude/agents/`. Ne fais pas tout toi-même : chaque étape a son spécialiste.
+- **Hook, intro, titres, textes à l'écran** : toujours `copywriter-video-editor`, qui relit aussi avec les méthodes Hormozi et Haynes (leurs notes privées sont dans `private/mentors/`, hors Git : ne les copie jamais dans un fichier versionné ni dans un livrable).
 - Tout fichier de travail va dans `jobs/<id>/work/`. Le livrable final va dans `jobs/<id>/out/`.
 - Écris l'avancement dans `jobs/<id>/progress.log` (une ligne par étape, en français) **au moins toutes les 5 minutes**, même pour dire « toujours en recherche des phrases (3/5 trouvées) ». Le bot l'envoie à Mehdi, qui attend.
 - **Budget temps** : un montage doit arriver en moins de 45 min. Ne relance pas de transcription complète (le bot l'a faite). Si une phrase de la note reste introuvable après 10 min, prends le meilleur passage proche et note-le dans le résumé : Mehdi corrigera.

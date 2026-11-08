@@ -69,6 +69,9 @@ cp $APP_DIR/deploy/video-bot.service /etc/systemd/system/
 cp $APP_DIR/deploy/telegram-bot-api.service /etc/systemd/system/
 systemctl daemon-reload
 
+if [ -d /root/vea-private ]; then  # notes privées envoyées par le bot du Mac (hors Git)
+  mkdir -p $APP_DIR/private && cp -r /root/vea-private/. $APP_DIR/private/ && rm -rf /root/vea-private
+fi
 mkdir -p /var/lib/telegram-bot-api && chmod 755 /var/lib/telegram-bot-api
 chown -R $APP_USER:$APP_USER $APP_DIR
 

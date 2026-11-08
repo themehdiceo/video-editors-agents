@@ -6,3 +6,4 @@ __pycache__/
 assets/fonts/*.ttf
 .sur-vps
 .annonce-vps
+private/
