@@ -23,15 +23,22 @@ fi
 
 echo "==> Paquets système"
 export DEBIAN_FRONTEND=noninteractive
-apt-get update -q
-apt-get install -yq ffmpeg git curl unzip python3 python3-venv python3-pip fonts-dejavu-core \
+# Ubuntu fait souvent ses mises à jour automatiques au démarrage : on attend qu'apt soit libre (15 min max).
+for i in $(seq 1 180); do
+  pgrep -x apt-get >/dev/null || pgrep -x apt >/dev/null || pgrep -f unattended-upgr >/dev/null || pgrep -x dpkg >/dev/null || break
+  [ "$i" = 1 ] && echo "==> Attente de la fin des mises à jour automatiques d'Ubuntu…"
+  sleep 5
+done
+APT="-o DPkg::Lock::Timeout=600"
+apt-get $APT update -q
+apt-get $APT install -yq ffmpeg git curl unzip python3 python3-venv python3-pip fonts-dejavu-core \
   ca-certificates gnupg docker.io jq
-if [ "${WITH_BLENDER:-0}" = 1 ]; then apt-get install -yq blender; fi
+if [ "${WITH_BLENDER:-0}" = 1 ]; then apt-get $APT install -yq blender; fi
 
 echo "==> Node.js 22 (Claude Code, HyperFrames)"
 if ! command -v node >/dev/null || [ "$(node -v | cut -c2- | cut -d. -f1)" -lt 20 ]; then
   curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-  apt-get install -yq nodejs
+  apt-get $APT install -yq nodejs
 fi
 npm install -g @anthropic-ai/claude-code
 # Navigateur pour HyperFrames (rendu HTML -> vidéo)
