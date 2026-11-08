@@ -144,3 +144,11 @@ Comment : `python3 tools/music.py "<mood de style.json>" work/music.mp3 --dur <d
 ### 2026-11-10 – « garde le format YouTube » (puis « ils zooment trop dans la tête »)
 Chaque plan doit remplir tout l'écran 16:9 : PAS de bande verticale avec du flou sur les côtés. Mais les tuiles de l'appel vidéo sont presque carrées (~1450x1400). Pour remplir le 16:9 avec une seule personne, il faut couper ~40 % de la hauteur. Résultat : front et menton coupés, et un zoom qui saute à chaque passage solo ↔ split. Mehdi a refusé les deux (bande floue ET zoom serré).
 → Pour ces sources : **split 50/50 sur tous les plans** (têtes entières, même cadrage partout). Le seul plein écran autorisé est la preuve (dashboard). Le rythme vient des coupes son/phrases, pas des changements de cadre. Ne réponds jamais « c'est déjà en 16:9 » : regarde la planche contact.
+### 2026-11-10 – « garde le format YouTube »
+Un fichier 1920x1080 ne suffit pas : **chaque plan doit remplir tout l'écran 16:9**. Les sources (appel vidéo) sont des tuiles verticales : un plan « une seule personne » rendu en bande verticale avec du flou sur les côtés est perçu comme du vertical → refusé. Pour un plan solo : recadre en 16:9 sur le visage (zoom, yeux au tiers haut), sans bords flous. Si le zoom rend l'image trop floue, utilise le split 50/50. Le dashboard (écran de téléphone) peut garder un fond flou. Ne réponds jamais « c'est déjà en 16:9 » : regarde la planche contact et cherche les bandes verticales.
+### 2026-11-08 – intro v12 (retour Mehdi : « donne plus confiance dans ses réponses »)
+- **Les réponses de l'invité font la confiance** : garder les moments émotionnels ET les phrases clés, sans perdre le contexte d'intro (preuve, promesse, question). Pas de coupe sèche qui ne garde que le chiffre.
+- Pour la 1re vente : garder la raison (l'invité remercie le système / l'accompagnement) avant « pilote / copilote » et « 4e jour ».
+- Après la peur rassurée : ajouter la phrase de mindset (« la peur de rester où tu es > la peur d'échouer », dite par Mehdi, validée par « Exactement »). Vérifier QUI dit la phrase avant de l'attribuer.
+- Durée : la règle 20-35 s cède quand Mehdi demande plus de réponses fortes ; v12 = 60 s. Proposer de raccourcir dans le résumé.
+- Outil : `"join": [index_range]` dans un shot de plan.json garde la phrase de sous-titres continue sur deux ranges.

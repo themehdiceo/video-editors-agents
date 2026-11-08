@@ -84,7 +84,7 @@ def main():
                 ws = t + PAD_IN + (e - s) * j / n
                 we = t + PAD_IN + (e - s) * (j + 1) / n
                 wd = {"w": w, "start": round(ws, 3), "end": round(we, 3)}
-                if j == n - 1:
+                if j == n - 1 and ri not in sh.get("join", []):  # "join" : la phrase continue sur le range suivant
                     wd["br"] = True  # fin d'extrait : la phrase suivante repart de zéro
                 if (flat + j) in sh.get("k", []):
                     wd["k"] = True
