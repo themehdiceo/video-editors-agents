@@ -7,3 +7,6 @@ assets/fonts/*.ttf
 .sur-vps
 .annonce-vps
 private/
+.actif
+.mac-vu
+.vps-host

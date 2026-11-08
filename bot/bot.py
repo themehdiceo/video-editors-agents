@@ -13,6 +13,8 @@ Commandes (seul TELEGRAM_ALLOWED_USER_ID est écouté) :
   (réponse à un rendu)  retour -> nouvelle version + mise à jour des skills
   « valide » en réponse  rendu final 1080p du brouillon (ffmpeg seul, sans Claude)
   /statut               job en cours et file d'attente
+  /mac                  le bot passe sur ton Mac (vidéos du Mac, montages longs)
+  /serveur              le bot passe sur le serveur (24 h/24, Mac éteint possible)
   /maj                  installe tout de suite les dernières améliorations (sinon : automatique)
   /bilan                propose des améliorations des skills
   /annuler              annule la dernière mise à jour des skills (git revert)
@@ -31,6 +33,7 @@ from pathlib import Path
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (Application, CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters)
 
+import switch
 from runner import JOBS, REPO, new_job, run_job
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -277,8 +280,8 @@ async def flush_text(update: Update, ctx) -> None:
     if not local and (kv := known_video(first)):
         local, src_key = kv
     if not local and first.strip().strip("'\"").startswith(("/Users/", "~/")) and sys.platform != "darwin":
-        await m.reply_text("Cette vidéo est sur ton Mac, et le bot tourne maintenant sur le serveur : il ne la voit "
-                           "pas. Envoie la vidéo directement ici dans Telegram (jusqu'à 2 Go), avec ton prompt en légende.")
+        await m.reply_text("Cette vidéo est sur ton Mac, et je tourne sur le serveur : je ne la vois pas. Envoie /mac "
+                           "pour que je passe sur ton Mac, puis renvoie le chemin. Ou envoie la vidéo ici (jusqu'à 2 Go).")
         return
     if local:
         rest = rest.strip()
@@ -503,9 +506,6 @@ async def updater(app: Application) -> None:
     """Toutes les 10 min, quand aucun job ne tourne : installe les nouveautés et redémarre."""
     while True:
         await asyncio.sleep(600)
-        if sys.platform == "darwin" and VPS_MARK.exists() and not current and queue.empty():
-            log.warning("Le VPS a pris le relais : le bot du Mac s'arrête.")
-            os._exit(3)
         if not current and queue.empty():
             try:
                 await update_and_restart(app)
@@ -660,13 +660,26 @@ async def worker(app: Application) -> None:
                 log.exception("mise à jour")
 
 
+async def watch_switch(app: Application) -> None:
+    """L'autre machine a pris la main (/mac ou /serveur) : on se met en veille dès qu'aucun job ne tourne."""
+    while True:
+        await asyncio.sleep(30 if switch.ON_MAC else 10)
+        if not switch.vps_host() and switch.ON_MAC:
+            continue
+        if not current and queue.empty() and await asyncio.to_thread(switch.mode) != switch.here():
+            log.warning("L'autre machine a pris la main : je passe en veille.")
+            os._exit(0)  # le lanceur relance bot.py, qui attend son tour
+
+
 async def post_init(app: Application) -> None:
     JOBS.mkdir(parents=True, exist_ok=True)
-    hello = REPO / ".annonce-vps"
-    if sys.platform.startswith("linux") and not hello.exists():
-        hello.write_text("ok\n")
-        await app.bot.send_message(ALLOWED, "🟢 Le VPS a pris le relais : je tourne maintenant 24 h/24. "
-                                            "Envoie tes vidéos directement ici.")
+    if WOKE_UP:
+        await app.bot.send_message(ALLOWED, "💻 Je tourne maintenant sur ton Mac. Tu peux m'envoyer des chemins de "
+                                            "fichiers du Mac. /serveur pour repasser sur le serveur."
+                                   if switch.ON_MAC else
+                                   "🟢 Je tourne maintenant sur le serveur, 24 h/24. Envoie tes vidéos directement ici. "
+                                   "/mac pour repasser sur ton Mac.")
+    asyncio.get_running_loop().create_task(watch_switch(app))
     for _ in range(MAX_JOBS):
         asyncio.get_running_loop().create_task(worker(app))
     asyncio.get_running_loop().create_task(updater(app))
@@ -714,14 +727,48 @@ async def cmd_vps(update: Update, ctx):
     if not ok:
         await ctx.bot.send_message(ALLOWED, "⚠️ L'installation a échoué. Fin du journal (à transmettre à Claude) :\n" + tail[-3000:])
         return
-    VPS_MARK.write_text("Le bot tourne sur le VPS. Supprime ce fichier pour le relancer sur le Mac.\n")
-    await ctx.bot.send_message(ALLOWED, "✅ VPS installé, il prend le relais 24 h/24. Le bot du Mac s'arrête. "
-                                        "Envoie /aide dans 2 minutes pour vérifier. Envoie maintenant tes vidéos directement ici.")
-    await asyncio.sleep(2)
-    os._exit(3)
+    (REPO / ".vps-host").write_text(ip + "\n")
+    await ctx.bot.send_message(ALLOWED, "✅ Serveur installé. Je reste sur ton Mac : envoie /serveur pour basculer "
+                                        "dessus, /mac pour revenir.")
 
 
-VPS_MARK = REPO / ".sur-vps"  # sur le Mac : le VPS a pris le relais
+@only_me
+async def cmd_switch(update: Update, ctx):
+    """/mac ou /serveur : une seule machine lit Telegram, l'autre attend en veille."""
+    m = update.message
+    want = "mac" if (m.text or "").lstrip("/").lower().startswith("mac") else "vps"
+    label = "ton Mac" if want == "mac" else "le serveur"
+    if want == switch.here():
+        await m.reply_text(f"Je suis déjà sur {label}. 👍")
+        return
+    if current or not queue.empty():
+        await m.reply_text(f"Un montage est en cours : je passe sur {label} dès qu'il est fini. Renvoie la commande à ce moment-là.")
+        return
+    if want == "mac" and not switch.mac_alive():
+        await m.reply_text("Ton Mac ne répond pas (éteint, en veille ou sans internet). Allume-le et ouvre la session : "
+                           "le bot du Mac démarre tout seul. Puis renvoie /mac.")
+        return
+    if want == "vps":
+        code, out = await asyncio.to_thread(switch.ssh, "systemctl is-enabled video-bot")
+        if code != 0:
+            await m.reply_text("Je n'arrive pas à joindre le serveur depuis ton Mac. Je reste sur le Mac.")
+            log.warning("serveur injoignable : %s", out[-300:])
+            return
+    await m.reply_text(f"🔀 Je passe sur {label}, prêt dans 1 min environ." +
+                       (" (Pour revenir sur le Mac, attends 10 min : délai imposé par Telegram.)" if want == "vps" else ""))
+    ok, out = await asyncio.to_thread(switch.set_mode, want)
+    if not ok:
+        await m.reply_text("⚠️ Bascule impossible, je reste ici : " + out[-300:])
+        return
+    try:
+        # Telegram : un bot ne doit être connecté qu'à un seul serveur (cloud pour le Mac, serveur local pour le VPS).
+        await ctx.bot.log_out()
+    except Exception:  # noqa: BLE001
+        log.exception("log_out")
+    await asyncio.sleep(1)
+    os._exit(0)
+
+
 _conflict_since = [0.0]
 
 
@@ -732,16 +779,14 @@ async def on_error(update, ctx) -> None:
     if not isinstance(ctx.error, (Conflict, InvalidToken)):
         log.error("erreur", exc_info=ctx.error)
         return
-    if sys.platform != "darwin":
-        return
     now = time.time()
     if not _conflict_since[0] or now - _conflict_since[0] > 120:
         _conflict_since[0] = now  # premier conflit : peut-être juste un redémarrage, on attend
         return
-    if now - _conflict_since[0] > 30 and not current:
-        VPS_MARK.write_text("Le bot tourne sur le VPS. Supprime ce fichier pour le relancer sur le Mac.\n")
-        log.warning("Un autre bot (le VPS) utilise ce jeton : le Mac s'arrête.")
-        os._exit(3)
+    if now - _conflict_since[0] > 60 and not current:
+        log.warning("Telegram refuse ce bot (autre machine active ou délai après bascule) : je redémarre.")
+        await asyncio.sleep(30)
+        os._exit(0)
 
 
 def stop_other_bots() -> None:
@@ -763,10 +808,13 @@ def stop_other_bots() -> None:
                 pass
 
 
+WOKE_UP = False
+
+
 def main() -> None:
-    if sys.platform == "darwin" and VPS_MARK.exists():
-        raise SystemExit(3)  # le VPS fait le travail : le Mac reste éteint
+    global WOKE_UP
     stop_other_bots()
+    WOKE_UP = switch.wait_my_turn(log)  # l'autre machine travaille : veille jusqu'à /mac ou /serveur
     log.info("Bot démarré. Utilisateur autorisé : %s", ALLOWED)
     b = Application.builder().token(TOKEN).post_init(post_init)
     if API_URL:
@@ -782,6 +830,7 @@ def main() -> None:
     app.add_handler(CommandHandler("annuler", cmd_annuler))
     app.add_error_handler(on_error)
     app.add_handler(CommandHandler("vps", cmd_vps))
+    app.add_handler(CommandHandler(["mac", "serveur", "server"], cmd_switch))
     app.add_handler(CallbackQueryHandler(on_rate, pattern=r"^rate:"))
     app.add_handler(MessageHandler(filters.VIDEO | filters.Document.VIDEO, on_video))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
