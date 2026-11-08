@@ -12,5 +12,6 @@ while true; do
   echo "$(date '+%H:%M') Bot lancé. Parle-lui sur Telegram, tu peux réduire cette fenêtre."
   caffeinate -i python bot.py
   code=$?
+  if [ "$code" -eq 3 ]; then echo "Le bot tourne maintenant sur le VPS : rien à faire sur ce Mac. Tu peux fermer cette fenêtre."; exit 0; fi
   if [ "$code" -eq 0 ]; then echo "Redémarrage après mise à jour…"; sleep 1; else echo "Le bot s'est arrêté (code $code), relance dans 10 s…"; sleep 10; fi
 done

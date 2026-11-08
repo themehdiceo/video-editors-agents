@@ -49,7 +49,7 @@ INDEX = JOBS / "index.json"  # message_id Telegram -> job id (pour les retours)
 
 queue: asyncio.Queue = asyncio.Queue()
 current: dict = {}  # jobs en cours : nom -> dossier
-MAX_JOBS = int(os.environ.get("MAX_JOBS", "3"))  # vidéos montées en même temps
+MAX_JOBS = int(os.environ.get("MAX_JOBS", "1"))  # vidéos montées en même temps
 RATINGS = REPO / "style" / "ratings.jsonl"  # notes de Mehdi : la mémoire de ce qui marche
 
 
@@ -601,7 +601,32 @@ async def post_init(app: Application) -> None:
     asyncio.get_running_loop().create_task(updater(app))
 
 
+VPS_MARK = Path.home() / ".video-editors-agents.sur-vps"  # sur le Mac : le VPS a pris le relais
+_conflict_since = [0.0]
+
+
+async def on_error(update, ctx) -> None:
+    """Deux bots avec le même jeton (le Mac et le VPS) : le Mac s'efface et laisse le VPS travailler."""
+    import time
+    from telegram.error import Conflict, InvalidToken
+    if not isinstance(ctx.error, (Conflict, InvalidToken)):
+        log.error("erreur", exc_info=ctx.error)
+        return
+    if sys.platform != "darwin":
+        return
+    now = time.time()
+    if not _conflict_since[0] or now - _conflict_since[0] > 120:
+        _conflict_since[0] = now  # premier conflit : peut-être juste un redémarrage, on attend
+        return
+    if now - _conflict_since[0] > 30 and not current:
+        VPS_MARK.write_text("Le bot tourne sur le VPS. Supprime ce fichier pour le relancer sur le Mac.\n")
+        log.warning("Un autre bot (le VPS) utilise ce jeton : le Mac s'arrête.")
+        os._exit(3)
+
+
 def main() -> None:
+    if sys.platform == "darwin" and VPS_MARK.exists():
+        raise SystemExit(3)  # le VPS fait le travail : le Mac reste éteint
     log.info("Bot démarré. Utilisateur autorisé : %s", ALLOWED)
     b = Application.builder().token(TOKEN).post_init(post_init)
     if API_URL:
@@ -615,6 +640,7 @@ def main() -> None:
     app.add_handler(CommandHandler("maj", cmd_maj))
     app.add_handler(CommandHandler("bilan", cmd_bilan))
     app.add_handler(CommandHandler("annuler", cmd_annuler))
+    app.add_error_handler(on_error)
     app.add_handler(CallbackQueryHandler(on_rate, pattern=r"^rate:"))
     app.add_handler(MessageHandler(filters.VIDEO | filters.Document.VIDEO, on_video))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))

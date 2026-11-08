@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Installation complète sur un VPS Ubuntu 22.04 / 24.04 (Contabo, Hetzner…).
-# À lancer en root :  curl -fsSL https://raw.githubusercontent.com/themehdiceo/video-editors-agents/main/deploy/install.sh | bash
+# Depuis le Mac, une seule commande (copie les clés du Mac sans les afficher, puis installe) :
+#   scp ~/.video-editors-agents.env root@IP:/root/vea.env && ssh -t root@IP 'bash <(curl -fsSL https://raw.githubusercontent.com/themehdiceo/video-editors-agents/main/deploy/install.sh) /root/vea.env'
+# Ou directement sur le VPS, en root :  bash <(curl -fsSL https://raw.githubusercontent.com/themehdiceo/video-editors-agents/main/deploy/install.sh)
 # Options : WITH_BLENDER=1 pour installer Blender (3D).
 set -euo pipefail
 
@@ -67,6 +69,9 @@ cp $APP_DIR/deploy/video-bot.service /etc/systemd/system/
 cp $APP_DIR/deploy/telegram-bot-api.service /etc/systemd/system/
 systemctl daemon-reload
 
+mkdir -p /var/lib/telegram-bot-api && chmod 755 /var/lib/telegram-bot-api
+chown -R $APP_USER:$APP_USER $APP_DIR
+
 echo
-echo "Installation terminée."
-echo "Étape suivante : bash $APP_DIR/deploy/setup-secrets.sh"
+echo "Installation terminée. Il reste les clés :"
+bash $APP_DIR/deploy/setup-secrets.sh "${1:-}"
