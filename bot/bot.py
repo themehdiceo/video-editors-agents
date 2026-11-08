@@ -22,6 +22,7 @@ import json
 import logging
 import os
 import re
+import unicodedata
 import shutil
 import subprocess
 import sys
@@ -214,7 +215,33 @@ def find_local_video(line: str):
     return None
 
 
-def reuse_transcript(local: Path, job_dir: Path) -> None:
+def _nfc_norm(x: str) -> str:
+    # macOS écrit les accents en NFD (« é » = e + accent) : on normalise avant de comparer.
+    return re.sub(r"[\W_]+", "", unicodedata.normalize("NFC", x).lower())
+
+
+def known_video(line: str):
+    """Vidéo déjà reçue dans un job (ex. copiée du Mac vers le VPS) : (fichier du job, chemin d'origine)."""
+    line = line.strip().strip("'\"").replace("\\ ", " ")
+    if not line or len(line) > 300:
+        return None
+    want = _nfc_norm(Path(line).stem if Path(line).suffix.lower() in VIDEO_EXT else line)
+    if len(want) < 6:
+        return None
+    for jf in sorted(JOBS.glob("*/job.json"), reverse=True):
+        try:
+            j = json.loads(jf.read_text())
+        except ValueError:
+            continue
+        src, inp = j.get("source_path"), j.get("input_file")
+        if not src or not inp or not (jf.parent / inp).is_file():
+            continue
+        if _nfc_norm(Path(src).stem).startswith(want):
+            return jf.parent / inp, src
+    return None
+
+
+def reuse_transcript(local, job_dir: Path) -> None:
     """Même vidéo déjà transcrite dans un job précédent : on recopie la transcription (gain de 10 min)."""
     for prev in sorted(JOBS.glob("*/job.json"), reverse=True):
         try:
@@ -246,20 +273,30 @@ async def flush_text(update: Update, ctx) -> None:
         return
     first, _, rest = text.partition("\n")
     local = find_local_video(first)
+    src_key = str(local) if local else None
+    if not local and (kv := known_video(first)):
+        local, src_key = kv
+    if not local and first.strip().strip("'\"").startswith(("/Users/", "~/")) and sys.platform != "darwin":
+        await m.reply_text("Cette vidéo est sur ton Mac, et le bot tourne maintenant sur le serveur : il ne la voit "
+                           "pas. Envoie la vidéo directement ici dans Telegram (jusqu'à 2 Go), avec ton prompt en légende.")
+        return
     if local:
         rest = rest.strip()
         kind = "clip" if rest.lower().startswith("clip") else "edit"
         count = int(re.search(r"\d", rest[:10]).group()) if kind == "clip" and re.search(r"\d", rest[:10]) else 1
         job_dir = new_job(kind, note=rest, count=count, input_file="input/source" + local.suffix.lower(),
-                          source_path=str(local), history=previous_notes(local), conseils=recent_advice())
+                          source_path=src_key, history=previous_notes(src_key), conseils=recent_advice())
         dst = job_dir / "input" / ("source" + local.suffix.lower())
-        await m.reply_text(f"🎞️ Vidéo trouvée : {local}\nJe la copie dans le dossier du job…")
+        await m.reply_text(f"🎞️ Vidéo trouvée : {Path(src_key).name}\nJe la prépare…")
         # Vraie copie (pas un lien) : les agents n'ont accès qu'au dossier du dépôt.
         # Sur Mac, « cp -c » fait un clone APFS instantané qui ne prend pas de place en plus.
-        r = await asyncio.to_thread(subprocess.run, ["cp", "-c", str(local), str(dst)], capture_output=True)
-        if r.returncode != 0:
-            await asyncio.to_thread(shutil.copy2, local, dst)
-        reuse_transcript(local, job_dir)
+        try:
+            os.link(local, dst)  # même disque (VPS) : instantané, sans place en plus
+        except OSError:
+            r = await asyncio.to_thread(subprocess.run, ["cp", "-c", str(local), str(dst)], capture_output=True)
+            if r.returncode != 0:
+                await asyncio.to_thread(shutil.copy2, local, dst)
+        reuse_transcript(src_key, job_dir)
         if not rest:
             ctx.chat_data["awaiting_note"] = (str(job_dir), kind)
             await m.reply_text("✍️ Qu'est-ce que je dois en faire ? Envoie tes instructions dans ton prochain message "
@@ -287,9 +324,8 @@ async def flush_text(update: Update, ctx) -> None:
         await enqueue(update, d, "retour")
         return
     if len(first) < 300 and not first.startswith("/"):
-        await m.reply_text(f"Je ne trouve pas la vidéo « {first[:80]} » dans Vidéos, Bureau, Téléchargements "
-                           "ni Documents. Envoie son chemin complet (glisse le fichier dans le Terminal pour l'avoir), "
-                           "puis ton prompt à la ligne.")
+        await m.reply_text(f"Je n'ai pas de vidéo en cours pour « {first[:80]} ». Envoie la vidéo ici dans "
+                           "Telegram (jusqu'à 2 Go), avec ton prompt en légende.")
         return
     await m.reply_text("Envoie un lien (script), une vidéo (montage), ou réponds à un rendu pour donner un retour.")
 
@@ -341,7 +377,7 @@ def history(d: Path) -> list:
     return list(reversed(out))
 
 
-def previous_notes(source: Path) -> list:
+def previous_notes(source) -> list:
     """Consignes données lors des montages précédents de la même vidéo (même fichier source)."""
     notes = []
     for jf in sorted(JOBS.glob("*/job.json")):
