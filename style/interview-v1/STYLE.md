@@ -79,6 +79,11 @@ Pour une pub Meta : jamais de promesse de revenus (retirer l'étape 1 chiffrée)
 3. **Mots-clés en vert émeraude 1FBF6F** (plus de jaune, plus de rouge). Mehdi : « vert pas foncé, vert sombre, stylé ».
 4. **Son** : le noir final doit avoir le même nombre de canaux que les extraits (mono), sinon `concat -c copy` casse l'audio de la fin. Contrôle le son sur les 5 dernières secondes.
 
+### 2026-11-08 – intro v5 (intro v4 validée, sauf 2 points)
+1. **Le conseil finit sa phrase** : un extrait s'arrête à la fin de la PHRASE de la personne (dernier mot avant un vrai silence / la prise de parole de l'autre), pas à la fin de la première proposition (« …un business » + « حيت… »). Vérifie `words.json` jusqu'au mot suivant l'autre locuteur. Fais un trou de contrôle : relis le dernier mot de chaque extrait, il doit conclure l'idée.
+2. **Toux de Mehdi pendant qu'Anas parle** : Scribe ne la note pas toujours dans `events` (ex. 857-858 s : pic d'énergie sans mot). Pour chaque extrait où l'autre personne parle, calcule l'énergie par 0,1 s (wav) et cherche les pics sans mot dans `words.json`. Termine l'extrait avant la toux, ou saute-la avec deux plages, plutôt que de la laisser.
+3. **Autocritique obligatoire** (Mehdi, énervé) : avant de livrer, relis chaque correction demandée, vérifie-la sur la planche contact ET sur les mots de fin d'extrait, puis écris dans summary.md « vérifié : … ». Pas de « corrigé » sans preuve.
+
 ## Garde-fous (vérifiables)
 
 1. Hook entre **20 et 35 s**, idéal 25 s (retour de Mehdi, intro v2).
