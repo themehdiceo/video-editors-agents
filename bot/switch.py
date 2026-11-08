@@ -43,8 +43,10 @@ def mode() -> str:
     if ON_MAC:
         code, out = ssh(f"cat {VPS_DIR}/.actif 2>/dev/null; date +%s > {VPS_DIR}/.mac-vu; "
                         f"chown editor:editor {VPS_DIR}/.mac-vu 2>/dev/null; true")
-        word = out.split()[0] if code == 0 and out.split() else ""
-        return "vps" if word == "vps" else "mac"
+        if code != 0:
+            return "mac"  # serveur injoignable : le Mac travaille
+        word = out.split()[0] if out.split() else "vps"  # pas de fichier = le serveur travaille (par défaut)
+        return "mac" if word == "mac" else "vps"
     try:
         return "mac" if MODE_FILE.read_text().strip() == "mac" else "vps"
     except OSError:
