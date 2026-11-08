@@ -29,6 +29,8 @@ from runner import JOBS, REPO, new_job, run_job
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("bot")
+# httpx affiche chaque URL appelée, jeton du bot compris : on le fait taire.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 TOKEN = os.environ["TELEGRAM_BOT_TOKEN"].strip()
 if not re.fullmatch(r"\d+:[\w-]{30,}", TOKEN):
