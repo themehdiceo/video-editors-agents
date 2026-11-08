@@ -47,6 +47,15 @@ Le hook ne contient JAMAIS l'intro « bonjour, aujourd'hui avec X ». Il commenc
 - SFX : aucun mesuré. Un son très bas (≈ -36 dB) sous l'écran noir. Ne pas ajouter de whoosh. Règle prudente : si on ajoute un SFX, un seul « hit » doux sur la coupe hook → noir.
 - Au changement d'extrait du hook : la voix de l'extrait suivant démarre **sur la coupe**, sans respiration.
 
+## Retours de Mehdi (prioritaires sur tout le reste)
+
+### 2026-11-08 – intro v1 jugée ratée
+1. **Zooms trop serrés** : en plein écran sur une personne, on prend TOUTE sa tuile Meet (tête + épaules visibles, de l'air au-dessus des cheveux, ≥ 8 % de la hauteur). Zoom supplémentaire max ×1,08, et seulement s'il garde la tête entière. Jamais le haut du crâne ou le menton coupés. Vérifie chaque plan sur la planche contact.
+2. **Il faut du texte** : sous-titres « phrase qui se construit » sur tout le hook (`subtitles.py --range`) ET 3 à 5 cartes de texte animées avec `tools/titles.py` : chiffres clés en compteur (« 12 000 DH » → « 60 000 $ / MOIS »), questions-choc de Mehdi en bandeau (`box`), mots-clés en rouge.
+3. **Les bons moments** : le hook = les questions-choc de Mehdi + les réponses les plus fortes d'Anas (chiffres, avant/après, peur, décision de quitter le salariat, preuve Shopify). Format : question de Mehdi (2-3 s) → réponse punch d'Anas, 3 ou 4 fois. Pas de phrases au hasard, pas de réponse hors sujet (ex. à « comment t'as quitté le salariat ? », la réponse doit parler de la décision, pas des chiffres). Relis la transcription avec les locuteurs (`speaker` de Scribe) pour associer chaque question à SA réponse.
+4. **Intro d'abord** : quand la note dit « intro seulement », ne rends que le hook (+ 1,8 s de noir), 30-45 s. Pas de rendu de l'interview. Objectif : brouillon livré en moins de 10 min.
+5. **Interview (quand Mehdi l'aura validée)** : on coupe les reprises et ratés (« on refait », « attends », « coupe », faux départs, problème technique, longs blancs). Le reste en écran partagé, sans effets.
+
 ## Garde-fous (vérifiables)
 
 1. Hook entre **20 et 40 s**, jamais plus. (ref1-5 : 22-38 s)
@@ -55,7 +64,9 @@ Le hook ne contient JAMAIS l'intro « bonjour, aujourd'hui avec X ». Il commenc
 4. Alternance A/B : jamais 3 extraits d'affilée de la même personne.
 5. **1 à 2 mots rouges** par phrase de sous-titre ; au moins un **chiffre** rouge dans les 10 premières secondes quand l'invité en donne un.
 6. Écran noir de **1,5 à 2 s** entre hook et interview (4-6 s seulement avec carte titre).
-7. Interview : **split 50/50, 0 coupe, 0 sous-titre, 0 B-roll, 0 zoom**.
+7. Interview : **split 50/50, 0 sous-titre, 0 B-roll, 0 zoom** ; coupes seulement pour enlever reprises, ratés et longs blancs (retour de Mehdi).
+10. Plein écran : tête entière visible, zoom ≤ ×1,08 (retour de Mehdi).
+11. Hook : au moins 3 cartes de texte animées + sous-titres du début à la fin.
 8. Pas de musique ; voix à **-14 LUFS**.
 9. Pas d'image générée, pas de B-roll (aucune dans les refs).
 

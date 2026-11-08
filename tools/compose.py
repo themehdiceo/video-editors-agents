@@ -27,6 +27,7 @@ plan.json :
     {"file": "gfx/title.mov", "at": 0.0, "dur": 2.0, "x": 0, "y": 0}
   ],
   "subtitles": "work/subs.ass",
+  "titles": "work/titles.ass",          # textes animés (tools/titles.py), au-dessus des sous-titres
   "music": {"file": "assets/music/x.mp3", "volume": 0.12, "duck": true, "start": 0.0},
   "sfx": [{"file": "assets/sfx/whoosh.mp3", "at": 2.0, "volume": 0.6}],
   "loudness": -14
@@ -153,6 +154,11 @@ def main() -> int:
         fontsdir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "fonts")
         g.append(f"[{cur}]subtitles='{subs}':fontsdir='{fontsdir}'[vsub];")
         cur = "vsub"
+    for j, tf in enumerate([plan["titles"]] if isinstance(plan.get("titles"), str) else plan.get("titles", [])):
+        tpath = P(tf).replace(":", r"\:").replace("'", r"\'")
+        fontsdir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "fonts")
+        g.append(f"[{cur}]subtitles='{tpath}':fontsdir='{fontsdir}'[vtit{j}];")
+        cur = f"vtit{j}"
     g.append(f"[{cur}]format=yuv420p[vout];")
 
     music = plan.get("music")

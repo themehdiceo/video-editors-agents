@@ -45,6 +45,7 @@ Personne ne peut valider une commande pendant un job. Pour que rien ne soit bloq
 - Commandes shell autorisées : `ffmpeg`, `ffprobe`, `yt-dlp`, `python3 tools/…`, `ls`, `head`, `tail`, `cp`, `wc`, `mkdir -p jobs/…`, `git` (skills). Si une commande est refusée, reformule-la ainsi. Ne demande jamais d'autorisation : personne ne répondra.
 - Le bot transcrit la vidéo AVANT de te lancer (ElevenLabs Scribe si la clé existe, sinon Whisper large-v3-turbo) : `work/words.json` existe déjà. Avec Scribe, chaque mot a un champ `speaker` (qui parle) : sers-t'en pour l'alternance A/B. Utilise-le, ne retranscris pas. S'il manque, lance `python3 tools/transcribe.py … --model large-v3-turbo --lang ar` au premier plan avec un timeout de 600000 ms.
 - **Darija** : la transcription peut être en lettres arabes, avec des mots français. C'est normal. Lis-la, comprends-la, et réécris toi-même les sous-titres en darija latine (« kifach », « 3ndek ») en gardant les horodatages des mots. Les phrases citées dans la note t'aident à retrouver les bons passages.
+- **« intro seulement »** dans la note : ne monte et ne rends que l'intro (hook). Livraison rapide, Mehdi valide avant la suite.
 - **Ne bloque jamais sans livrable.** Si la transcription est douteuse, livre quand même le meilleur brouillon possible (passages choisis à l'image et au son, titres animés, preuve à l'écran) et liste les doutes dans le résumé. Mehdi corrigera en répondant au rendu.
 
 ## Outils disponibles (`tools/`)
@@ -56,6 +57,7 @@ Personne ne peut valider une commande pendant un job. Pour que rien ne soit bloq
 | `cut.py src keep.json out.mp4 --silences sil.json` | garde les passages listés, coupes calées sur les silences, écrit `out.mp4.timemap.json` |
 | `subtitles.py words.json subs.ass --timemap ...` | sous-titres ASS style short, mot actif surligné |
 | `compose.py work/plan.json` | assemblage (16:9 ou 9:16) en BROUILLON 480p ; B-roll vidéo ou image avec `zoom`, `blur_in`, `vf` couleur ; (le 1080p est rendu par le bot quand Mehdi valide, sans toi) : B-roll, split 50/50, overlays, sous-titres, musique avec ducking, SFX, loudnorm -14 LUFS |
+| `titles.py cartes.json titles.ass` | textes animés façon VSL : titres, chiffres qui défilent, questions en bandeau, mots-clés en rouge (dans plan.json : `"titles"`) |
 | `frames.py video sheet.jpg` | planche contact pour vérifier visuellement |
 | `analyze_refs.py video dossier/` | analyse image par image d'une vidéo de référence : coupes/min, durée des plans, couleurs, planches 1re/dernière image de chaque plan |
 | `find_media.py "requête" dossier/ [--video]` | vraies images et vidéos libres (Openverse, Wikimedia, Pexels) + crédits |
