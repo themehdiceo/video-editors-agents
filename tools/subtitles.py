@@ -8,7 +8,16 @@ Usage: subtitles.py <words.json> <sortie.ass> [--timemap cut.mp4.timemap.json]
 - --timemap = sortie de cut.py : remappe les mots sur la timeline montée et
   supprime les mots coupés.
 - style.json (optionnel) surcharge: font, size, color, highlight, outline, y (0-1), max_words, uppercase.
+
+Deux modes :
+- défaut ("karaoke") : groupes de 2-4 mots, le mot prononcé est surligné.
+- "build" (style.subtitles.build_word_by_word = true, ou --mode build) : la phrase se construit mot à mot
+  (jusqu'à max_words, 2-3 lignes) et reste affichée jusqu'à sa fin. Les mots-clés sont dans la couleur
+  highlight, plus gros (keyword_scale) et en italique (keyword_italic) : mots marqués "k": true dans
+  words.json, sinon détection auto (chiffres, %, €, $, k, MOTS EN MAJUSCULES).
+--range 0,38.5 : sous-titres seulement sur cette fenêtre de la timeline montée (ex. le hook).
 """
+import re
 import argparse
 import json
 import sys
@@ -57,6 +66,46 @@ def group(words, n, max_gap):
     return groups
 
 
+KEY_RE = re.compile(r"\d|%|€|\$|^\d+k$", re.I)
+
+
+def is_key(w):
+    if "k" in w:
+        return bool(w["k"])
+    t = w["w"].strip(".,!?;:«»\"'")
+    return bool(KEY_RE.search(t)) or (len(t) >= 2 and t.isupper() and t.isalpha())
+
+
+def esc(t):
+    return t.replace("{", "(").replace("}", ")")
+
+
+def build_events(words, st):
+    """Phrase qui se construit mot à mot ; les mots pas encore dits sont présents mais invisibles (mise en page stable)."""
+    base, hi = ass_color(st["color"]), ass_color(st["highlight"])
+    ks = int(100 * st.get("keyword_scale", 1.6))
+    ital = r"\i1" if st.get("keyword_italic", True) else ""
+    lines = []
+    for g in group(words, st["max_words"], st["max_gap"]):
+        end_g = g[-1]["end"] + st.get("hold", 0.25)
+        for i, w in enumerate(g):
+            start = w["start"]
+            end = g[i + 1]["start"] if i + 1 < len(g) else end_g
+            parts = []
+            for j, x in enumerate(g):
+                t = esc(x["w"].upper() if st["uppercase"] else x["w"])
+                if is_key(x):
+                    t = r"{\c" + hi + r"&" + ital + r"\fscx" + str(ks) + r"\fscy" + str(ks) + "}" + t + \
+                        r"{\c" + base + r"&\i0\fscx100\fscy100}"
+                if j > i:
+                    t = r"{\alpha&HFF&}" + t + r"{\alpha&H00&}"
+                elif j == i:
+                    t = r"{\alpha&HFF&\t(0,90,\alpha&H00&)}" + t
+                parts.append(t)
+            lines.append(f"Dialogue: 0,{ts(start)},{ts(end)},Cap,,0,0,0,,{' '.join(parts)}")
+    return lines
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("words")
@@ -65,6 +114,8 @@ def main() -> int:
     ap.add_argument("--style")
     ap.add_argument("--w", type=int, default=1080)
     ap.add_argument("--h", type=int, default=1920)
+    ap.add_argument("--mode", choices=["karaoke", "build"])
+    ap.add_argument("--range", help="début,fin sur la timeline montée")
     a = ap.parse_args()
     st = dict(DEFAULT)
     if a.style:
@@ -74,21 +125,30 @@ def main() -> int:
     words = json.load(open(a.words))["words"]
     tm = json.load(open(a.timemap)) if a.timemap else None
     words = [w for w in remap(words, tm) if w["w"]]
+    if a.range:
+        r0, r1 = (float(x) for x in a.range.split(","))
+        words = [w for w in words if w["start"] >= r0 and w["end"] <= r1 + 0.05]
+    mode = a.mode or ("build" if st.get("build_word_by_word") else "karaoke")
 
     margin_v = int(a.h * (1 - st["y"]))
     head = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {a.w}
 PlayResY: {a.h}
-WrapStyle: 2
+WrapStyle: {0 if mode == "build" else 2}
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Cap,{st['font']},{st['size']},{ass_color(st['color'])},&H000000FF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,{st['outline']},2,2,60,60,{margin_v},1
+Style: Cap,{st['font']},{st['size']},{ass_color(st['color'])},&H000000FF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,{st['outline']},2,{st.get('align', 2)},{int(a.w * 0.12)},{int(a.w * 0.12)},{margin_v},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
+    if mode == "build":
+        lines = build_events(words, st)
+        open(a.out, "w").write(head + "\n".join(lines) + "\n")
+        print(f"{len(lines)} événements de sous-titres (phrase qui se construit) -> {a.out}")
+        return 0
     lines = []
     hi = ass_color(st["highlight"])
     base = ass_color(st["color"])

@@ -365,7 +365,13 @@ async def send_outputs(app: Application, chat_id: int, job_dir: Path, code: int)
         if p.exists():
             msg = await app.bot.send_message(chat_id, p.read_text()[:3900])
             remember(msg.message_id, job_dir.name)
-    is_plan = json.loads((job_dir / "job.json").read_text()).get("phase") == "plan"
+    job = json.loads((job_dir / "job.json").read_text())
+    is_plan = job.get("phase") == "plan"
+    if job.get("type") in ("style", "bilan") and (out / "summary.md").exists():
+        if job["type"] == "style":
+            await app.bot.send_message(chat_id, f"🎨 Style « {job.get('name')} » prêt. Écris « style {job.get('name')} » "
+                                                "dans ton prompt pour monter avec (ou laisse l'équipe le choisir).")
+        return
     if not sent_any:
         await app.bot.send_message(chat_id, f"⚠️ Job {job_dir.name} terminé sans livrable (code {code}). "
                                             f"Journal : {job_dir / 'claude.log'}")
