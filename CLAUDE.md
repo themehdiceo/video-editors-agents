@@ -24,6 +24,8 @@ Types de job :
 - Termine toujours par `jobs/<id>/out/summary.md` : 3 à 6 lignes sur ce que tu as fait et ce qui reste douteux.
 - **Coupes** : décide-les avec la transcription ET la forme d'onde (`tools/silences.py`). Une coupe ne tombe jamais au milieu d'un mot.
 - **Contrôle qualité** : avant de livrer, regarde la planche contact (`tools/frames.py`). Lis l'image. Corrige ce qui ne va pas.
+- Livre toujours un brouillon 480p et garde `work/plan.json` rejouable : le bot s'en sert pour le rendu final 1080p.
+- Les instructions de Mehdi sont dans `job.json` (champ `note`). Elles priment sur la skill et sur style.json pour ce job.
 - Pas de clé API dans le code ni dans les logs. Les secrets sont dans les variables d'environnement.
 - Si un outil échoue (téléchargement bloqué, API indisponible), utilise une alternative et note-le dans le résumé. Ne t'arrête pas.
 
@@ -35,7 +37,7 @@ Types de job :
 | `silences.py src out.json` | silences détectés sur la forme d'onde |
 | `cut.py src keep.json out.mp4 --silences sil.json` | garde les passages listés, coupes calées sur les silences, écrit `out.mp4.timemap.json` |
 | `subtitles.py words.json subs.ass --timemap ...` | sous-titres ASS style short, mot actif surligné |
-| `compose.py plan.json` | assemblage final 9:16 : B-roll, split 50/50, overlays, sous-titres, musique avec ducking, SFX, loudnorm -14 LUFS |
+| `compose.py work/plan.json` | assemblage 9:16 en BROUILLON 480p (le 1080p est rendu par le bot quand Mehdi valide, sans toi) : B-roll, split 50/50, overlays, sous-titres, musique avec ducking, SFX, loudnorm -14 LUFS |
 | `frames.py video sheet.jpg` | planche contact pour vérifier visuellement |
 | `music.py "ambiance" out.mp3 --dur 60` | musique de fond (ElevenLabs si clé, sinon bibliothèque `assets/music/`) |
 

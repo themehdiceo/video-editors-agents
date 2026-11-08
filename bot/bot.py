@@ -7,6 +7,7 @@ Commandes (seul TELEGRAM_ALLOWED_USER_ID est écouté) :
   (envoi d'une vidéo)   montage d'un A-roll ; légende "clip" ou "clip 3" = vidéo longue
   (chemin d'un fichier) mode Mac : /Users/.../video.mov, puis "clip 2" à la ligne suivante si vidéo longue
   (réponse à un rendu)  retour -> nouvelle version + mise à jour des skills
+  « valide » en réponse  rendu final 1080p du brouillon (ffmpeg seul, sans Claude)
   /statut               job en cours et file d'attente
   /bilan                propose des améliorations des skills
   /annuler              annule la dernière mise à jour des skills (git revert)
@@ -17,6 +18,7 @@ import logging
 import os
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 from telegram import Update
@@ -118,6 +120,9 @@ async def on_text(update: Update, ctx):
     m = update.message
     if m.reply_to_message:
         parent = load_index().get(str(m.reply_to_message.message_id))
+        if parent and VALIDATE_RE.match(m.text or ""):
+            await validate(update, ctx, parent)
+            return
         if parent:
             await enqueue(update, new_job("feedback", parent=parent, feedback=m.text), "retour")
             return
@@ -136,6 +141,31 @@ async def on_text(update: Update, ctx):
         await enqueue(update, new_job("script", url=urls[0], note=URL_RE.sub("", m.text).strip()), "script")
         return
     await m.reply_text("Envoie un lien (script), une vidéo (montage), ou réponds à un rendu pour donner un retour.")
+
+
+VALIDATE_RE = re.compile(r"^\s*/?(valide|valid|validé|ok|go|parfait|top)\b", re.I)
+
+
+async def validate(update: Update, ctx, job_id: str) -> None:
+    """Rendu final 1080p depuis le plan du brouillon : ffmpeg seul, aucun appel à Claude."""
+    plan = JOBS / job_id / "work" / "plan.json"
+    if not plan.exists():
+        await update.message.reply_text("Je ne trouve pas le plan de montage de ce job, impossible de faire le 1080p.")
+        return
+    await update.message.reply_text("👍 Validé. Rendu final en 1080p (sans Claude, ça ne consomme rien)…")
+    r = await asyncio.to_thread(subprocess.run, [sys.executable, str(REPO / "tools" / "compose.py"), str(plan),
+                                                 "--final"], capture_output=True, text=True)
+    final = JOBS / job_id / "out" / "final_1080.mp4"
+    if r.returncode != 0 or not final.exists():
+        await update.message.reply_text(f"⚠️ Échec du rendu final :\n{(r.stderr or r.stdout)[-800:]}")
+        return
+    if not API_URL and final.stat().st_size > 49 * 1024 * 1024:
+        await update.message.reply_text(f"🎞️ Version finale prête (trop lourde pour Telegram) :\n{final}")
+        return
+    with open(final, "rb") as fh:
+        msg = await ctx.bot.send_video(update.effective_chat.id, fh, caption=f"{job_id} · version finale 1080p",
+                                       supports_streaming=True, read_timeout=600, write_timeout=600)
+    remember(msg.message_id, job_id)
 
 
 @only_me
@@ -176,7 +206,7 @@ async def send_outputs(app: Application, chat_id: int, job_dir: Path, code: int)
             msg = await app.bot.send_message(chat_id, text[i:i + 3900])
             remember(msg.message_id, job_dir.name)
         sent_any = True
-    for video in sorted(out.glob("*.mp4")):
+    for video in sorted(v for v in out.glob("*.mp4") if not v.name.endswith("_1080.mp4")):
         if not API_URL and video.stat().st_size > 49 * 1024 * 1024:
             msg = await app.bot.send_message(chat_id, f"🎞️ Vidéo trop lourde pour Telegram, elle est ici :\n{video}")
             remember(msg.message_id, job_dir.name)
@@ -196,7 +226,8 @@ async def send_outputs(app: Application, chat_id: int, job_dir: Path, code: int)
         await app.bot.send_message(chat_id, f"⚠️ Job {job_dir.name} terminé sans livrable (code {code}). "
                                             f"Journal : {job_dir / 'claude.log'}")
     else:
-        await app.bot.send_message(chat_id, "Réponds à la vidéo ou au script pour demander des corrections.")
+        await app.bot.send_message(chat_id, "Brouillon en 480p. Réponds « valide » à la vidéo pour la version 1080p, "
+                                            "ou réponds avec tes corrections.")
 
 
 async def worker(app: Application) -> None:

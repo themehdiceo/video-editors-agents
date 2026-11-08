@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """Assemble le short final à partir d'un plan de montage JSON.
 
-Usage: compose.py <plan.json>
+Usage: compose.py <plan.json> [--final]
+
+Par défaut : BROUILLON 480x854 (rendu rapide, fichier léger) -> out/final.mp4
+--final     : rendu 1080x1920 depuis les mêmes sources -> out/final_1080.mp4
+              (lancé par le bot quand Mehdi répond « valide », sans Claude)
+Les chemins du plan sont relatifs au dossier du job (parent de work/).
 
 plan.json :
 {
@@ -48,12 +53,24 @@ def cover(label_in, w, h, label_out, crop_x=0.5, fps=30):
 
 
 def main() -> int:
-    plan = json.load(open(sys.argv[1]))
-    base_dir = os.path.dirname(os.path.abspath(sys.argv[1]))
-    P = lambda p: p if os.path.isabs(p) else os.path.join(base_dir, p)
+    final = "--final" in sys.argv[2:]
+    plan_path = os.path.abspath(sys.argv[1])
+    plan = json.load(open(plan_path))
+    plan_dir = os.path.dirname(plan_path)
+    job_dir = os.path.dirname(plan_dir) if os.path.basename(plan_dir) == "work" else plan_dir
+
+    def P(p):
+        if os.path.isabs(p):
+            return p
+        for base in (job_dir, plan_dir):
+            if os.path.exists(os.path.join(base, p)):
+                return os.path.join(base, p)
+        return os.path.join(job_dir, p)
 
     fmt = plan.get("format", {})
-    W, H, FPS = fmt.get("w", 1080), fmt.get("h", 1920), fmt.get("fps", 30)
+    FW, FH, FPS = fmt.get("w", 1080), fmt.get("h", 1920), fmt.get("fps", 30)
+    k = 1.0 if final else 480 / FW          # facteur d'échelle du brouillon
+    W, H = int(FW * k) // 2 * 2, int(FH * k) // 2 * 2
     aroll = P(plan["aroll"])
     total = probe_duration(aroll)
     cx = plan.get("crop_x", 0.5)
@@ -101,8 +118,9 @@ def main() -> int:
         else:
             inputs += ["-i", f]
         at, dur = float(o["at"]), float(o["dur"])
-        g.append(f"[{idx}:v]setpts=PTS-STARTPTS+{at}/TB,format=rgba[o{i}];")
-        g.append(f"[{cur}][o{i}]overlay={o.get('x', 0)}:{o.get('y', 0)}:eof_action=pass:"
+        sc = "" if k == 1.0 else f",scale=iw*{k:.4f}:-2"
+        g.append(f"[{idx}:v]setpts=PTS-STARTPTS+{at}/TB{sc},format=rgba[o{i}];")
+        g.append(f"[{cur}][o{i}]overlay={int(o.get('x', 0) * k)}:{int(o.get('y', 0) * k)}:eof_action=pass:"
                  f"enable='between(t,{at},{at + dur})'[ov{i}];")
         cur = f"ov{i}"
         idx += 1
@@ -149,16 +167,19 @@ def main() -> int:
                      f"loudnorm=I={lufs}:TP=-1.0:LRA=11[aout]")
 
     graph = "".join(g) + ";".join(audio_mix)
-    out = P(plan["out"])
+    out = P(plan.get("out", "out/final.mp4"))
+    if final:
+        out = out[:-4] + "_1080.mp4"
     os.makedirs(os.path.dirname(out), exist_ok=True)
     cmd = ["ffmpeg", "-y", "-loglevel", "error", *inputs, "-filter_complex", graph,
            "-map", "[vout]", "-map", "[aout]", "-t", str(total),
-           "-c:v", "libx264", "-preset", "medium", "-crf", "19", "-profile:v", "high",
+           "-c:v", "libx264", "-preset", "medium" if final else "veryfast", "-crf", "19" if final else "26",
+           "-profile:v", "high",
            "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", out]
     if os.environ.get("COMPOSE_DEBUG"):
         print(" ".join(cmd))
     subprocess.run(cmd, check=True)
-    print(f"Rendu OK : {out} ({total:.1f}s, {W}x{H})")
+    print(f"Rendu {'FINAL' if final else 'brouillon'} OK : {out} ({total:.1f}s, {W}x{H})")
     return 0
 
 
