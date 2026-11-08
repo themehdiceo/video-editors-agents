@@ -27,8 +27,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-from telegram import Update
-from telegram.ext import (Application, CommandHandler, ContextTypes, MessageHandler, filters)
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import (Application, CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters)
 
 from runner import JOBS, REPO, new_job, run_job
 
@@ -48,7 +48,9 @@ URL_RE = re.compile(r"https?://\S+")
 INDEX = JOBS / "index.json"  # message_id Telegram -> job id (pour les retours)
 
 queue: asyncio.Queue = asyncio.Queue()
-current: dict = {}
+current: dict = {}  # jobs en cours : nom -> dossier
+MAX_JOBS = int(os.environ.get("MAX_JOBS", "3"))  # vidéos montées en même temps
+RATINGS = REPO / "style" / "ratings.jsonl"  # notes de Mehdi : la mémoire de ce qui marche
 
 
 def load_index() -> dict:
@@ -105,7 +107,7 @@ def start_build(parent_id: str, choices: str) -> Path:
 async def enqueue(update: Update, job_dir: Path, label: str) -> None:
     set_phase(job_dir)
     await queue.put((update.effective_chat.id, job_dir))
-    pos = queue.qsize() + (1 if current else 0)
+    pos = queue.qsize() + max(0, len(current) - MAX_JOBS + 1)
     msg = f"✅ Job {label} reçu ({job_dir.name})."
     if pos > 1:
         msg += f" Position dans la file : {pos}."
@@ -262,12 +264,13 @@ async def flush_text(update: Update, ctx) -> None:
         await enqueue(update, new_job("script", url=urls[0], note=URL_RE.sub("", text).strip()), "script")
         return
     # Pas de vidéo ni de lien : on continue sur la dernière vidéo travaillée (Mehdi n'a pas à tout redire).
-    last = last_video_job()
+    fb = ctx.chat_data.pop("feedback_for", None)
+    last = JOBS / fb if fb and (JOBS / fb / "job.json").exists() else last_video_job()
     if last and not first.lower().endswith(VIDEO_EXT):
         root = root_job(last)
         name = Path(json.loads((root / "job.json").read_text()).get("source_path") or "la dernière vidéo").name
         d = new_job("feedback", parent=last.name, source_job=root.name, feedback=text, history=history(last))
-        await m.reply_text(f"🔁 Je reprends « {name} » là où on en était, avec tes instructions.")
+        await m.reply_text(f"🔁 Je reprends « {name} » ({last.name}) là où on en était, avec tes instructions.")
         await enqueue(update, d, "retour")
         return
     if len(first) < 300 and not first.startswith("/"):
@@ -378,9 +381,12 @@ async def cmd_statut(update: Update, ctx):
     if not current:
         await update.message.reply_text("Rien en cours.")
         return
-    lines = Path(current["dir"], "progress.log").read_text().strip().splitlines()[-5:]
-    await update.message.reply_text(f"En cours : {current['dir'].name}\nEn attente : {queue.qsize()}\n\n"
-                                    + "\n".join(lines))
+    parts = []
+    for name, d in current.items():
+        lines = Path(d, "progress.log").read_text().strip().splitlines()[-3:]
+        parts.append(f"▶️ {name}\n" + "\n".join(lines))
+    await update.message.reply_text(f"En cours : {len(current)}/{MAX_JOBS} · en attente : {queue.qsize()}\n\n"
+                                    + "\n\n".join(parts))
 
 
 @only_me
@@ -494,8 +500,40 @@ async def send_outputs(app: Application, chat_id: int, job_dir: Path, code: int)
         await app.bot.send_message(chat_id, "☝️ Réponds au PLAN (glisse le message vers la droite) avec tes choix : "
                                             "« 1B 2A 3C… », tes idées, ou « ok » pour mes ⭐.")
     else:
-        await app.bot.send_message(chat_id, "Brouillon en 480p. Réponds « valide » à la vidéo pour la version 1080p, "
-                                            "ou réponds avec tes corrections.")
+        stars = [InlineKeyboardButton("⭐" * n, callback_data=f"rate:{job_dir.name}:{n}") for n in range(1, 6)]
+        msg = await app.bot.send_message(chat_id, "Brouillon en 480p. Note-le (ça m'apprend ton goût). Réponds « valide » "
+                                                  "à la vidéo pour la 1080p, ou réponds avec tes corrections.",
+                                         reply_markup=InlineKeyboardMarkup([stars[:3], stars[3:]]))
+        remember(msg.message_id, job_dir.name)
+
+
+async def on_rate(update: Update, ctx) -> None:
+    """Note de 1 à 5 sur un rendu : rangée dans style/ratings.jsonl ; toutes les 5 notes, l'équipe tire les leçons."""
+    q = update.callback_query
+    if not q.from_user or q.from_user.id != ALLOWED:
+        return
+    _, jid, n = q.data.split(":")
+    n = int(n)
+    jf = JOBS / jid / "job.json"
+    job = json.loads(jf.read_text()) if jf.exists() else {}
+    job["rating"] = n
+    if jf.exists():
+        jf.write_text(json.dumps(job, ensure_ascii=False, indent=1))
+    with open(RATINGS, "a") as f:
+        f.write(json.dumps({"job": jid, "rating": n, "type": job.get("type"),
+                            "consignes": history(JOBS / jid) if jf.exists() else []}, ensure_ascii=False) + "\n")
+    await q.answer("Noté, merci !")
+    await q.edit_message_reply_markup(None)
+    if n <= 3:
+        ctx.chat_data["feedback_for"] = jid
+        await q.message.reply_text(f"{'⭐' * n} noté. Dis-moi en une phrase ce qui ne va pas, je refais la version "
+                                   "(pas besoin de répondre à la vidéo).")
+    else:
+        await q.message.reply_text(f"{'⭐' * n} noté. Je garde ce qui a marché pour les prochaines vidéos.")
+    done = sum(1 for _ in open(RATINGS))
+    if done % 5 == 0:
+        await q.message.reply_text("🧠 5 nouvelles notes : je relis tous tes retours et j'améliore les styles.")
+        await queue.put((q.message.chat_id, new_job("bilan", auto=True)))
 
 
 def last_claude_text(log_path: Path) -> str:
@@ -523,7 +561,7 @@ def last_claude_text(log_path: Path) -> str:
 async def worker(app: Application) -> None:
     while True:
         chat_id, job_dir = await queue.get()
-        current.update(dir=job_dir)
+        current[job_dir.name] = job_dir
         await app.bot.send_message(chat_id, f"🎬 Je commence {job_dir.name}")
         task = asyncio.create_task(run_job(job_dir))
         seen, quiet, last_note = 0, 0, ""
@@ -547,9 +585,9 @@ async def worker(app: Application) -> None:
         except Exception as e:  # noqa: BLE001
             log.exception("envoi")
             await app.bot.send_message(chat_id, f"⚠️ Erreur à l'envoi : {e}")
-        current.clear()
+        current.pop(job_dir.name, None)
         queue.task_done()
-        if queue.empty():  # job fini : on installe les améliorations en attente
+        if queue.empty() and not current:  # job fini : on installe les améliorations en attente
             try:
                 await update_and_restart(app)
             except Exception:  # noqa: BLE001
@@ -558,7 +596,8 @@ async def worker(app: Application) -> None:
 
 async def post_init(app: Application) -> None:
     JOBS.mkdir(parents=True, exist_ok=True)
-    asyncio.get_running_loop().create_task(worker(app))
+    for _ in range(MAX_JOBS):
+        asyncio.get_running_loop().create_task(worker(app))
     asyncio.get_running_loop().create_task(updater(app))
 
 
@@ -576,6 +615,7 @@ def main() -> None:
     app.add_handler(CommandHandler("maj", cmd_maj))
     app.add_handler(CommandHandler("bilan", cmd_bilan))
     app.add_handler(CommandHandler("annuler", cmd_annuler))
+    app.add_handler(CallbackQueryHandler(on_rate, pattern=r"^rate:"))
     app.add_handler(MessageHandler(filters.VIDEO | filters.Document.VIDEO, on_video))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
     app.run_polling(allowed_updates=Update.ALL_TYPES)

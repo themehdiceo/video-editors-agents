@@ -47,7 +47,8 @@ PROMPTS = {
                  "Repars des fichiers de work/ du job parent (copie-les), ne refais que ce qui est demandé, "
                  "puis applique la skill skill-keeper pour que ce retour serve aux prochaines vidéos."),
     "style": "Job de type style. Suis la skill style-trainer.",
-    "bilan": "Job de type bilan. Suis la section /bilan de la skill skill-keeper.",
+    "bilan": ("Job de type bilan. Suis la section /bilan de la skill skill-keeper. Si job.json contient auto: true, "
+              "c'est le bilan automatique toutes les 5 notes : applique toi-même les changements (section Bilan automatique)."),
 }
 
 

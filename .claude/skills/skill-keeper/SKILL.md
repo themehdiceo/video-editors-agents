@@ -17,3 +17,12 @@ Après chaque retour de Mehdi :
 
 ## /bilan (revue périodique)
 Analyse les 10 derniers jobs (`jobs/*/out/summary.md`, retours reçus). Si des statistiques de chaîne sont fournies, croise-les. Propose au plus 5 changements dans `out/bilan.md` et ne les applique pas : Mehdi valide d'abord.
+
+## Bilan automatique (toutes les 5 notes, `auto: true`)
+Mehdi note chaque rendu de 1 à 5 étoiles. Les notes sont dans `style/ratings.jsonl` (job, note, consignes reçues).
+1. Lis les notes depuis le dernier bilan (`style/learning.md` dit où tu t'étais arrêté), les `summary.md` et `plan.json` de ces jobs, et leurs retours (jobs `feedback` dont le parent est noté).
+2. Vidéos à 4-5 étoiles : ce qui a marché devient une règle « à refaire » dans le STYLE.md du style utilisé (rythme, nombre de cartes, durée du hook…). Copie leur `work/plan.json` dans `style/<nom>/exemples/<job>.json` : c'est un exemple à imiter.
+3. Vidéos à 1-3 étoiles : la cause probable devient un garde-fou chiffré dans le STYLE.md.
+4. Un même retour répété 2 fois = règle obligatoire (en haut du STYLE.md, section « Règles de Mehdi »).
+5. Applique directement (pas besoin de validation), ajoute une ligne datée dans `style/learning.md`, commit `skills: bilan auto`, push.
+6. `out/summary.md` : 3 lignes en français simple sur ce que l'équipe a appris.
