@@ -3,7 +3,7 @@
 # Fenêtre de Terminal ouverte automatiquement à l'ouverture de session (voir install-autostart.sh).
 # Ctrl+C dans cette fenêtre arrête le bot. caffeinate empêche la mise en veille tant qu'il tourne.
 APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-pkill -f "python bot.py" 2>/dev/null && sleep 2   # un seul bot à la fois
+pkill -f "[Pp]ython.* bot.py" 2>/dev/null && sleep 2   # un seul bot à la fois
 trap 'echo; echo "Bot arrêté."; exit 0' INT TERM
 cd "$APP_DIR/bot"
 while true; do
