@@ -89,6 +89,10 @@ Pour une pub Meta : jamais de promesse de revenus (retirer l'étape 1 chiffrée)
 - **Ordre du hook : preuve d'abord** (plan Shopify dès la 1re image, avec le geste, ≥ 5 s), puis l'ouverture de Mehdi (12 000 DH → 60 000 $), puis le storytelling (peur, décision, 1re vente, conseil). Mehdi : « les preuves, c'est important ».
 - Style et règles précédentes **verrouillés** pour les vidéos interview : ne rien changer d'autre quand il demande seulement un réordonnancement.
 
+### 2026-11-08 – intro v11
+- **La peur ne s'arrête jamais sur « j'avais peur »** : après l'aveu, garde toujours le passage où l'invité est **rassuré** (« ça m'a donné la confiance », « la peur est partie avec le temps »). Peur → soulagement dans le même shot.
+- **Pas de question de Mehdi quand la réponse seule suffit** : pour la décision de quitter le salariat, on garde uniquement la réponse d'Anas (pas le bandeau/la question).
+
 ## Garde-fous (vérifiables)
 
 1. Hook entre **20 et 35 s**, idéal 25 s (retour de Mehdi, intro v2).
