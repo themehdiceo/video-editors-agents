@@ -143,7 +143,8 @@ async def on_text(update: Update, ctx):
     await m.reply_text("Envoie un lien (script), une vidéo (montage), ou réponds à un rendu pour donner un retour.")
 
 
-VALIDATE_RE = re.compile(r"^\s*/?(valide|valid|validé|ok|go|parfait|top)\b", re.I)
+# Le message entier doit être une validation : « ok mais musique trop forte » reste un retour.
+VALIDATE_RE = re.compile(r"^\s*/?(valide|valid|validé|valider|ok|go|parfait|top)\s*[!.👍🔥]*\s*$", re.I)
 
 
 async def validate(update: Update, ctx, job_id: str) -> None:
