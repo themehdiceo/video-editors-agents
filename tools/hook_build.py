@@ -27,6 +27,35 @@ def run(cmd):
     return r
 
 
+def rms_track(src, t0, t1, win=0.01):
+    import array
+    r = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{max(t0, 0):.3f}", "-t", f"{t1 - max(t0, 0):.3f}", "-i", src,
+                        "-map", "0:a:0", "-ac", "1", "-ar", "16000", "-f", "s16le", "-"], capture_output=True)
+    a = array.array("h")
+    a.frombytes(r.stdout[: len(r.stdout) // 2 * 2])
+    n = int(16000 * win)
+    return [(sum(x * x for x in a[i:i + n]) / n) ** 0.5 for i in range(0, len(a) - n, n)]
+
+
+def snap(src, t, reach=0.45, win=0.01, need=5):
+    """Recale une borne de coupe sur le creux d'énergie le plus proche (>= need*10 ms de calme).
+    Les timestamps Scribe dérivent de 0.1-0.3 s : sans ça on coupe au milieu d'un mot. Renvoie (t_snap, ok)."""
+    lo = t - reach - 0.1
+    tr = rms_track(src, lo, t + reach + 0.1, win)
+    if len(tr) < 2 * need + 2:
+        return t, False
+    thr = max(max(tr) * 0.06, 120)
+    q = [v < thr for v in tr]
+    c0 = int((t - lo) / win)
+    h = need // 2
+    for d in range(0, int(reach / win) + 1):
+        for sgn in (1, -1):
+            i = c0 + sgn * d
+            if h <= i < len(tr) - h and all(q[i - h:i + h + 1]):
+                return round(lo + (i + 0.5) * win, 3), True
+    return t, False
+
+
 def main():
     final = "--final" in sys.argv[2:]
     plan_path = os.path.abspath(sys.argv[1])
@@ -41,6 +70,20 @@ def main():
     seg_dir = os.path.join(work, "seg" + ("_final" if final else ""))
     os.makedirs(seg_dir, exist_ok=True)
 
+    # Recalage des bornes sur la forme d'onde (désactivable : "snap": false dans le plan, ou range à 3 valeurs [s, e, "exact"])
+    report = []
+    if plan.get("snap", True):
+        for sh in plan["shots"]:
+            for rg in sh["ranges"]:
+                if len(rg) > 2:
+                    del rg[2:]
+                    continue
+                for bi in (0, 1):
+                    new, ok = snap(src, rg[bi])
+                    report.append(f"{sh['id']} {'début' if bi == 0 else 'fin'} {rg[bi]:.2f} -> {new:.2f} {'ok' if ok else 'PAS DE CREUX (parole continue)'}")
+                    rg[bi] = new
+        open(os.path.join(work, "snap_report.txt"), "w").write("\n".join(report))
+        print(f"snap : {sum('PAS DE' in r for r in report)} bornes sans creux, voir work/snap_report.txt")
     words, cards, segs = [], [], []
     t = 0.0
     for si, sh in enumerate(plan["shots"]):
