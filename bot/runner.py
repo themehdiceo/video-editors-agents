@@ -48,7 +48,10 @@ async def run_job(job_dir: Path) -> int:
     # --setting-sources project,local : on ignore les plugins et hooks personnels de l'utilisateur
     # (ils changent le comportement des agents) ; seuls les réglages du dépôt comptent.
     cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose",
-           "--setting-sources", "project,local"]
+           "--setting-sources", "project,local",
+           # acceptEdits : écritures de fichiers dans le dépôt (jobs/) acceptées ;
+           # les commandes shell restent limitées à la liste blanche de .claude/settings.json.
+           "--permission-mode", "acceptEdits"]
     if os.environ.get("CLAUDE_MODEL"):
         cmd += ["--model", os.environ["CLAUDE_MODEL"]]
     with open(job_dir / "claude.log", "wb") as log:
