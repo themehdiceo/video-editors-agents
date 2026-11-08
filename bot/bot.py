@@ -251,7 +251,7 @@ async def flush_text(update: Update, ctx) -> None:
         kind = "clip" if rest.lower().startswith("clip") else "edit"
         count = int(re.search(r"\d", rest[:10]).group()) if kind == "clip" and re.search(r"\d", rest[:10]) else 1
         job_dir = new_job(kind, note=rest, count=count, input_file="input/source" + local.suffix.lower(),
-                          source_path=str(local), history=previous_notes(local))
+                          source_path=str(local), history=previous_notes(local), conseils=recent_advice())
         dst = job_dir / "input" / ("source" + local.suffix.lower())
         await m.reply_text(f"🎞️ Vidéo trouvée : {local}\nJe la copie dans le dossier du job…")
         # Vraie copie (pas un lien) : les agents n'ont accès qu'au dossier du dépôt.
@@ -281,7 +281,8 @@ async def flush_text(update: Update, ctx) -> None:
     if last and not first.lower().endswith(VIDEO_EXT):
         root = root_job(last)
         name = Path(json.loads((root / "job.json").read_text()).get("source_path") or "la dernière vidéo").name
-        d = new_job("feedback", parent=last.name, source_job=root.name, feedback=text, history=history(last))
+        d = new_job("feedback", parent=last.name, source_job=root.name, feedback=text, history=history(last),
+                    conseils=recent_advice())
         await m.reply_text(f"🔁 Je reprends « {name} » ({last.name}) là où on en était, avec tes instructions.")
         await enqueue(update, d, "retour")
         return
@@ -291,6 +292,16 @@ async def flush_text(update: Update, ctx) -> None:
                            "puis ton prompt à la ligne.")
         return
     await m.reply_text("Envoie un lien (script), une vidéo (montage), ou réponds à un rendu pour donner un retour.")
+
+
+def recent_advice(limit: int = 3) -> list:
+    """Dernières réponses de l'équipe aux questions de Mehdi (« fais comme Jeremy a dit »)."""
+    out = []
+    for jf in sorted(JOBS.glob("*-ask*/job.json"), reverse=True)[:limit]:
+        ans = jf.parent / "out" / "answer.md"
+        if ans.exists():
+            out.append(f"Question : {json.loads(jf.read_text()).get('question', '')}\nRéponse : {ans.read_text()[:2500]}")
+    return list(reversed(out))
 
 
 def last_video_job():

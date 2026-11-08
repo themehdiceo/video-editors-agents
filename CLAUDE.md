@@ -31,6 +31,7 @@ Types de job :
 - **Contrôle qualité** : avant de livrer, regarde la planche contact (`tools/frames.py`). Lis l'image. Corrige ce qui ne va pas.
 - Livre toujours un brouillon 480p et garde `work/plan.json` rejouable : le bot s'en sert pour le rendu final 1080p.
 - Les instructions de Mehdi sont dans `job.json` (champ `note`, ou `feedback` pour un retour). Elles priment sur la skill et sur style.json pour ce job.
+- **Conseils** : `conseils` dans job.json = les dernières réponses de l'équipe aux questions de Mehdi (« demande à Jeremy… »). Si Mehdi y fait référence (« comme Jeremy a dit »), applique-les.
 - **Mémoire** : `history` dans job.json liste toutes les consignes déjà données sur la même vidéo. Elles restent valables, sauf si le nouveau message les contredit. Mehdi ne les répète pas : ne lui redemande jamais rien qui y figure.
 - Le format par défaut est YouTube 16:9 (`style.json`). Si Mehdi demande un short, un reel ou un TikTok, applique les réglages `short_9x16` de style.json. Mets toujours `format` (w, h) dans plan.json.
 - Mehdi tourne souvent en darija mélangée au français. Les sous-titres suivent la langue qu'il demande dans la note. S'il ne dit rien, écris la darija en lettres latines, comme lui (« 3ndek », « kifach »).
