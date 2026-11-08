@@ -8,6 +8,8 @@ Le service tourne sous un utilisateur dédié sans sudo.
 import asyncio
 import json
 import os
+import re
+import sys
 import time
 from pathlib import Path
 
@@ -21,6 +23,12 @@ JOB_TOOLS = [
     "Bash(npx -y hyperframes@0.9.22 *)", "Bash(ls *)", "Bash(head *)", "Bash(tail *)", "Bash(wc *)",
     "Bash(cp *)", "Bash(mkdir *)", "Bash(git add *)", "Bash(git commit *)", "Bash(git log *)", "Bash(git diff *)",
 ]
+
+# Transcription faite par le bot AVANT de lancer Claude : pas de limite de 10 min par commande,
+# et pas de session Claude consommée pendant le calcul.
+BIG_MODEL = os.environ.get("WHISPER_BIG_MODEL", "large-v3-turbo")
+DARIJA_RE = re.compile(r"darija|marocain|arabe", re.I)
+HINT = "Interview en darija marocaine mélangée au français. Mehdi, Anas, Profit Partners, salarié, boutique, e-commerce, Shopify, dirham, dollars."
 
 PROMPTS = {
     "script": "Job de type script. Suis la skill short-script, après avoir fait travailler l'agent chercheur.",
@@ -43,8 +51,37 @@ def new_job(kind: str, **fields) -> Path:
     return d
 
 
+async def pretranscribe(job_dir: Path, job: dict) -> None:
+    if job["type"] not in ("edit", "clip"):
+        return
+    srcs = sorted((job_dir / "input").glob("source.*")) or sorted(p for p in (job_dir / "input").iterdir() if p.is_file())
+    if not srcs:
+        return
+    words = job_dir / "work" / "words.json"
+    if words.exists():
+        try:
+            if json.loads(words.read_text()).get("model") == BIG_MODEL:
+                return  # déjà transcrit avec le bon modèle (job précédent sur la même vidéo)
+        except Exception:  # noqa: BLE001
+            pass
+        words.rename(job_dir / "work" / "words_old.json")
+    note = job.get("note", "")
+    lang = "ar" if DARIJA_RE.search(note) else (os.environ.get("WHISPER_LANG") or "auto")
+    plog = job_dir / "progress.log"
+    with open(plog, "a") as p:
+        p.write(f"Étape 0 : transcription soignée ({BIG_MODEL}, langue {lang}). Premier lancement : téléchargement du modèle (1,6 Go).\n")
+    cmd = [sys.executable, str(REPO / "tools" / "transcribe.py"), str(srcs[0]), str(words),
+           "--model", BIG_MODEL, "--lang", lang, "--prompt", HINT, "--progress", str(plog)]
+    with open(job_dir / "transcribe.log", "wb") as log:
+        proc = await asyncio.create_subprocess_exec(*cmd, cwd=REPO, stdout=log, stderr=asyncio.subprocess.STDOUT)
+        code = await proc.wait()
+    with open(plog, "a") as p:
+        p.write("Transcription terminée.\n" if code == 0 else f"Transcription soignée en échec (code {code}), l'équipe fera avec un modèle plus petit.\n")
+
+
 async def run_job(job_dir: Path) -> int:
     job = json.loads((job_dir / "job.json").read_text())
+    await pretranscribe(job_dir, job)
     rel = job_dir.relative_to(REPO)
     prompt = (
         f"Nouveau job : dossier {rel}/. Lis {rel}/job.json. {PROMPTS[job['type']]} "

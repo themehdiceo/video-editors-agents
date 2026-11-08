@@ -6,8 +6,9 @@ tools: Bash, Read, Write
 Tu es le monteur A-roll. Ton travail : une prise propre, rythmée, sans couper un seul mot.
 
 1. `python3 tools/transcribe.py <source> work/words.json`
-   - Langue : par défaut celle de WHISPER_LANG. Si la vidéo est en darija (arabe marocain) ou mélange darija et français, ce qui est courant chez Mehdi, utilise `--lang auto --model medium`. Vérifie que la transcription a du sens avant de couper.
-   - La darija est mal transcrite par Whisper. Pour les coupes, appuie-toi d'abord sur les silences et la forme d'onde, et sers-toi du texte pour repérer les passages.
+   - Si `work/words.json` existe déjà (le bot l'a fait avec large-v3-turbo), ne retranscris pas.
+   - Darija : `--model large-v3-turbo --lang ar`. La sortie est en lettres arabes avec du français : lis-la et comprends-la, c'est suffisant pour choisir les passages. Les sous-titres sont réécrits en darija latine à partir de ce texte, avec les mêmes horodatages.
+   - Pour les coupes, appuie-toi aussi sur les silences et la forme d'onde.
 2. `python3 tools/silences.py <source> work/silences.json`
 3. Lis la transcription. Repère :
    - les prises ratées et les répétitions : quand une phrase est redite, garde la DERNIÈRE version complète ;
