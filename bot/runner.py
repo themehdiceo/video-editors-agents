@@ -32,15 +32,20 @@ HINT = "Interview en darija marocaine mélangée au français. Mehdi, Anas, Prof
 
 PROMPTS = {
     "script": "Job de type script. Suis la skill short-script, après avoir fait travailler l'agent chercheur.",
-    "edit": "Job de type edit. Suis la skill short-editor.",
+    "edit": ("Job de type edit. Suis la skill short-editor. Si job.json contient history, ce sont les consignes "
+             "déjà données sur cette même vidéo : applique-les aussi."),
     "plan": ("Job de type edit, phase plan. Suis la skill edit-plan : prépare les coupes et écris out/plan.md "
              "avec 4 idées de scène par ligne. Ne monte pas la vidéo finale."),
     "build": ("Job de type edit, phase build : Mehdi a validé le plan (champ choices de job.json, plan dans work/plan.md). "
-              "Suis la skill short-editor en montant exactement les scènes choisies."),
+              "Suis la skill short-editor en montant exactement les scènes choisies. "
+              "Si job.json contient history, ce sont les consignes déjà données sur cette vidéo : applique-les aussi."),
     "clip": "Job de type clip. Suis la skill long-to-short.",
-    "feedback": ("Job de type feedback : Mehdi a donné un retour sur le job d'origine indiqué dans job.json "
-                 "(champ parent). Refais une version corrigée en repartant des fichiers de work/ du job d'origine "
-                 "(copie-les), puis applique la skill skill-keeper pour que ce retour serve aux prochaines vidéos."),
+    "feedback": ("Job de type feedback : Mehdi continue sur la vidéo du job parent (champ parent de job.json) ; "
+                 "la vidéo source est dans jobs/<source_job>/input/ et la transcription la plus à jour (Scribe) "
+                 "dans jobs/<source_job>/work/words.json. Son message est dans feedback, et history liste "
+                 "TOUTES les consignes déjà données sur cette vidéo : elles restent valables sauf si feedback les contredit. "
+                 "Repars des fichiers de work/ du job parent (copie-les), ne refais que ce qui est demandé, "
+                 "puis applique la skill skill-keeper pour que ce retour serve aux prochaines vidéos."),
     "style": "Job de type style. Suis la skill style-trainer.",
     "bilan": "Job de type bilan. Suis la section /bilan de la skill skill-keeper.",
 }
@@ -67,8 +72,8 @@ def target_model() -> str:
 async def pretranscribe(job_dir: Path, job: dict) -> None:
     if job["type"] == "feedback" and job.get("parent") and (JOBS / job["parent"] / "job.json").exists():
         # Retour sur un rendu : on met à niveau la transcription du job d'origine (l'équipe la recopie).
-        plog_child = job_dir / "progress.log"
-        parent_dir = JOBS / job["parent"]
+        plog_child = job.get("_log") or job_dir / "progress.log"
+        parent_dir = JOBS / (job.get("source_job") or job["parent"])
         await pretranscribe(parent_dir, json.loads((parent_dir / "job.json").read_text()) | {"_log": str(plog_child)})
         return
     if job["type"] not in ("edit", "clip"):

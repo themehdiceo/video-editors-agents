@@ -166,7 +166,9 @@ async def on_text(update: Update, ctx):
             await validate(update, ctx, parent)
             return
         if parent:
-            await enqueue(update, new_job("feedback", parent=parent, feedback=m.text), "retour")
+            pdir = JOBS / parent
+            await enqueue(update, new_job("feedback", parent=parent, feedback=m.text, source_job=root_job(pdir).name,
+                                          history=history(pdir)), "retour")
             return
     # Telegram découpe les longs messages : on regroupe ce qui arrive en quelques secondes.
     buf = ctx.chat_data.setdefault("buf", [])
@@ -239,7 +241,7 @@ async def flush_text(update: Update, ctx) -> None:
         kind = "clip" if rest.lower().startswith("clip") else "edit"
         count = int(re.search(r"\d", rest[:10]).group()) if kind == "clip" and re.search(r"\d", rest[:10]) else 1
         job_dir = new_job(kind, note=rest, count=count, input_file="input/source" + local.suffix.lower(),
-                          source_path=str(local))
+                          source_path=str(local), history=previous_notes(local))
         dst = job_dir / "input" / ("source" + local.suffix.lower())
         await m.reply_text(f"🎞️ Vidéo trouvée : {local}\nJe la copie dans le dossier du job…")
         # Vraie copie (pas un lien) : les agents n'ont accès qu'au dossier du dépôt.
@@ -259,12 +261,71 @@ async def flush_text(update: Update, ctx) -> None:
     if urls:
         await enqueue(update, new_job("script", url=urls[0], note=URL_RE.sub("", text).strip()), "script")
         return
+    # Pas de vidéo ni de lien : on continue sur la dernière vidéo travaillée (Mehdi n'a pas à tout redire).
+    last = last_video_job()
+    if last and not first.lower().endswith(VIDEO_EXT):
+        root = root_job(last)
+        name = Path(json.loads((root / "job.json").read_text()).get("source_path") or "la dernière vidéo").name
+        d = new_job("feedback", parent=last.name, source_job=root.name, feedback=text, history=history(last))
+        await m.reply_text(f"🔁 Je reprends « {name} » là où on en était, avec tes instructions.")
+        await enqueue(update, d, "retour")
+        return
     if len(first) < 300 and not first.startswith("/"):
         await m.reply_text(f"Je ne trouve pas la vidéo « {first[:80]} » dans Vidéos, Bureau, Téléchargements "
                            "ni Documents. Envoie son chemin complet (glisse le fichier dans le Terminal pour l'avoir), "
                            "puis ton prompt à la ligne.")
         return
     await m.reply_text("Envoie un lien (script), une vidéo (montage), ou réponds à un rendu pour donner un retour.")
+
+
+def last_video_job():
+    """Dernier job de montage (edit, clip ou retour) : c'est « là où on en était »."""
+    for d in sorted((p for p in JOBS.iterdir() if (p / "job.json").exists()), key=lambda p: p.name, reverse=True):
+        try:
+            if json.loads((d / "job.json").read_text()).get("type") in ("edit", "clip", "feedback"):
+                return d
+        except ValueError:
+            continue
+    return None
+
+
+def root_job(d: Path) -> Path:
+    """Remonte la chaîne des retours jusqu'au job qui a reçu la vidéo."""
+    for _ in range(30):
+        j = json.loads((d / "job.json").read_text())
+        parent = j.get("parent")
+        if j.get("type") != "feedback" or not parent or not (JOBS / parent / "job.json").exists():
+            return d
+        d = JOBS / parent
+    return d
+
+
+def history(d: Path) -> list:
+    """Toutes les consignes déjà données sur cette vidéo, de la plus ancienne à la plus récente."""
+    out = []
+    for _ in range(30):
+        j = json.loads((d / "job.json").read_text())
+        txt = j.get("feedback") or j.get("note") or ""
+        if txt:
+            out.append(f"{j.get('id', d.name)} : {txt}")
+        parent = j.get("parent")
+        if not parent or not (JOBS / parent / "job.json").exists():
+            break
+        d = JOBS / parent
+    return list(reversed(out))
+
+
+def previous_notes(source: Path) -> list:
+    """Consignes données lors des montages précédents de la même vidéo (même fichier source)."""
+    notes = []
+    for jf in sorted(JOBS.glob("*/job.json")):
+        try:
+            j = json.loads(jf.read_text())
+        except ValueError:
+            continue
+        if j.get("source_path") == str(source) and j.get("note"):
+            notes.append(f"{j.get('id')} : {j['note']}")
+    return notes
 
 
 # Le message entier doit être une validation : « ok mais musique trop forte » reste un retour.
