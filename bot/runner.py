@@ -45,7 +45,10 @@ async def run_job(job_dir: Path) -> int:
         f"Écris l'avancement dans {rel}/progress.log au fil de l'eau et termine par {rel}/out/summary.md."
     )
     # Permissions : celles de .claude/settings.json (liste blanche), rien de plus.
-    cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose"]
+    # --setting-sources project,local : on ignore les plugins et hooks personnels de l'utilisateur
+    # (ils changent le comportement des agents) ; seuls les réglages du dépôt comptent.
+    cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose",
+           "--setting-sources", "project,local"]
     if os.environ.get("CLAUDE_MODEL"):
         cmd += ["--model", os.environ["CLAUDE_MODEL"]]
     with open(job_dir / "claude.log", "wb") as log:
