@@ -5,6 +5,7 @@ Commandes (seul TELEGRAM_ALLOWED_USER_ID est écouté) :
   /script <lien>        recherche + script
   /clip <lien> [n]      vidéo longue -> n shorts (1 par défaut)
   (envoi d'une vidéo)   montage d'un A-roll ; légende "clip" ou "clip 3" = vidéo longue
+  (chemin d'un fichier) mode Mac : /Users/.../video.mov, puis "clip 2" à la ligne suivante si vidéo longue
   (réponse à un rendu)  retour -> nouvelle version + mise à jour des skills
   /statut               job en cours et file d'attente
   /bilan                propose des améliorations des skills
@@ -114,6 +115,16 @@ async def on_text(update: Update, ctx):
         if parent:
             await enqueue(update, new_job("feedback", parent=parent, feedback=m.text), "retour")
             return
+    # Mode Mac : un chemin de fichier local (glissé depuis le Finder) au lieu d'un envoi Telegram
+    local = Path(os.path.expanduser((m.text or "").strip().split("\n")[0].strip().strip("'\""))).resolve()
+    if local.suffix.lower() in (".mp4", ".mov", ".mkv", ".m4v", ".webm") and local.is_file():
+        rest = (m.text or "").split("\n", 1)[1].strip() if "\n" in (m.text or "") else ""
+        kind = "clip" if rest.lower().startswith("clip") else "edit"
+        count = int(re.search(r"\d", rest).group()) if kind == "clip" and re.search(r"\d", rest) else 1
+        job_dir = new_job(kind, note=rest, count=count, input_file="input/source" + local.suffix.lower())
+        os.symlink(local, job_dir / "input" / ("source" + local.suffix.lower()))
+        await enqueue(update, job_dir, "montage" if kind == "edit" else "clip")
+        return
     urls = URL_RE.findall(m.text or "")
     if urls:
         await enqueue(update, new_job("script", url=urls[0], note=URL_RE.sub("", m.text).strip()), "script")
@@ -160,6 +171,11 @@ async def send_outputs(app: Application, chat_id: int, job_dir: Path, code: int)
             remember(msg.message_id, job_dir.name)
         sent_any = True
     for video in sorted(out.glob("*.mp4")):
+        if not API_URL and video.stat().st_size > 49 * 1024 * 1024:
+            msg = await app.bot.send_message(chat_id, f"🎞️ Vidéo trop lourde pour Telegram, elle est ici :\n{video}")
+            remember(msg.message_id, job_dir.name)
+            sent_any = True
+            continue
         with open(video, "rb") as fh:
             msg = await app.bot.send_video(chat_id, fh, caption=f"{job_dir.name} · {video.name}",
                                            supports_streaming=True, read_timeout=600, write_timeout=600)
