@@ -25,17 +25,17 @@ echo "==> Paquets système"
 export DEBIAN_FRONTEND=noninteractive
 # Ubuntu fait souvent ses mises à jour automatiques au démarrage : on attend qu'apt soit libre.
 # Un apt bloqué depuis plus de 20 min (ancienne installation restée en plan) est arrêté.
-apt_pids() { pgrep -x apt-get; pgrep -x apt; pgrep -f unattended-upgr; pgrep -x dpkg; } 2>/dev/null
+apt_pids() { { pgrep -x apt-get; pgrep -x apt; pgrep -f unattended-upgr; pgrep -x dpkg; } 2>/dev/null || true; }
 for i in $(seq 1 60); do
   P=$(apt_pids); [ -z "$P" ] && break
   [ "$i" = 1 ] && echo "==> Attente de la fin des mises à jour automatiques d'Ubuntu…"
   for p in $P; do
-    age=$(ps -o etimes= -p "$p" 2>/dev/null | tr -d ' ')
-    if [ -n "$age" ] && [ "$age" -gt 1200 ]; then echo "==> apt bloqué depuis $((age/60)) min : je l'arrête"; kill -9 "$p" 2>/dev/null; fi
+    age=$(ps -o etimes= -p "$p" 2>/dev/null | tr -d ' ' || true)
+    if [ -n "$age" ] && [ "$age" -gt 1200 ]; then echo "==> apt bloqué depuis $((age/60)) min : je l'arrête"; kill -9 "$p" 2>/dev/null || true; fi
   done
   sleep 5
 done
-P=$(apt_pids); [ -n "$P" ] && { echo "==> apt toujours occupé après 5 min : je l'arrête"; kill -9 $P 2>/dev/null; sleep 2; }
+P=$(apt_pids); [ -n "$P" ] && { echo "==> apt toujours occupé après 5 min : je l'arrête"; kill -9 $P 2>/dev/null || true; sleep 2; }
 dpkg --configure -a || true
 APT="-o DPkg::Lock::Timeout=600"
 apt-get $APT update -q
@@ -57,8 +57,11 @@ id -u $APP_USER >/dev/null 2>&1 || useradd -m -s /bin/bash $APP_USER
 usermod -aG docker $APP_USER || true
 
 echo "==> Code"
-if [ -d $APP_DIR/.git ]; then sudo -u $APP_USER git -C $APP_DIR pull --ff-only
-else git clone $REPO_URL $APP_DIR && chown -R $APP_USER:$APP_USER $APP_DIR; fi
+if [ -d $APP_DIR/.git ]; then
+  git config --global --add safe.directory $APP_DIR
+  git -C $APP_DIR fetch -q origin main && git -C $APP_DIR reset -q --hard origin/main
+else git clone $REPO_URL $APP_DIR; fi
+chown -R $APP_USER:$APP_USER $APP_DIR
 
 echo "==> Environnement Python"
 sudo -u $APP_USER python3 -m venv $APP_DIR/.venv
