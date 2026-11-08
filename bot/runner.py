@@ -15,6 +15,13 @@ REPO = Path(os.environ.get("REPO_DIR", Path(__file__).resolve().parents[1]))
 JOBS = Path(os.environ.get("JOBS_DIR", REPO / "jobs"))
 TIMEOUT = int(os.environ.get("JOB_TIMEOUT_S", "7200"))
 
+JOB_TOOLS = [
+    "Read", "Write", "Edit", "Glob", "Grep", "Task", "WebFetch", "WebSearch",
+    "Bash(python3 *)", "Bash(python *)", "Bash(ffmpeg *)", "Bash(ffprobe *)", "Bash(yt-dlp *)",
+    "Bash(npx -y hyperframes@0.9.22 *)", "Bash(ls *)", "Bash(head *)", "Bash(tail *)", "Bash(wc *)",
+    "Bash(cp *)", "Bash(mkdir *)", "Bash(git add *)", "Bash(git commit *)", "Bash(git log *)", "Bash(git diff *)",
+]
+
 PROMPTS = {
     "script": "Job de type script. Suis la skill short-script, après avoir fait travailler l'agent chercheur.",
     "edit": "Job de type edit. Suis la skill short-editor.",
@@ -51,7 +58,9 @@ async def run_job(job_dir: Path) -> int:
            "--setting-sources", "project,local",
            # acceptEdits : écritures de fichiers dans le dépôt (jobs/) acceptées ;
            # les commandes shell restent limitées à la liste blanche de .claude/settings.json.
-           "--permission-mode", "acceptEdits"]
+           "--permission-mode", "acceptEdits",
+           # Commandes shell autorisées pour les jobs (« programme * » = toute commande qui commence par ce programme).
+           "--allowedTools", *JOB_TOOLS]
     if os.environ.get("CLAUDE_MODEL"):
         cmd += ["--model", os.environ["CLAUDE_MODEL"]]
     with open(job_dir / "claude.log", "wb") as log:
