@@ -680,6 +680,12 @@ async def post_init(app: Application) -> None:
                                    "🟢 Je tourne maintenant sur le serveur, 24 h/24. Envoie tes vidéos directement ici. "
                                    "/mac pour repasser sur ton Mac.")
     asyncio.get_running_loop().create_task(watch_switch(app))
+    try:  # nom choisi par Mehdi (08/11)
+        if (await app.bot.get_my_name()).name != BOT_NAME:
+            await app.bot.set_my_name(BOT_NAME)
+            await app.bot.set_my_short_description("Ton monteur vidéo : interviews, intros, shorts. Darija et français.")
+    except Exception:  # noqa: BLE001
+        log.exception("nom du bot")
     for _ in range(MAX_JOBS):
         asyncio.get_running_loop().create_task(worker(app))
     asyncio.get_running_loop().create_task(updater(app))
@@ -809,6 +815,7 @@ def stop_other_bots() -> None:
 
 
 WOKE_UP = False
+BOT_NAME = "Cutmaster"
 
 
 def main() -> None:
