@@ -667,9 +667,29 @@ async def on_error(update, ctx) -> None:
         os._exit(3)
 
 
+def stop_other_bots() -> None:
+    """Un seul bot à la fois : deux bots avec le même jeton se volent les messages."""
+    try:
+        out = subprocess.run(["ps", "-axo", "pid=,command="], capture_output=True, text=True).stdout
+    except OSError:
+        return
+    for line in out.splitlines():
+        pid, _, cmd = line.strip().partition(" ")
+        if not pid.isdigit() or int(pid) == os.getpid():
+            continue
+        prog = cmd.split()[0].rsplit("/", 1)[-1].lower() if cmd.split() else ""
+        if prog.startswith("python") and re.search(r"(^|\s|/)bot\.py(\s|$)", cmd):
+            try:
+                os.kill(int(pid), 15)
+                log.warning("Ancien bot arrêté (pid %s).", pid)
+            except OSError:
+                pass
+
+
 def main() -> None:
     if sys.platform == "darwin" and VPS_MARK.exists():
         raise SystemExit(3)  # le VPS fait le travail : le Mac reste éteint
+    stop_other_bots()
     log.info("Bot démarré. Utilisateur autorisé : %s", ALLOWED)
     b = Application.builder().token(TOKEN).post_init(post_init)
     if API_URL:
