@@ -636,7 +636,9 @@ async def cmd_vps(update: Update, ctx):
                                " Supprime ton message avec le mot de passe (appui long > Supprimer)."))
     loop = asyncio.get_running_loop()
     report = lambda t: asyncio.run_coroutine_threadsafe(ctx.bot.send_message(ALLOWED, t), loop)
+    import importlib
     import vps
+    importlib.reload(vps)  # toujours la dernière version du fichier
     try:
         ok, tail = await asyncio.to_thread(vps.install, ip, pwd, api_id, api_hash, report)
     except Exception as e:  # noqa: BLE001

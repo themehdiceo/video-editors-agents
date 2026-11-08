@@ -39,7 +39,8 @@ def install(ip: str, password: str, api_id: str, api_hash: str, report) -> tuple
     report("🔐 Connexion au VPS…")
     c = paramiko.SSHClient()
     c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    c.connect(ip, username="root", password=password, timeout=30, look_for_keys=False, allow_agent=False)
+    # Clés SSH du Mac d abord (Contabo refuse souvent le mot de passe), puis le mot de passe.
+    c.connect(ip, username="root", password=password, timeout=30, look_for_keys=True, allow_agent=True)
     sftp = c.open_sftp()
     with sftp.open("/root/vea.env", "w") as f:
         f.write(env_text(api_id, api_hash))
