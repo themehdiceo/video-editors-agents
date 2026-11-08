@@ -49,6 +49,16 @@ Le hook ne contient JAMAIS l'intro « bonjour, aujourd'hui avec X ». Il commenc
 
 ## Retours de Mehdi (prioritaires sur tout le reste)
 
+### Structure du hook (méthodes Hormozi et Haynes, validée par Mehdi le 2026-11-08)
+Le marché de Mehdi (accompagnement e-commerce) est saturé d'arnaques : le hook doit rassurer le sceptique, pas seulement impressionner.
+1. **Callout + promesse** : la cible principale (le salarié) nommée dès la 1re phrase, la situation AVANT puis le résultat (« salarié à 12 000 dh → boutique à X $ »).
+2. **Le pire moment** (la peur, le doute) : un témoignage vrai, émotionnel.
+3. **Le mécanisme** : pourquoi ça a marché (l'accompagnement, « pilote / copilote »).
+4. **La vitesse** (« 4e jour, première vente »).
+5. **La preuve à l'écran** (Shopify, chiffres réels) : la preuve vaut plus que la promesse.
+6. **La vie d'après** (temps, famille, liberté), pas l'argent, en dernier.
+Pour une pub Meta : jamais de promesse de revenus (retirer l'étape 1 chiffrée).
+
 ### 2026-11-08 – intro v2 : règles qui remplacent les précédentes en cas de conflit
 1. **Coupes logiques** : chaque extrait est une idée complète. Il commence au début d'une phrase (pas au milieu, pas sur « et », « donc », « parce que ») et finit APRÈS la fin de la phrase (ponctuation finale ou silence ≥ 0,3 s, + 0,15 s d'air). Le suspense vient de l'ordre des extraits, jamais d'une phrase coupée. Relis chaque extrait seul : s'il n'a pas de sens sans contexte, change-le.
 2. **Durée du hook : 20 à 35 s, idéal ~25 s.** Choisis ce qui rend le mieux dans cette fourchette.
