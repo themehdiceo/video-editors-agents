@@ -623,6 +623,15 @@ async def cmd_vps(update: Update, ctx):
         await ctx.bot.send_message(ALLOWED, "Un montage est en cours : renvoie /vps quand il sera fini.")
         return
     ip, pwd, api_id, api_hash = args
+    ip = re.sub(r"^(https?://|root@)", "", ip.strip("<>[]()")).rstrip("/")
+    if not re.fullmatch(r"\d{1,3}(\.\d{1,3}){3}|[\w.-]+\.[a-z]{2,}", ip):
+        await ctx.bot.send_message(ALLOWED, f"⚠️ « {ip[:30]} » n'est pas une adresse IP. Elle ressemble à 185.12.34.56 "
+                                            "(dans le mail de Contabo, ligne « IP address »). Renvoie /vps avec l'IP en 1er.")
+        return
+    if not api_id.isdigit():
+        await ctx.bot.send_message(ALLOWED, "⚠️ L'api_id doit être uniquement des chiffres (3e élément). Ordre : "
+                                            "/vps IP MOTDEPASSE API_ID API_HASH")
+        return
     await ctx.bot.send_message(ALLOWED, "🚀 Je m'occupe du VPS." + ("" if deleted else
                                " Supprime ton message avec le mot de passe (appui long > Supprimer)."))
     loop = asyncio.get_running_loop()
