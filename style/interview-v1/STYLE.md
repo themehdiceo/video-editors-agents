@@ -127,4 +127,5 @@ Plus de cuts à l'image dans une même phrase (plein écran de celui qui parle �
 
 ### 2026-11-09 – musique dans l'intro (demande de Mehdi)
 Le hook a une musique de fond : suspense discret « de conversation », pas de suspense de film, rien de hardcore (nappe piano/cordes douces, pulsation lente, sans grosses percussions, sans voix). Elle reste loin derrière la voix (volume ~0,08, baisse auto quand on parle) et s'arrête en fondu juste avant le noir final. Pas de musique pendant l'interview. Remplace la règle « pas de musique » ci-dessus pour le hook.
+**Mehdi choisit la musique lui-même** (/musique dans le bot : 3 propositions, il en choisit une). Ne mets PAS de musique de ta propre initiative : seulement celle qu'il a choisie (fichier cité dans sa consigne).
 Comment : `python3 tools/music.py "<mood de style.json>" work/music.mp3 --dur <durée du hook>` puis `python3 tools/add_music.py out/final.mp4 work/music.mp3 out/final_music.mp4 --until <début du noir>` (renomme ensuite en out/final.mp4), et ajoute `"music_after": {"file": "work/music.mp3", "volume": 0.08, "until": <s>}` dans plan.json pour le 1080p.

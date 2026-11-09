@@ -14,6 +14,7 @@ Commandes (seul TELEGRAM_ALLOWED_USER_ID est écouté) :
   /style <nom> [liens]  apprend un style de montage sur 2 à 5 vidéos (liens, ou style/<nom>/refs.txt)
   (réponse à un rendu)  retour -> nouvelle version + mise à jour des skills
   « valide » en réponse  rendu final 1080p du brouillon (ffmpeg seul, sans Claude)
+  /musique [ambiance]   3 musiques de fond à écouter, tu choisis, je l'ajoute à ta dernière vidéo
   /stop                 arrête tout (montage en cours + file d'attente), puis renvoie ta demande
   /statut               job en cours et file d'attente
   /mac                  le bot passe sur ton Mac (vidéos du Mac, montages longs)
@@ -198,6 +199,75 @@ async def cmd_clip(update: Update, ctx):
         return
     n = re.search(r"\s(\d)\s*$", text)
     await enqueue(update, new_job("clip", url=urls[0], count=int(n.group(1)) if n else 1), "clip")
+
+
+MUSIC_RE = re.compile(r"(\b(propose|envoie|donne|choisir|choix|montre|cherche|trouve)\b.{0,30}\bmusiques?\b|^\s*/?musiques?\b)", re.I)
+MUSIC_MOODS = [
+    ("Suspense discret", "subtle conversational suspense, soft piano and light strings pad, slow pulse, calm tension, documentary interview"),
+    ("Tension moderne", "light modern tension, pizzicato strings and ambient pad, minimal, curious, documentary"),
+    ("Inspirant sobre", "minimal emotional piano with soft electronic pulse, hopeful, understated, entrepreneur story"),
+]
+
+
+async def propose_music(update: Update, ctx, extra: str = "") -> None:
+    """3 musiques de fond à écouter ; Mehdi choisit, le bot l'ajoute à la dernière vidéo."""
+    m = update.message
+    last = last_video_job()
+    dur = 45.0
+    if last and (last / "out" / "final.mp4").exists():
+        try:
+            out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0",
+                                  str(last / "out" / "final.mp4")], capture_output=True, text=True).stdout
+            dur = min(120.0, float(out.strip()) + 2)
+        except (OSError, ValueError):
+            pass
+    await m.reply_text(f"🎵 Je te prépare 3 musiques de {round(dur)} s (1 à 3 min)…")
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    sent = 0
+    for i, (label, mood) in enumerate(MUSIC_MOODS, 1):
+        prompt = f"{mood}. {extra}".strip(". ") if extra else mood
+        dst = REPO / "assets" / "music" / f"choix-{stamp}-{i}.mp3"
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        r = await asyncio.to_thread(subprocess.run, [sys.executable, str(REPO / "tools" / "music.py"), prompt, str(dst),
+                                                     "--dur", str(dur)], capture_output=True, text=True)
+        if r.returncode != 0 or not dst.exists():
+            continue
+        kb = InlineKeyboardMarkup([[InlineKeyboardButton(f"✅ Choisir la {i}", callback_data=f"music:{dst.name}")]])
+        with open(dst, "rb") as fh:
+            await m.reply_audio(fh, title=f"{i}. {label}", caption=f"{i}. {label}", reply_markup=kb)
+        sent += 1
+    if not sent:
+        await m.reply_text("⚠️ Je n'ai pas pu créer de musique (ElevenLabs refuse ou n'est pas configuré). "
+                           "Envoie-moi un mp3 que tu aimes, je l'utiliserai.")
+    else:
+        await m.reply_text("Écoute et appuie sur « Choisir » sous celle que tu veux : je l'ajoute à ta dernière vidéo. "
+                           "Aucune ne va ? Écris « musiques plus calmes » (ou ton ambiance) pour en avoir 3 autres.")
+
+
+async def on_music_pick(update: Update, ctx):
+    q = update.callback_query
+    if not q.from_user or q.from_user.id != ALLOWED:
+        return
+    name = q.data.split(":", 1)[1]
+    await q.answer("Choisie !")
+    await q.edit_message_reply_markup(None)
+    last = last_video_job()
+    if not last:
+        await q.message.reply_text("🎵 Gardée. Envoie ta vidéo, je l'utiliserai.")
+        return
+    root = root_job(last)
+    d = new_job("feedback", parent=last.name, source_job=root.name, history=history(last), conseils=recent_advice(),
+                feedback=f"Ajoute la musique de fond assets/music/{name} (choisie par Mehdi) sous l'intro, avec "
+                         "tools/add_music.py (volume ~0,08, baisse sous la voix, fondu avant le noir) et "
+                         "music_after dans plan.json. Ne change rien d'autre.")
+    await q.message.reply_text("🎵 Je l'ajoute à ta dernière vidéo, rien d'autre ne change.")
+    set_phase(d)
+    await queue.put((q.message.chat_id, d))
+
+
+@only_me
+async def cmd_musique(update: Update, ctx):
+    await propose_music(update, ctx, " ".join(ctx.args or []))
 
 
 @only_me
@@ -393,6 +463,10 @@ async def flush_text(update: Update, ctx) -> None:
     if ASK_RE.search(text):
         await m.reply_text("🧠 Je pose ta question à l'équipe (copywriter, Hormozi, Haynes), réponse dans quelques minutes.")
         await enqueue(update, new_job("ask", question=text), "question")
+        return
+    if MUSIC_RE.search(first) and len(text) < 160:
+        extra = re.sub(r"(?i)\b(propose|envoie|donne|moi|des|3|trois|musiques?|de fond|choisir|stp)\b", " ", text)
+        await propose_music(update, ctx, " ".join(extra.split()))
         return
     if STOP_RE.fullmatch(text):
         await stop_current(update)
@@ -1128,6 +1202,8 @@ def main() -> None:
     app.add_handler(CommandHandler(["phrases", "guide"], cmd_phrases))
     app.add_handler(CommandHandler(["stop", "stoppe"], cmd_stop))
     app.add_handler(CallbackQueryHandler(on_rate, pattern=r"^rate:"))
+    app.add_handler(CallbackQueryHandler(on_music_pick, pattern=r"^music:"))
+    app.add_handler(CommandHandler(["musique", "musiques"], cmd_musique))
     app.add_handler(MessageHandler(filters.VIDEO | filters.Document.VIDEO, on_video))
     app.add_handler(MessageHandler(filters.AUDIO | filters.Document.AUDIO, on_audio))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
