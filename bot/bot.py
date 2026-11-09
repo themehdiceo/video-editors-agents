@@ -627,7 +627,9 @@ async def validate(update: Update, ctx, job_id: str) -> None:
         await update.message.reply_text("Je ne trouve pas le plan de montage de ce job, impossible de faire le 1080p.")
         return
     await update.message.reply_text("👍 Validé. Rendu final en 1080p (sans Claude, ça ne consomme rien)…")
-    r = await asyncio.to_thread(subprocess.run, [sys.executable, str(REPO / "tools" / "compose.py"), str(plan),
+    # Intro d'interview montée avec hook_build.py (plan de type hook_interview) : même outil pour le 1080p.
+    tool = "hook_build.py" if json.loads(plan.read_text()).get("type") == "hook_interview" else "compose.py"
+    r = await asyncio.to_thread(subprocess.run, [sys.executable, str(REPO / "tools" / tool), str(plan),
                                                  "--final"], capture_output=True, text=True)
     final = JOBS / job_id / "out" / "final_1080.mp4"
     if r.returncode != 0 or not final.exists():
