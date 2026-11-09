@@ -69,6 +69,7 @@ Personne ne peut valider une commande pendant un job. Pour que rien ne soit bloq
 | `frames.py video sheet.jpg` | planche contact pour vérifier visuellement |
 | `analyze_refs.py video dossier/` | analyse image par image d'une vidéo de référence : coupes/min, durée des plans, couleurs, planches 1re/dernière image de chaque plan |
 | `find_media.py "requête" dossier/ [--video]` | vraies images et vidéos libres (Openverse, Wikimedia, Pexels) + crédits |
+| `add_music.py video.mp4 music.mp3 out.mp4 --until 35` | pose une musique sous un rendu déjà fait (hook_build.py…), baisse auto sous la voix, fondu ; mets `music_after` dans plan.json pour le 1080p |
 | `music.py "ambiance" out.mp3 --dur 60` | musique de fond (ElevenLabs si clé, sinon bibliothèque `assets/music/`) |
 
 Style par défaut : `style/style.json`. C'est la mémoire du goût de Mehdi. Le `skill-keeper` le met à jour après chaque retour.

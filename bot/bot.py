@@ -542,6 +542,19 @@ async def validate(update: Update, ctx, job_id: str) -> None:
     if r.returncode != 0 or not final.exists():
         await update.message.reply_text(f"⚠️ Échec du rendu final :\n{(r.stderr or r.stdout)[-800:]}")
         return
+    ma = json.loads(plan.read_text()).get("music_after")  # musique posée après coup (tools/add_music.py)
+    if ma and ma.get("file"):
+        tmp = final.with_name("final_1080_music.mp4")
+        cmd = [sys.executable, str(REPO / "tools" / "add_music.py"), str(final), str(JOBS / job_id / ma["file"]
+               if not Path(ma["file"]).is_absolute() and (JOBS / job_id / ma["file"]).exists() else REPO / ma["file"]),
+               str(tmp), "--volume", str(ma.get("volume", 0.08))]
+        if ma.get("until"):
+            cmd += ["--until", str(ma["until"])]
+        if ma.get("duck") is False:
+            cmd.append("--no-duck")
+        r2 = await asyncio.to_thread(subprocess.run, cmd, capture_output=True, text=True)
+        if r2.returncode == 0 and tmp.exists():
+            tmp.replace(final)
     if not API_URL and final.stat().st_size > 49 * 1024 * 1024:
         await update.message.reply_text(f"🎞️ Version finale prête (trop lourde pour Telegram) :\n{final}")
         return

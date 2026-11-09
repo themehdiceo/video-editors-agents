@@ -124,3 +124,7 @@ Pour une pub Meta : jamais de promesse de revenus (retirer l'étape 1 chiffrée)
 ### 2026-11-09 – phrase sans contexte (retour de Mehdi, 00:48)
 Anas dit « le 4e jour » mais la coupe tombe avant « … on a fait la première vente » : la phrase ne veut plus rien dire. Règle : un extrait qui annonce quelque chose (« le 4e jour », « ce qui m'a fait changer… ») doit contenir sa réponse. Sinon : prolonger, ou placer la question de Mehdi juste avant, ou un autre passage complet ; et si rien ne marche, poser la question à Mehdi (`out/question.md`) AVANT de monter.
 Plus de cuts à l'image dans une même phrase (plein écran de celui qui parle ↔ écran partagé, toutes les 3-5 s, plan ≥ 2 s, son continu), mais pas trop.
+
+### 2026-11-09 – musique dans l'intro (demande de Mehdi)
+Le hook a une musique de fond : suspense discret « de conversation », pas de suspense de film, rien de hardcore (nappe piano/cordes douces, pulsation lente, sans grosses percussions, sans voix). Elle reste loin derrière la voix (volume ~0,08, baisse auto quand on parle) et s'arrête en fondu juste avant le noir final. Pas de musique pendant l'interview. Remplace la règle « pas de musique » ci-dessus pour le hook.
+Comment : `python3 tools/music.py "<mood de style.json>" work/music.mp3 --dur <durée du hook>` puis `python3 tools/add_music.py out/final.mp4 work/music.mp3 out/final_music.mp4 --until <début du noir>` (renomme ensuite en out/final.mp4), et ajoute `"music_after": {"file": "work/music.mp3", "volume": 0.08, "until": <s>}` dans plan.json pour le 1080p.
