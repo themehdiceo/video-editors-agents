@@ -86,30 +86,64 @@ def main():
         print(f"snap : {sum('PAS DE' in r for r in report)} bornes sans creux, voir work/snap_report.txt")
     words, cards, segs = [], [], []
     t = 0.0
+    def crop(tl):
+        cw = min(tl["w"], int(tl["h"] * (W / 2) / H))
+        cx = tl["x"] + int((tl["w"] - cw) * tl["face_x"])
+        return f"crop={cw}:{tl['h']}:{cx}:{tl['y']}"
+
+    def lay_graph(lay, sh, inp, outp, u):
+        """Filtre d'une mise en page ('split', 'zoom' ou tuile A/M plein écran) : [inp] -> [outp]. u = suffixe d'étiquettes."""
+        if lay == "split":
+            a, m = tiles["A"], tiles["M"]
+            return (f"[{inp}]split=2[p{u}][q{u}];[p{u}]{crop(a)},scale={W // 2}:{H},setsar=1[l{u}];"
+                    f"[q{u}]{crop(m)},scale={W // 2}:{H},setsar=1[r{u}];[l{u}][r{u}]hstack,fps={FPS}[{outp}]")
+        if lay == "zoom":
+            # zoom sur une zone de la source (x, y, w, h en pixels source), plein cadre : cache ce qui est hors zone
+            zx, zy, zw, zh = sh["crop"]
+            return f"[{inp}]crop={zw}:{zh}:{zx}:{zy},scale={W}:{H},setsar=1,fps={FPS}[{outp}]"
+        tl = tiles[lay]
+        return (f"[{inp}]crop={tl['w']}:{tl['h']}:{tl['x']}:{tl['y']},split=2[a{u}][b{u}];"
+                f"[b{u}]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},boxblur=24:6,eq=brightness=-0.2[bg{u}];"
+                f"[a{u}]scale=-2:{H}[fg{u}];[bg{u}][fg{u}]overlay=(W-w)/2:0,setsar=1,fps={FPS}[{outp}]")
+
+    src_words = [x for x in json.load(open(os.path.join(work, "words.json")))["words"] if "start" in x] \
+        if os.path.exists(os.path.join(work, "words.json")) else []
     for si, sh in enumerate(plan["shots"]):
         shot_t0 = t
         flat = 0
+        # "views" : [[t_source, layout], ...] = changements d'IMAGE seulement. Le son du range ne coupe jamais.
+        views = sorted(sh.get("views", []), key=lambda v: v[0])
         for ri, (s, e) in enumerate(sh["ranges"]):
             d = round(e - s + PAD_IN + PAD_OUT, 3)
             lay = sh["layout"]
-            if lay == "split":
-                a, m = tiles["A"], tiles["M"]
-
-                def crop(tl):
-                    cw = min(tl["w"], int(tl["h"] * (W / 2) / H))
-                    cx = tl["x"] + int((tl["w"] - cw) * tl["face_x"])
-                    return f"crop={cw}:{tl['h']}:{cx}:{tl['y']}"
-                vf = (f"[0:v]split=2[p][q];[p]{crop(a)},scale={W // 2}:{H},setsar=1[l];"
-                      f"[q]{crop(m)},scale={W // 2}:{H},setsar=1[r];[l][r]hstack,fps={FPS}[v]")
-            elif lay == "zoom":
-                # zoom sur une zone de la source (x, y, w, h en pixels source), plein cadre : cache ce qui est hors zone
-                zx, zy, zw, zh = sh["crop"]
-                vf = f"[0:v]crop={zw}:{zh}:{zx}:{zy},scale={W}:{H},setsar=1,fps={FPS}[v]"
+            t0s = s - PAD_IN
+            before = [v for v in views if v[0] <= s + 0.001]
+            if before:
+                lay = before[-1][1]
+            switches = [(v[0] - t0s, v[1]) for v in views if s + 0.001 < v[0] < e - 0.05]
+            if not switches:
+                vf = lay_graph(lay, sh, "0:v", "v", "")
             else:
-                tl = tiles[lay]
-                vf = (f"[0:v]crop={tl['w']}:{tl['h']}:{tl['x']}:{tl['y']},split=2[a][b];"
-                      f"[b]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},boxblur=24:6,eq=brightness=-0.2[bg];"
-                      f"[a]scale=-2:{H}[fg];[bg][fg]overlay=(W-w)/2:0,setsar=1,fps={FPS}[v]")
+                # un flux par usage (une étiquette ffmpeg ne peut être lue qu'une fois)
+                need = [lay] + [x[1] for x in switches]
+                parts = [f"[0:v]split={len(need)}" + "".join(f"[in{i}]" for i in range(len(need)))]
+                for i, ly in enumerate(need):
+                    parts.append(lay_graph(ly, sh, f"in{i}", f"L{i}", str(i)))
+                cur = "L0"
+                for k, (ts, ly) in enumerate(switches):
+                    te = switches[k + 1][0] if k + 1 < len(switches) else 9999
+                    nxt = "v" if k == len(switches) - 1 else f"o{k}"
+                    parts.append(f"[{cur}][L{k + 1}]overlay=enable='between(t,{ts:.3f},{te:.3f})':eof_action=pass[{nxt}]")
+                    cur = nxt
+                vf = ";".join(parts)
+            # "masks" : [[x, y, w, h, "texte"], ...] en pixels SOURCE : cache une marque (aplat + texte court) avant tout recadrage
+            if sh.get("masks"):
+                mk = ",".join(
+                    f"drawbox=x={x}:y={y}:w={w}:h={h}:color=0x1a1a1a@1:t=fill,"
+                    f"drawtext=fontfile={os.path.join(ROOT, 'assets/fonts/Montserrat-ExtraBold.ttf')}:text='{tx}':fontcolor=white:"
+                    f"fontsize={int(h * 0.5)}:x={x}+({w}-text_w)/2:y={y}+({h}-text_h)/2"
+                    for x, y, w, h, tx in sh["masks"])
+                vf = f"[0:v]{mk}[mv];" + vf.replace("[0:v]", "[mv]", 1)
             out = os.path.join(seg_dir, f"s{si:02d}_{ri}.mp4")
             # boost : mot soufflé trop faible ([début_src, fin_src, dB]) -> gain local avant le loudnorm
             boosts = "".join(
@@ -123,9 +157,18 @@ def main():
             segs.append(out)
             toks = sh["text"][ri]
             n = len(toks)
+            # Calage sur les vrais mots de la source (words.json) : le jeton j prend le début du mot source j*m/n.
+            sw = [x for x in src_words if x["start"] >= s - 0.05 and x["end"] <= e + 0.05 and x["w"].strip("?.,!؟ ")]
+            if plan.get("align", True) and len(sw) >= 2:
+                m_ = len(sw)
+                starts = [max(sw[min(int(j * m_ / n), m_ - 1)]["start"], s) for j in range(n)] + [e]
+                for j in range(1, n + 1):
+                    starts[j] = max(starts[j], starts[j - 1] + 0.05) if j < n else starts[j]
+            else:
+                starts = [s + (e - s) * j / n for j in range(n + 1)]
             for j, w in enumerate(toks):
-                ws = t + PAD_IN + (e - s) * j / n
-                we = t + PAD_IN + (e - s) * (j + 1) / n
+                ws = t + PAD_IN + (starts[j] - s)
+                we = t + PAD_IN + (starts[j + 1] - s)
                 wd = {"w": w, "start": round(ws, 3), "end": round(we, 3)}
                 if j == n - 1 and ri not in sh.get("join", []):  # "join" : la phrase continue sur le range suivant
                     wd["br"] = True  # fin d'extrait : la phrase suivante repart de zéro

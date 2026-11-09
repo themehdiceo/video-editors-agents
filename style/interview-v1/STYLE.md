@@ -188,3 +188,8 @@ Sinon : `python3 tools/music.py "<mood de style.json>" work/music.mp3 --dur <dur
 
 ### 2026-11-09 – fin d intro : question + réponse (retour 154345)
 - « Remplacer le remerciement » = retirer 221+222 et finir par la question de Mehdi (234 « Tu penses fouqach tu peux quitter ? », image M) puis la réponse entière de l interviewé (236, image A puis split vers la fin). Phrases entières, jamais coupées. Le numéro de phrase donné par Mehdi prime : retrouver les bornes dans work/phrases.json du job source.
+
+### 2026-11-09 – cacher une marque à l'écran (retour 160308)
+- Quand l'interviewé montre un dashboard avec le nom de sa marque (ex. « BenzSkin »), le cacher : `masks` dans le shot du plan (`[[x, y, w, h, "TEXTE"]]`, pixels SOURCE ; aplat gris foncé + texte court blanc, ex. « BOUTIQUE »). Géré par `tools/hook_build.py`. Source 3024x1964 : la marque est à x≈190-570, y≈680-800 sur le dashboard de la tuile A.
+- Le masque se pose avant le recadrage : il couvre la marque dans tous les plans du shot. Toujours le faire sans qu'on le redemande quand une marque/nom d'interviewé client est lisible.
+- hook_build ne pose PAS la musique : relancer `tools/add_music.py` avec `music_after` après chaque rendu.
