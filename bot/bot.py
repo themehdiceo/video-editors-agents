@@ -14,7 +14,7 @@ Commandes (seul TELEGRAM_ALLOWED_USER_ID est écouté) :
   /style <nom> [liens]  apprend un style de montage sur 2 à 5 vidéos (liens, ou style/<nom>/refs.txt)
   (réponse à un rendu)  retour -> nouvelle version + mise à jour des skills
   « valide » en réponse  rendu final 1080p du brouillon (ffmpeg seul, sans Claude)
-  /stop                 arrête le montage en cours (ta demande suivante passe juste après)
+  /stop                 arrête tout (montage en cours + file d'attente), puis renvoie ta demande
   /statut               job en cours et file d'attente
   /mac                  le bot passe sur ton Mac (vidéos du Mac, montages longs)
   /serveur              le bot passe sur le serveur (24 h/24, Mac éteint possible)
@@ -377,6 +377,9 @@ async def flush_text(update: Update, ctx) -> None:
     if STOP_RE.fullmatch(text):
         await stop_current(update)
         return
+    if STATUS_RE.fullmatch(text):  # « alors ? » n'est pas une consigne de montage : on donne l'avancement
+        await cmd_statut(update, None)
+        return
     if re.fullmatch(r"\s*(mode guid[ée]|guid[ée]|phrases|liste des phrases)\s*[.!]*\s*", text, re.I):
         await start_phrases(update)
         return
@@ -411,12 +414,25 @@ async def start_phrases(update: Update) -> None:
     await enqueue(update, d, "liste des phrases")
 
 
+STATUS_RE = re.compile(r"\s*(alors|et alors|alors frérot|\?+|ça avance|ca avance|t'?en es où|t'?en es ou|statut|status|"
+                       r"c'est bon|cbon|ça donne quoi|ca donne quoi|il en est où|il en est ou|toujours rien)\s*[?!.]*\s*", re.I)
 STOP_RE = re.compile(r"\s*/?(stop|stoppe|stopper|arr[eê]te|arr[eê]te tout|annule le montage)\s*[.!]*\s*", re.I)
 
 
 async def stop_current(update: Update) -> None:
-    """Arrête le montage en cours. Ce que Mehdi a envoyé après reste dans la file et passe juste après."""
-    if not current:
+    """Arrête tout : le montage en cours et ceux en attente. Mehdi renvoie ensuite UNE demande propre."""
+    dropped = 0
+    while not queue.empty():
+        try:
+            _, d = queue.get_nowait()
+            queue.task_done()
+            dropped += 1
+            j = json.loads((d / "job.json").read_text())
+            j["stopped"] = True
+            (d / "job.json").write_text(json.dumps(j, ensure_ascii=False, indent=1))
+        except (asyncio.QueueEmpty, OSError, ValueError):
+            break
+    if not current and not dropped:
         await update.message.reply_text("Rien ne tourne en ce moment.")
         return
     for name, d in list(current.items()):
@@ -432,8 +448,8 @@ async def stop_current(update: Update) -> None:
                 proc.kill()
             except ProcessLookupError:
                 pass
-    nxt = " Je passe à ta demande suivante." if not queue.empty() else " Envoie ta nouvelle demande."
-    await update.message.reply_text("🛑 Montage en cours arrêté." + nxt)
+    await update.message.reply_text(f"🛑 Tout est arrêté ({len(current)} en cours, {dropped} en attente). "
+                                    "Envoie ta nouvelle demande, je repars de la dernière version que tu as reçue.")
 
 
 @only_me
@@ -680,6 +696,10 @@ async def send_outputs(app: Application, chat_id: int, job_dir: Path, code: int)
     if not sent_any:
         await app.bot.send_message(chat_id, f"⚠️ Job {job_dir.name} terminé sans livrable (code {code}). "
                                             f"Journal : {job_dir / 'claude.log'}")
+    elif (out / "question.md").exists() and not any(out.glob("*.mp4")):
+        msg = await app.bot.send_message(chat_id, "❓ J'ai besoin de ta réponse avant de monter. Réponds à ma question "
+                                                  "(glisse le message vers la droite).")
+        remember(msg.message_id, job_dir.name)
     elif job.get("phase") == "phrases":
         msg = await app.bot.send_message(chat_id, "☝️ Réponds à un de ces messages (glisse vers la droite) avec les numéros "
                                                   "dans l'ordre voulu. Ex. « intro : 12, 45, 7-9 ». Ajoute tes consignes si "
