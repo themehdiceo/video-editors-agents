@@ -47,6 +47,19 @@ Le hook ne contient JAMAIS l'intro « bonjour, aujourd'hui avec X ». Il commenc
 - SFX : aucun mesuré. Un son très bas (≈ -36 dB) sous l'écran noir. Ne pas ajouter de whoosh. Règle prudente : si on ajoute un SFX, un seul « hit » doux sur la coupe hook → noir.
 - Au changement d'extrait du hook : la voix de l'extrait suivant démarre **sur la coupe**, sans respiration.
 
+## Règles de Mehdi (obligatoires, répétées 2 fois ou plus, bilan auto 2026-11-09)
+1. **Phrases entières, mots jamais coupés** : retour répété (202828 note 1, 120936, 152957). Chaque extrait garde tous les mots de la phrase du premier au dernier. Contrôle = `audit_cuts.py` + re-transcription du rendu, avant toute livraison.
+2. **L'image montre la chose dont on parle** (dashboard, preuve), pas celui qui parle. Le son reste continu.
+3. **Mehdi donne des numéros de phrases (`phrases.md`)** : 1 shot par numéro, ordre respecté, rien ajouté ni retiré. Ça a donné 5 étoiles (120936, 152957).
+
+## À refaire (notes 4-5, bilan auto 2026-11-09)
+- Intro ~35 s + 1,8 s de noir, 6 à 7 shots, plans image de 2 à 3,5 s en alternant plein écran / split sur les pauses, 0 titre en haut, 0 toux.
+- Ordre type validé (5 étoiles) : peur d'investir → chiffre montré sur le dashboard → 4e jour / 1re vente → remerciement final.
+- Exemples à imiter : `style/interview-v1/exemples/*.json` (120936 et 152957 = 5 étoiles).
+
+## Garde-fou issu d'une note 1 (202828)
+- Aucun rendu sans contrôle de coupes (31 bornes sur 44 étaient hors silence). Borne hors creux non vérifiée à la main : ne pas livrer.
+
 ## Retours de Mehdi (prioritaires sur tout le reste)
 
 ### Structure du hook (méthodes Hormozi et Haynes, validée par Mehdi le 2026-11-08)

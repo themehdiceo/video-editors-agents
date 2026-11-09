@@ -1,0 +1,71 @@
+{
+ "type": "hook_interview",
+ "source": "input/source.mov",
+ "out": "out/final.mp4",
+ "format": {"w": 1920, "h": 1080, "fps": 30},
+ "black_s": 1.8,
+ "tiles": {
+  "A": {"name": "Anas", "x": 40, "y": 384, "w": 1454, "h": 1396, "face_x": 0.5},
+  "M": {"name": "Mehdi", "x": 1530, "y": 384, "w": 1460, "h": 1396, "face_x": 0.55}
+ },
+ "shots": [
+  {
+   "id": "1_mehdi_promesse",
+   "layout": "M",
+   "ranges": [[21.7, 33.2]],
+   "text": [["Alors","f","had","la","partie","ghatchofo","kifach","Anas","li","kan","un","salarié","kitkhles","12000","dh","f","chher","qder","ykhrej","mn","salariat","w","kifach","sawbna","une","boutique","li","kadkhl","7alyan","50000","dollar","7tal","60000","dollar","f","chher","dial","rbe7"]],
+   "k": [13, 29, 32]
+  },
+  {
+   "id": "2_anas_peur",
+   "layout": "A",
+   "ranges": [[286.5, 290.45, "exact"],[292.5, 295.95], [303.55, 306.85], [308.1, 309.4], [310.5, 314.1]],
+   "text": [
+    ["kont","khayf","bzaf","surtout","pour","investir","wa7d","lflous","fhemti"],
+    ["hadi","tinvesti","wa7d","lflous","f","lakhir","tqder","ma","tjib","ta","chi","vente"],
+    ["la9itha","rassi","f","wa7d","lwad3iya","li","chwiya"],
+    ["délicate","w","kan9ol"],
+    ["sawa","hadi","nzo3","w","n7ot","lflous","sawa","hadi","nrje3","lsalariat"]
+   ],
+   "k": [1, 28, 40],
+   "join": [0, 1, 2, 3]
+  },
+  {
+   "id": "3_anas_systeme",
+   "layout": "split",
+   "ranges": [[237.25, 244.85], [245.5, 247.39, "exact"]],
+   "text": [
+    ["la","vérité","ana","ma","fhemt","walo","au","début","Parce","que","je","crois","le","système","tu","3ndek","il","est","bien","organisé","3arf","chno","ktir","donc","b7al","nta"],
+    ["le","pilote","w","ana","le","copilote"]
+   ],
+   "k": [13, 27, 31],
+   "join": [0]
+  },
+  {
+   "id": "4_mehdi_partager",
+   "layout": "M",
+   "ranges": [[583.0, 588.3, "exact"]],
+   "text": [
+    ["Ok","t'peux","partager","t'peux","partager","mesela","nchoufou","lyoma","chhal","derna","chhal","derna","lyoma"]
+   ],
+   "k": [2, 4, 7]
+  },
+  {
+   "id": "5_preuve_shopify",
+   "layout": "A",
+   "ranges": [[622.65, 628.95]],
+   "text": [["C'est","bon","Maintenant","c'est","bien","Ok","Last","12","hours","17","521,50","dollars","Good"]],
+   "k": [9, 10, 11],
+   "cards": [
+    {"off": 0.0, "dur": 6.8, "text": "**17 521 $** en 12 h | Boutique **SHOPIFY** en direct", "pos": "top", "y": 0.14, "box": true, "size": 118}
+   ]
+  },
+  {
+   "id": "6_anas_vie",
+   "layout": "A",
+   "ranges": [[998.75, 1006.25]],
+   "text": [["daba","hamdullah","je","suis","plus","épanoui","f","7yati","kanl9a","lwa9t","lrasi","kanl9a","lwa9t","l3ailti","kanfi9","fwa9t","li","bghit"]],
+   "k": [5, 10, 13]
+  }
+ ]
+}

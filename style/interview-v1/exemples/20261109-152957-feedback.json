@@ -1,0 +1,73 @@
+{
+ "type": "hook_interview",
+ "source": "../20261109-152014-edit/input/source.mov",
+ "out": "out/final.mp4",
+ "format": {"w": 1920, "h": 1080, "fps": 30},
+ "black_s": 1.8,
+ "tiles": {
+  "A": {"name": "Anas", "x": 40, "y": 384, "w": 1454, "h": 1396, "face_x": 0.5},
+  "M": {"name": "Mehdi", "x": 1530, "y": 384, "w": 1460, "h": 1396, "face_x": 0.55}
+ },
+ "shots": [
+  {
+   "id": "p72_73_anas_peur",
+   "layout": "A",
+   "ranges": [[285.74, 295.86]],
+   "views": [[285.7, "A"], [288.0, "split"], [291.0, "A"], [293.7, "split"]],
+   "text": [["F","lwel","ghi","kont","khayf","bzaf","surtout","pour","investir","wa7d","lflous","fhmti","Donc","katqol","dak","hadi","tinvesti","wa7d","lflous","f","lakhr","tqdr","ma","tjib","ta","chi","vente"]],
+   "k": [3, 4, 5, 26]
+  },
+  {
+   "id": "p132_mehdi_partage",
+   "layout": "M",
+   "ranges": [[600.5, 601.68]],
+   "text": [["Partage","avec","l'audience"]],
+   "k": [2]
+  },
+  {
+   "id": "p140_mehdi_chiffre",
+   "layout": "M",
+   "ranges": [[624.95, 628.37, "exact"]],
+   "text": [["Last","12","hours","17","521,50","dollars"]],
+   "k": [3, 4, 5]
+  },
+  {
+   "id": "p56_mehdi_temps",
+   "layout": "M",
+   "ranges": [[227.72, 230.24]],
+   "text": [["Fchhal","dial","lwqt","aa","bach","kna","jbna","awl","mabi3a"]],
+   "k": [8]
+  },
+  {
+   "id": "p58_anas_rapide",
+   "layout": "A",
+   "ranges": [[233.52, 236.1]],
+   "text": [["Chhal","dial","lwqt","La","vérité","c'était","rapide"]],
+   "k": [6]
+  },
+  {
+   "id": "p62_63_quatrieme_jour",
+   "layout": "A",
+   "ranges": [[247.1, 250.58], [251.44, 256.40, "exact"]],
+   "views": [[247.0, "A"], [251.48, "split"], [254.3, "A"]],
+   "text": [
+    ["Donc","je","pense","que","je","pense","là","le","quatrième","jour"],
+    ["Ila","ma","ktebtch","le","quatrième","jour","aa","c'était","là","la","la","première","vente"]
+   ],
+   "k": [8, 9, 21, 22],
+   "join": [0]
+  },
+  {
+   "id": "p221_222_merci",
+   "layout": "A",
+   "ranges": [[1021.33, 1025.28, "exact"], [1026.16, 1028.8]],
+   "views": [[1021.3, "A"], [1026.16, "split"]],
+   "text": [
+    ["vraiment","vraiment","merci","pour","toi","khoya","tu","es","vraiment","quelqu'un","de","de","sérieux"],
+    ["de","aa","quelqu'un","aussi","de","de","très","honnête"]
+   ],
+   "k": [2, 12, 19, 20],
+   "join": [0]
+  }
+ ]
+}
