@@ -61,7 +61,7 @@ PROMPTS = {
                  "la vidéo source est dans jobs/<source_job>/input/ et la transcription la plus à jour (Scribe) "
                  "dans jobs/<source_job>/work/words.json. Son message est dans feedback, et history liste "
                  "TOUTES les consignes déjà données sur cette vidéo : elles restent valables sauf si feedback les contredit. "
-                 "Repars des fichiers de work/ du job parent (copie-les), ne refais que ce qui est demandé, "
+                 "Repars des fichiers de work/ du job parent (copie-les), ne refais que ce qui est demandé (si le message peut se lire de deux façons, applique la règle « Consigne ambiguë » de CLAUDE.md : question d'abord), "
                  "puis applique la skill skill-keeper pour que ce retour serve aux prochaines vidéos."),
     "style": "Job de type style. Suis la skill style-trainer.",
     "ask": ("Job de type ask : Mehdi pose une question à son équipe (champ question de job.json ; history = l'échange "
