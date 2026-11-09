@@ -57,6 +57,7 @@ INDEX = JOBS / "index.json"  # message_id Telegram -> job id (pour les retours)
 
 queue: asyncio.Queue = asyncio.Queue()
 current: dict = {}  # jobs en cours : nom -> dossier
+current_bg: set = set()  # bilans en arrière-plan (pas de mise à jour/redémarrage pendant ce temps)
 MAX_JOBS = int(os.environ.get("MAX_JOBS", "1"))  # vidéos montées en même temps
 RATINGS = REPO / "style" / "ratings.jsonl"  # notes de Mehdi : la mémoire de ce qui marche
 
@@ -619,6 +620,8 @@ def pull_updates():
 
 
 async def update_and_restart(app: Application, force_msg: bool = False) -> None:
+    if current_bg:
+        return  # un bilan tourne en arrière-plan : on se mettra à jour après
     res = await asyncio.to_thread(pull_updates)
     if res is None:
         if force_msg:
@@ -750,6 +753,7 @@ async def on_rate(update: Update, ctx) -> None:
 
 async def background_bilan(bot, chat_id: int, d: Path) -> None:
     """Bilan des notes en silence, à côté des montages. Un seul message à la fin, s'il a changé quelque chose."""
+    current_bg.add(d.name)
     try:
         code = await run_job(d)
         summary = (d / "out" / "summary.md")
@@ -758,6 +762,8 @@ async def background_bilan(bot, chat_id: int, d: Path) -> None:
                                    + summary.read_text()[:1500])
     except Exception:  # noqa: BLE001
         log.exception("bilan")
+    finally:
+        current_bg.discard(d.name)
 
 
 def last_claude_text(log_path: Path) -> str:
