@@ -183,3 +183,6 @@ Un fichier 1920x1080 ne suffit pas : **chaque plan doit remplir tout l'écran 16
 ### 2026-11-09 – chiffres : montrer le dashboard, pas Mehdi (retour 153614)
 - Quand Mehdi (tuile M) lit un chiffre que l'interviewé montre à l'écran (« Last 12 hours 17 521,50 »), l'IMAGE = tuile de l'interviewé (A, qui tient le dashboard), le SON reste celui de Mehdi : `layout: "A"` sur ce shot. Règle générale : l'image montre la chose dont on parle, pas celui qui parle.
 - Si Mehdi demande de « remplacer » un passage Q/R qui n'est pas dans l'intro (ex. « tu as quitté le salariat ? »), vérifier d'abord le plan : ne rien inventer, le dire dans le résumé.
+
+### 2026-11-09 – fin d intro : question + réponse (retour 154345)
+- « Remplacer le remerciement » = retirer 221+222 et finir par la question de Mehdi (234 « Tu penses fouqach tu peux quitter ? », image M) puis la réponse entière de l interviewé (236, image A puis split vers la fin). Phrases entières, jamais coupées. Le numéro de phrase donné par Mehdi prime : retrouver les bornes dans work/phrases.json du job source.
