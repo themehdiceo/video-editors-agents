@@ -45,7 +45,7 @@ PROMPTS = {
                 "2) Lis phrases.json et ajoute à chaque phrase un champ latin : le texte réécrit en darija latine, comme Mehdi "
                 "écrit (« kifach », « 3ndek », mots français tels quels), fidèle à ce qui est dit, sans résumer. Ne change ni n, "
                 "ni start, ni end. Écris le fichier avec Write. "
-                "3) Écris out/phrases.md : une ligne par phrase, « N. [mm:ss] A : texte latin » (A/B = locuteur ; ajoute 🤧 si "
+                "3) Écris out/phrases.md : une ligne par phrase, « N. [mm:ss] (durée en s) A : texte latin », ex. « 12. [04:31] (6 s) B : … » (A/B = locuteur ; ajoute 🤧 si "
                 "cough est vrai). Pas d'introduction, pas de résumé, pas de summary.md. Va vite : moins de 10 min. "
                 "Écris progress.log toutes les 3 min (ex. « phrases réécrites : 120/250 »)."),
     "guided": ("Job de type edit, phase guided (MODE GUIDÉ, étape 2) : Mehdi a choisi LUI-MÊME les phrases, dans l'ordre "
