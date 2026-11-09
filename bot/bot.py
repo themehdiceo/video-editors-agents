@@ -7,6 +7,8 @@ Commandes (seul TELEGRAM_ALLOWED_USER_ID est écouté) :
   (envoi d'une vidéo)   montage d'un A-roll ; légende "clip" ou "clip 3" = vidéo longue
   (chemin d'un fichier) mode Mac : /Users/.../video.mov, puis ton prompt à la ligne suivante
   « style <nom> » dans le prompt : monte avec un style appris (sinon choix auto solo-v1 / interview-v1)
+  « mode guidé » dans le prompt (ou /phrases) : je t'envoie la liste numérotée des phrases, tu réponds
+    avec les numéros dans l'ordre (« intro : 12, 45, 7 ») et je monte exactement ça.
   « mode plan » dans le prompt : je t'envoie d'abord un PLAN (4 idées par scène), tu réponds
     avec tes choix (« 1B 2A… » ou « ok »), puis je monte.
   /style <nom> [liens]  apprend un style de montage sur 2 à 5 vidéos (liens, ou style/<nom>/refs.txt)
@@ -28,6 +30,7 @@ import unicodedata
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -83,28 +86,75 @@ def only_me(fn):
 # « demande à Jeremy / Hormozi / au copywriter … » : une question à l'équipe, sans montage.
 ASK_RE = re.compile(r"\b(demande|demandes|demander|pose|question)\b.{0,40}\b(j[eé]r[eé]m\w*|haynes|hormo\w*|alex|copy\s*writ\w*|copywriter)", re.I | re.S)
 PLAN_RE = re.compile(r"\b(mode plan|avec (le )?plan|plan d'abord)\b", re.I)
+GUIDE_RE = re.compile(r"(mode guid|\bguid[ée]\b|je (te )?guide|liste des phrases|^/?phrases\s*$)", re.I)
 
 
 def set_phase(job_dir: Path) -> None:
     """Montage direct par défaut. « mode plan » dans le prompt : d'abord un plan que Mehdi valide."""
     job = json.loads((job_dir / "job.json").read_text())
     if job.get("type") == "edit" and not job.get("phase"):
-        job["phase"] = "plan" if PLAN_RE.search(job.get("note", "")) else "build"
+        note = job.get("note", "")
+        job["phase"] = "phrases" if GUIDE_RE.search(note) else "plan" if PLAN_RE.search(note) else "build"
         (job_dir / "job.json").write_text(json.dumps(job, ensure_ascii=False, indent=1))
+
+
+def derive_job(parent_id: str, **fields) -> Path:
+    """Nouveau job edit qui reprend la vidéo et le travail (work/) d'un job précédent."""
+    src = JOBS / parent_id
+    parent = json.loads((src / "job.json").read_text())
+    d = new_job("edit", parent=parent_id, **({"note": parent.get("note", ""), "input_file": parent.get("input_file"),
+                                              "source_path": parent.get("source_path")} | fields))
+    for f in (src / "input").iterdir():
+        try:
+            os.link(f, d / "input" / f.name)  # instantané, sans place en plus
+        except OSError:
+            if subprocess.run(["cp", "-c", str(f), str(d / "input" / f.name)], capture_output=True).returncode != 0:
+                shutil.copy2(f, d / "input" / f.name)
+    for f in (src / "work").iterdir():
+        if f.is_file():
+            shutil.copy2(f, d / "work" / f.name)
+    return d
+
+
+def parse_picks(text: str) -> list[int]:
+    """« intro : 12, 45, 7-9 » -> [12, 45, 7, 8, 9] (dans l'ordre donné)."""
+    out = []
+    for m in re.finditer(r"(?<![\d:.])(\d+)(?:\s*(?:-|à)\s*(\d+))?(?![\d:.]|\s*(?:s\b|sec|min|p\b|%|k\b|dh|\$|€))", text):
+        a, b = int(m.group(1)), int(m.group(2) or m.group(1))
+        out += list(range(a, b + 1)) if 0 <= b - a <= 30 else [a]
+    return out
+
+
+def start_guided(parent_id: str, text: str) -> tuple[Path | None, str]:
+    """Réponse à la liste des phrases : montage exact des phrases choisies par Mehdi."""
+    src = JOBS / parent_id
+    pj = src / "work" / "phrases.json"
+    if not pj.exists():
+        return None, "La liste des phrases est introuvable pour ce job."
+    phrases = {p["n"]: p for p in json.loads(pj.read_text()).get("phrases", [])}
+    nums = parse_picks(text)
+    picks = [phrases[n] for n in nums if n in phrases]
+    missing = [n for n in nums if n not in phrases]
+    if not picks:
+        return None, "Je n'ai pas trouvé de numéros de phrases. Exemple : « intro : 12, 45, 7 »."
+    pdata = json.loads((src / "job.json").read_text())
+    d = derive_job(parent_id, phase="guided", instruction=text, history=pdata.get("history", []),
+                   picks=[{k: p.get(k) for k in ("n", "start", "end", "speaker", "latin", "text", "cough")} for p in picks])
+    try:  # mémoire du goût : les vrais choix de Mehdi (le skill-keeper et le copywriter s'en inspirent)
+        with open(REPO / "style" / "guided_picks.jsonl", "a") as f:
+            f.write(json.dumps({"date": time.strftime("%Y-%m-%d"), "job": d.name, "source": pdata.get("source_path"),
+                                "instruction": text, "picks": [p.get("latin") or p.get("text") for p in picks]},
+                               ensure_ascii=False) + "\n")
+    except OSError:
+        pass
+    note = f"{len(picks)} phrases" + (f" (introuvables : {', '.join(map(str, missing))})" if missing else "")
+    return d, note
 
 
 def start_build(parent_id: str, choices: str) -> Path:
     """Réponse au plan : nouveau job qui reprend la vidéo et le travail de la phase plan."""
     src = JOBS / parent_id
-    parent = json.loads((src / "job.json").read_text())
-    d = new_job("edit", phase="build", parent=parent_id, choices=choices, note=parent.get("note", ""),
-                input_file=parent.get("input_file"), source_path=parent.get("source_path"))
-    for f in (src / "input").iterdir():
-        if subprocess.run(["cp", "-c", str(f), str(d / "input" / f.name)], capture_output=True).returncode != 0:
-            shutil.copy2(f, d / "input" / f.name)
-    for f in (src / "work").iterdir():
-        if f.is_file():
-            shutil.copy2(f, d / "work" / f.name)
+    d = derive_job(parent_id, phase="build", choices=choices)
     if (src / "out" / "plan.md").exists():
         shutil.copy2(src / "out" / "plan.md", d / "work" / "plan.md")
     return d
@@ -166,6 +216,14 @@ async def on_text(update: Update, ctx):
     if m.reply_to_message:
         parent = load_index().get(str(m.reply_to_message.message_id))
         pjob = JOBS / parent / "job.json" if parent else None
+        if pjob and pjob.exists() and json.loads(pjob.read_text()).get("phase") == "phrases":
+            d, info = await asyncio.to_thread(start_guided, parent, m.text or "")
+            if not d:
+                await m.reply_text(info)
+                return
+            await m.reply_text(f"👍 Je monte exactement tes {info}, dans ton ordre.")
+            await enqueue(update, d, "montage guidé")
+            return
         if pjob and pjob.exists() and json.loads(pjob.read_text()).get("phase") == "plan":
             await m.reply_text("👍 Plan reçu, je lance le montage avec tes choix.")
             await enqueue(update, await asyncio.to_thread(start_build, parent, m.text or "ok"), "montage")
@@ -315,6 +373,9 @@ async def flush_text(update: Update, ctx) -> None:
         await m.reply_text("🧠 Je pose ta question à l'équipe (copywriter, Hormozi, Haynes), réponse dans quelques minutes.")
         await enqueue(update, new_job("ask", question=text), "question")
         return
+    if re.fullmatch(r"\s*(mode guid[ée]|guid[ée]|phrases|liste des phrases)\s*[.!]*\s*", text, re.I):
+        await start_phrases(update)
+        return
     # Pas de vidéo ni de lien : on continue sur la dernière vidéo travaillée (Mehdi n'a pas à tout redire).
     fb = ctx.chat_data.pop("feedback_for", None)
     last = JOBS / fb if fb and (JOBS / fb / "job.json").exists() else last_video_job()
@@ -331,6 +392,24 @@ async def flush_text(update: Update, ctx) -> None:
                            "Telegram (jusqu'à 2 Go), avec ton prompt en légende.")
         return
     await m.reply_text("Envoie un lien (script), une vidéo (montage), ou réponds à un rendu pour donner un retour.")
+
+
+async def start_phrases(update: Update) -> None:
+    """Mode guidé sur la dernière vidéo : liste numérotée des phrases, Mehdi choisit."""
+    last = last_video_job()
+    if not last:
+        await update.message.reply_text("Envoie d'abord une vidéo (ou son chemin sur le Mac) avec « mode guidé ».")
+        return
+    root = root_job(last)
+    d = await asyncio.to_thread(derive_job, root.name, phase="phrases", history=history(last))
+    await update.message.reply_text("📝 Je te prépare la liste numérotée des phrases (5 à 10 min). Tu me répondras "
+                                    "avec les numéros, dans l'ordre que tu veux.")
+    await enqueue(update, d, "liste des phrases")
+
+
+@only_me
+async def cmd_phrases(update: Update, ctx):
+    await start_phrases(update)
 
 
 def recent_advice(limit: int = 3) -> list:
@@ -527,10 +606,15 @@ async def send_outputs(app: Application, chat_id: int, job_dir: Path, code: int)
     for script in sorted(out.glob("*.md")):
         if script.name in ("summary.md", "skill_update.md"):
             continue
-        text = script.read_text()
-        for i in range(0, len(text), 3900):
-            msg = await app.bot.send_message(chat_id, text[i:i + 3900])
-            remember(msg.message_id, job_dir.name)
+        chunk = ""
+        for line in script.read_text().splitlines(keepends=True) + ["\0"]:
+            if line == "\0" or len(chunk) + len(line) > 3900:
+                if chunk.strip():
+                    msg = await app.bot.send_message(chat_id, chunk[:3900])
+                    remember(msg.message_id, job_dir.name)
+                chunk = ""
+            if line != "\0":
+                chunk += line
         sent_any = True
     for video in sorted(v for v in out.glob("*.mp4") if not v.name.endswith("_1080.mp4")):
         if not API_URL and video.stat().st_size > 49 * 1024 * 1024:
@@ -562,6 +646,11 @@ async def send_outputs(app: Application, chat_id: int, job_dir: Path, code: int)
     if not sent_any:
         await app.bot.send_message(chat_id, f"⚠️ Job {job_dir.name} terminé sans livrable (code {code}). "
                                             f"Journal : {job_dir / 'claude.log'}")
+    elif job.get("phase") == "phrases":
+        msg = await app.bot.send_message(chat_id, "☝️ Réponds à un de ces messages (glisse vers la droite) avec les numéros "
+                                                  "dans l'ordre voulu. Ex. « intro : 12, 45, 7-9 ». Ajoute tes consignes si "
+                                                  "besoin (« coupe la fin de la 45 »).")
+        remember(msg.message_id, job_dir.name)
     elif is_plan:
         await app.bot.send_message(chat_id, "☝️ Réponds au PLAN (glisse le message vers la droite) avec tes choix : "
                                             "« 1B 2A 3C… », tes idées, ou « ok » pour mes ⭐.")
@@ -838,6 +927,7 @@ def main() -> None:
     app.add_error_handler(on_error)
     app.add_handler(CommandHandler("vps", cmd_vps))
     app.add_handler(CommandHandler(["mac", "serveur", "server"], cmd_switch))
+    app.add_handler(CommandHandler(["phrases", "guide"], cmd_phrases))
     app.add_handler(CallbackQueryHandler(on_rate, pattern=r"^rate:"))
     app.add_handler(MessageHandler(filters.VIDEO | filters.Document.VIDEO, on_video))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))

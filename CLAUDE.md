@@ -14,6 +14,8 @@ Types de job :
 | `script` | un lien (article, vidéo, page produit) | `short-script` | `out/script.md` |
 | `edit` (phase `build`, par défaut) | une vidéo brute, ou le plan validé par Mehdi | `short-editor` | `out/final.mp4` |
 | `edit`, phase `plan` (« mode plan » dans le prompt) | une vidéo brute | `edit-plan` | `out/plan.md` (Mehdi choisit les scènes) |
+| `edit`, phase `phrases` (« mode guidé ») | une vidéo | `tools/phrases.py` + darija latine | `out/phrases.md` (liste numérotée, Mehdi choisit) |
+| `edit`, phase `guided` | les numéros choisis par Mehdi (`picks`) | `short-editor`, phrases imposées | `out/final.mp4` |
 | `clip` | une vidéo longue (fichier ou lien YouTube) | `long-to-short` | `out/final.mp4` (+ `out/clip_2.mp4`… si demandé) |
 | `style` | 2 à 5 vidéos de référence | `style-trainer` | `style/<nom>/STYLE.md` + résumé |
 | `feedback` | un retour sur un rendu précédent | skill du job d'origine, puis `skill-keeper` | nouvelle version + mise à jour des skills |
