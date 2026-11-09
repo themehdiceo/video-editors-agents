@@ -719,7 +719,11 @@ def pull_updates():
     r = git("pull", "-q", "--rebase", "--autostash", "origin", "main")
     if r.returncode != 0:
         git("rebase", "--abort")
-        return False, r.stderr.strip()[-300:]
+        # Conflit sur une leçon écrite ici : on garde la version locale des passages en conflit et on avance.
+        r = git("pull", "-q", "--rebase", "--autostash", "-X", "theirs", "origin", "main")
+        if r.returncode != 0:
+            git("rebase", "--abort")
+            return False, r.stderr.strip()[-300:]
     return True, news
 
 

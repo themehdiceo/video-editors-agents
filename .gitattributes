@@ -1,0 +1,6 @@
+# Les agents du Mac/VPS écrivent leurs leçons dans ces fichiers pendant que Claude les modifie ici :
+# on garde les deux versions au lieu de bloquer la mise à jour automatique.
+style/**/*.md merge=union
+style/*.md merge=union
+style/*.jsonl merge=union
+.claude/skills/**/*.md merge=union
