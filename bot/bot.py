@@ -767,16 +767,83 @@ def last_claude_text(log_path: Path) -> str:
     return ""
 
 
+DURATIONS = JOBS / "durees.jsonl"
+DEFAULT_MIN = {"phrases": 10, "guided": 20, "build": 25, "plan": 20, "feedback": 25, "edit": 25, "clip": 30,
+               "script": 8, "ask": 4, "style": 40, "bilan": 10}
+
+
+def job_kind(job_dir: Path) -> str:
+    try:
+        j = json.loads((job_dir / "job.json").read_text())
+    except (OSError, ValueError):
+        return "edit"
+    return j.get("phase") or j.get("type") or "edit"
+
+
+def estimate_min(kind: str) -> float:
+    """Durée prévue : médiane des 5 derniers jobs du même genre (sinon une valeur par défaut)."""
+    past = []
+    try:
+        for line in DURATIONS.read_text().splitlines()[-200:]:
+            d = json.loads(line)
+            if d.get("kind") == kind and d.get("ok"):
+                past.append(d["min"])
+    except (OSError, ValueError):
+        pass
+    if not past:  # pas encore d'historique : on mesure les anciens jobs (nom = heure de départ, claude.log = fin)
+        for d in sorted(JOBS.glob("2*-*"))[-60:]:
+            try:
+                if job_kind(d) != kind or not any((d / "out").glob("*")):
+                    continue
+                start = time.mktime(time.strptime(d.name[:15], "%Y%m%d-%H%M%S"))
+                m = ((d / "claude.log").stat().st_mtime - start) / 60
+                if 1 < m < 180:
+                    past.append(round(m, 1))
+            except (OSError, ValueError):
+                continue
+    past = sorted(past[-5:])
+    return past[len(past) // 2] if past else DEFAULT_MIN.get(kind, 25)
+
+
+def progress_bar(elapsed: float, total: float) -> str:
+    frac = min(elapsed / total, 0.97) if total else 0
+    n = round(frac * 12)
+    left = total - elapsed
+    eta = (f"encore ~{round(left)} min" if left >= 1.5 else "moins d'1 min" if left > 0
+           else "presque fini (un peu plus long que prévu)")
+    return f"{'▰' * n}{'▱' * (12 - n)} {round(frac * 100)} % · {eta}"
+
+
 async def worker(app: Application) -> None:
     while True:
         chat_id, job_dir = await queue.get()
         current[job_dir.name] = job_dir
-        await app.bot.send_message(chat_id, f"🎬 Je commence {job_dir.name}")
+        kind, t0 = job_kind(job_dir), time.time()
+        total = estimate_min(kind)
+        bar_msg = await app.bot.send_message(chat_id, f"🎬 Je commence {job_dir.name}\n" + progress_bar(0, total))
+        bar_at, bar_text = t0, ""
         task = asyncio.create_task(run_job(job_dir))
         seen, quiet, last_note = 0, 0, ""
         while not task.done():
             await asyncio.sleep(20)
-            lines = (job_dir / "progress.log").read_text().splitlines()
+            el = (time.time() - t0) / 60
+            text = f"⏳ {job_dir.name}\n" + progress_bar(el, total)
+            try:
+                if time.time() - bar_at >= 300:  # toutes les 5 min : nouvelle barre en bas de la conversation
+                    try:
+                        await bar_msg.delete()
+                    except Exception:  # noqa: BLE001
+                        pass
+                    bar_msg, bar_at = await app.bot.send_message(chat_id, text), time.time()
+                elif text != bar_text:
+                    await bar_msg.edit_text(text)
+                bar_text = text
+            except Exception:  # noqa: BLE001
+                log.debug("barre", exc_info=True)
+            try:
+                lines = (job_dir / "progress.log").read_text().splitlines()
+            except OSError:
+                lines = []
             if len(lines) > seen:
                 await app.bot.send_message(chat_id, "\n".join("• " + x for x in lines[seen:])[-3900:])
                 seen, quiet = len(lines), 0
@@ -790,6 +857,13 @@ async def worker(app: Application) -> None:
                     last_note = note
                 quiet = 0
         stopped = json.loads((job_dir / "job.json").read_text()).get("stopped")
+        try:
+            await bar_msg.edit_text(f"{'✅' if not stopped else '🛑'} {job_dir.name} · {round((time.time() - t0) / 60)} min")
+            ok = not stopped and task.exception() is None and task.result() == 0
+            with open(DURATIONS, "a") as f:
+                f.write(json.dumps({"kind": kind, "min": round((time.time() - t0) / 60, 1), "ok": ok}) + "\n")
+        except Exception:  # noqa: BLE001
+            pass
         try:
             if not stopped:
                 await send_outputs(app, chat_id, job_dir, task.result())
