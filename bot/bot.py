@@ -815,8 +815,23 @@ def progress_bar(elapsed: float, total: float) -> str:
 
 
 async def worker(app: Application) -> None:
+    """Ne meurt jamais : une erreur sur un job ne bloque pas toute la file (blocage du 09/11)."""
     while True:
         chat_id, job_dir = await queue.get()
+        try:
+            await process_job(app, chat_id, job_dir)
+        except Exception as e:  # noqa: BLE001
+            log.exception("job %s", job_dir.name)
+            current.pop(job_dir.name, None)
+            queue.task_done()
+            try:
+                await app.bot.send_message(chat_id, f"⚠️ {job_dir.name} a planté ({type(e).__name__}), je passe à la suite.")
+            except Exception:  # noqa: BLE001
+                pass
+
+
+async def process_job(app: Application, chat_id: int, job_dir: Path) -> None:
+    if True:  # (corps historique du worker)
         current[job_dir.name] = job_dir
         kind, t0 = job_kind(job_dir), time.time()
         total = estimate_min(kind)
