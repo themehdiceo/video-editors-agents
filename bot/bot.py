@@ -759,10 +759,12 @@ def last_claude_text(log_path: Path) -> str:
             d = json.loads(line)
         except ValueError:
             continue
-        content = (d.get("message") or {}).get("content")
+        if not isinstance(d, dict) or not isinstance(d.get("message"), dict):
+            continue  # ligne coupée ou d'un autre format (cause du blocage du 09/11)
+        content = d["message"].get("content")
         if d.get("type") == "assistant" and isinstance(content, list):
             for c in reversed(content):
-                if c.get("type") == "text" and c.get("text", "").strip():
+                if isinstance(c, dict) and c.get("type") == "text" and str(c.get("text", "")).strip():
                     return c["text"].strip().splitlines()[0]
     return ""
 
