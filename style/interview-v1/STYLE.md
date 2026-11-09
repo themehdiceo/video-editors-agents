@@ -166,3 +166,7 @@ Un fichier 1920x1080 ne suffit pas : **chaque plan doit remplir tout l'écran 16
 - Quand Mehdi donne des numéros de `out/phrases.md` : 1 shot par phrase (ou une paire contiguë en un range), dans l'ordre donné, bornes = début/fin de `phrases.json`. Locuteur : `speaker_0` = Mehdi (tuile M), `speaker_1` = Anas (tuile A).
 - « Commence à tel mot » : mettre la borne en `"exact"` 0,03 s avant le mot (le snap a avalé « vraiment » sinon). Fin d'une phrase suivie d'une autre voix collée (« Good » après 17 521,50) : `"exact"` aussi, vérifié par re-transcription.
 - `tools/audit_cuts.py` plante sur les ranges `"exact"` (3e valeur chaîne) : se fier à la re-transcription du rendu.
+
+### 2026-11-09 – chiffres : montrer le dashboard, pas Mehdi (retour 153614)
+- Quand Mehdi (tuile M) lit un chiffre que l'interviewé montre à l'écran (« Last 12 hours 17 521,50 »), l'IMAGE = tuile de l'interviewé (A, qui tient le dashboard), le SON reste celui de Mehdi : `layout: "A"` sur ce shot. Règle générale : l'image montre la chose dont on parle, pas celui qui parle.
+- Si Mehdi demande de « remplacer » un passage Q/R qui n'est pas dans l'intro (ex. « tu as quitté le salariat ? »), vérifier d'abord le plan : ne rien inventer, le dire dans le résumé.
