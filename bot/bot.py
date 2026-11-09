@@ -14,6 +14,7 @@ Commandes (seul TELEGRAM_ALLOWED_USER_ID est écouté) :
   /style <nom> [liens]  apprend un style de montage sur 2 à 5 vidéos (liens, ou style/<nom>/refs.txt)
   (réponse à un rendu)  retour -> nouvelle version + mise à jour des skills
   « valide » en réponse  rendu final 1080p du brouillon (ffmpeg seul, sans Claude)
+  /stop                 arrête le montage en cours (ta demande suivante passe juste après)
   /statut               job en cours et file d'attente
   /mac                  le bot passe sur ton Mac (vidéos du Mac, montages longs)
   /serveur              le bot passe sur le serveur (24 h/24, Mac éteint possible)
@@ -37,7 +38,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (Application, CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters)
 
 import switch
-from runner import JOBS, REPO, new_job, run_job
+from runner import JOBS, PROCS, REPO, new_job, run_job
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("bot")
@@ -373,6 +374,9 @@ async def flush_text(update: Update, ctx) -> None:
         await m.reply_text("🧠 Je pose ta question à l'équipe (copywriter, Hormozi, Haynes), réponse dans quelques minutes.")
         await enqueue(update, new_job("ask", question=text), "question")
         return
+    if STOP_RE.fullmatch(text):
+        await stop_current(update)
+        return
     if re.fullmatch(r"\s*(mode guid[ée]|guid[ée]|phrases|liste des phrases)\s*[.!]*\s*", text, re.I):
         await start_phrases(update)
         return
@@ -405,6 +409,36 @@ async def start_phrases(update: Update) -> None:
     await update.message.reply_text("📝 Je te prépare la liste numérotée des phrases (5 à 10 min). Tu me répondras "
                                     "avec les numéros, dans l'ordre que tu veux.")
     await enqueue(update, d, "liste des phrases")
+
+
+STOP_RE = re.compile(r"\s*/?(stop|stoppe|stopper|arr[eê]te|arr[eê]te tout|annule le montage)\s*[.!]*\s*", re.I)
+
+
+async def stop_current(update: Update) -> None:
+    """Arrête le montage en cours. Ce que Mehdi a envoyé après reste dans la file et passe juste après."""
+    if not current:
+        await update.message.reply_text("Rien ne tourne en ce moment.")
+        return
+    for name, d in list(current.items()):
+        try:
+            j = json.loads((d / "job.json").read_text())
+            j["stopped"] = True
+            (d / "job.json").write_text(json.dumps(j, ensure_ascii=False, indent=1))
+        except (OSError, ValueError):
+            pass
+        proc = PROCS.get(name)
+        if proc and proc.returncode is None:
+            try:
+                proc.kill()
+            except ProcessLookupError:
+                pass
+    nxt = " Je passe à ta demande suivante." if not queue.empty() else " Envoie ta nouvelle demande."
+    await update.message.reply_text("🛑 Montage en cours arrêté." + nxt)
+
+
+@only_me
+async def cmd_stop(update: Update, ctx):
+    await stop_current(update)
 
 
 @only_me
@@ -735,8 +769,10 @@ async def worker(app: Application) -> None:
                     await app.bot.send_message(chat_id, "⏳ " + note[:600])
                     last_note = note
                 quiet = 0
+        stopped = json.loads((job_dir / "job.json").read_text()).get("stopped")
         try:
-            await send_outputs(app, chat_id, job_dir, task.result())
+            if not stopped:
+                await send_outputs(app, chat_id, job_dir, task.result())
         except Exception as e:  # noqa: BLE001
             log.exception("envoi")
             await app.bot.send_message(chat_id, f"⚠️ Erreur à l'envoi : {e}")
@@ -928,6 +964,7 @@ def main() -> None:
     app.add_handler(CommandHandler("vps", cmd_vps))
     app.add_handler(CommandHandler(["mac", "serveur", "server"], cmd_switch))
     app.add_handler(CommandHandler(["phrases", "guide"], cmd_phrases))
+    app.add_handler(CommandHandler(["stop", "stoppe"], cmd_stop))
     app.add_handler(CallbackQueryHandler(on_rate, pattern=r"^rate:"))
     app.add_handler(MessageHandler(filters.VIDEO | filters.Document.VIDEO, on_video))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))

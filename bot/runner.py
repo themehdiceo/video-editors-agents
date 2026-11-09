@@ -15,6 +15,7 @@ from pathlib import Path
 
 REPO = Path(os.environ.get("REPO_DIR", Path(__file__).resolve().parents[1]))
 JOBS = Path(os.environ.get("JOBS_DIR", REPO / "jobs"))
+PROCS: dict = {}  # job -> processus en cours (pour /stop)
 TIMEOUT = int(os.environ.get("JOB_TIMEOUT_S", "7200"))
 
 JOB_TOOLS = [
@@ -125,6 +126,7 @@ async def pretranscribe(job_dir: Path, job: dict) -> None:
            "--model", BIG_MODEL, "--lang", lang, "--prompt", HINT, "--progress", str(plog)]
     with open(job_dir / "transcribe.log", "wb") as log:
         proc = await asyncio.create_subprocess_exec(*cmd, cwd=REPO, stdout=log, stderr=asyncio.subprocess.STDOUT)
+        PROCS[job_dir.name] = proc
         code = await proc.wait()
     with open(plog, "a") as p:
         p.write("Transcription terminée.\n" if code == 0 else f"Transcription soignée en échec (code {code}), l'équipe fera avec un modèle plus petit.\n")
@@ -152,7 +154,10 @@ async def run_job(job_dir: Path) -> int:
     if os.environ.get("CLAUDE_MODEL"):
         cmd += ["--model", os.environ["CLAUDE_MODEL"]]
     with open(job_dir / "claude.log", "wb") as log:
+        if json.loads((job_dir / "job.json").read_text()).get("stopped"):
+            return -9
         proc = await asyncio.create_subprocess_exec(*cmd, cwd=REPO, stdout=log, stderr=asyncio.subprocess.STDOUT)
+        PROCS[job_dir.name] = proc
         try:
             return await asyncio.wait_for(proc.wait(), TIMEOUT)
         except asyncio.TimeoutError:
