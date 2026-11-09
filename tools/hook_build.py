@@ -138,11 +138,14 @@ def main():
                 vf = ";".join(parts)
             # "masks" : [[x, y, w, h, "texte"], ...] en pixels SOURCE : cache une marque (aplat + texte court) avant tout recadrage
             if sh.get("masks"):
-                mk = ",".join(
-                    f"drawbox=x={x}:y={y}:w={w}:h={h}:color=0x1a1a1a@1:t=fill,"
-                    f"drawtext=fontfile={os.path.join(ROOT, 'assets/fonts/Montserrat-ExtraBold.ttf')}:text='{tx}':fontcolor=white:"
-                    f"fontsize={int(h * 0.5)}:x={x}+({w}-text_w)/2:y={y}+({h}-text_h)/2"
-                    for x, y, w, h, tx in sh["masks"])
+                # Entrée à 7 valeurs [x, y, w, h, texte, t_debut_src, t_fin_src] = masque suivi dans le temps (tools/track_mask.py)
+                def _mk(m):
+                    x, y, w, h, tx = m[:5]
+                    en = f":enable='between(t,{m[5] - t0s:.3f},{m[6] - t0s:.3f})'" if len(m) >= 7 else ""
+                    return (f"drawbox=x={x}:y={y}:w={w}:h={h}:color=0x1a1a1a@1:t=fill{en},"
+                            f"drawtext=fontfile={os.path.join(ROOT, 'assets/fonts/Montserrat-ExtraBold.ttf')}:text='{tx}':fontcolor=white:"
+                            f"fontsize={min(int(h * 0.5), 70)}:x={x}+({w}-text_w)/2:y={y}+({h}-text_h)/2{en}")
+                mk = ",".join(_mk(m) for m in sh["masks"])
                 vf = f"[0:v]{mk}[mv];" + vf.replace("[0:v]", "[mv]", 1)
             out = os.path.join(seg_dir, f"s{si:02d}_{ri}.mp4")
             # boost : mot soufflé trop faible ([début_src, fin_src, dB]) -> gain local avant le loudnorm
