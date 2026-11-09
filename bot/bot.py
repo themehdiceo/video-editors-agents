@@ -120,10 +120,12 @@ def derive_job(parent_id: str, **fields) -> Path:
 def parse_picks(text: str) -> list[int]:
     """« intro : 12, 45, 7-9 » -> [12, 45, 7, 8, 9] (dans l'ordre donné)."""
     out = []
+    # Les numéros sont dans la 1re phrase ; la suite (« commence la 221 à… ») est une consigne, pas un choix.
+    text = re.split(r"\n|\.\s+(?=[^\d\s])", text, maxsplit=1)[0]
     for m in re.finditer(r"(?<![\d:.])(\d+)(?:\s*(?:-|à)\s*(\d+))?(?![\d:.]|\s*(?:s\b|sec|min|p\b|%|k\b|dh|\$|€))", text):
         a, b = int(m.group(1)), int(m.group(2) or m.group(1))
         out += list(range(a, b + 1)) if 0 <= b - a <= 30 else [a]
-    return out
+    return list(dict.fromkeys(out))
 
 
 def start_guided(parent_id: str, text: str) -> tuple[Path | None, str]:
