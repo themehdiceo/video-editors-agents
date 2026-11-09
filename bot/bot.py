@@ -743,8 +743,21 @@ async def on_rate(update: Update, ctx) -> None:
         await q.message.reply_text(f"{'⭐' * n} noté. Je garde ce qui a marché pour les prochaines vidéos.")
     done = sum(1 for _ in open(RATINGS))
     if done % 5 == 0:
-        await q.message.reply_text("🧠 5 nouvelles notes : je relis tous tes retours et j'améliore les styles.")
-        await queue.put((q.message.chat_id, new_job("bilan", auto=True)))
+        # En arrière-plan, sans passer par la file : le bilan ne doit jamais retarder un montage (retour du 09/11).
+        d = new_job("bilan", auto=True)
+        asyncio.get_running_loop().create_task(background_bilan(ctx.bot, q.message.chat_id, d))
+
+
+async def background_bilan(bot, chat_id: int, d: Path) -> None:
+    """Bilan des notes en silence, à côté des montages. Un seul message à la fin, s'il a changé quelque chose."""
+    try:
+        code = await run_job(d)
+        summary = (d / "out" / "summary.md")
+        if code == 0 and summary.exists():
+            await bot.send_message(chat_id, "🧠 J'ai relu tes 5 dernières notes et mis à jour ton style :\n"
+                                   + summary.read_text()[:1500])
+    except Exception:  # noqa: BLE001
+        log.exception("bilan")
 
 
 def last_claude_text(log_path: Path) -> str:
