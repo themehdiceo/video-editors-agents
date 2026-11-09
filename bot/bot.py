@@ -201,6 +201,23 @@ async def cmd_clip(update: Update, ctx):
 
 
 @only_me
+async def on_audio(update: Update, ctx):
+    """Un mp3 envoyé = une musique de fond pour les prochains montages (assets/music/, choisie par ambiance)."""
+    m = update.message
+    media = m.audio or m.document
+    name = re.sub(r"[^\w.-]+", "-", (getattr(media, "file_name", None) or "musique.mp3").lower()).strip("-")
+    if (m.caption or "").strip():
+        name = re.sub(r"[^\w-]+", "-", m.caption.strip().lower())[:40].strip("-") + "-" + name
+    dst = REPO / "assets" / "music" / name
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    f = await ctx.bot.get_file(media.file_id)
+    await f.download_to_drive(dst)
+    await m.reply_text(f"🎵 Musique ajoutée à ta bibliothèque ({name}). Je l'utilise quand l'ambiance correspond "
+                       "(mets un mot dans la légende, ex. « suspense », pour l'aider). Dis « avec la musique "
+                       f"{name} » pour l'imposer.")
+
+
+@only_me
 async def on_video(update: Update, ctx):
     m = update.message
     media = m.video or m.document
@@ -1112,6 +1129,7 @@ def main() -> None:
     app.add_handler(CommandHandler(["stop", "stoppe"], cmd_stop))
     app.add_handler(CallbackQueryHandler(on_rate, pattern=r"^rate:"))
     app.add_handler(MessageHandler(filters.VIDEO | filters.Document.VIDEO, on_video))
+    app.add_handler(MessageHandler(filters.AUDIO | filters.Document.AUDIO, on_audio))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 

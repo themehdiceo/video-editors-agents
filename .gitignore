@@ -10,3 +10,6 @@ private/
 .actif
 .mac-vu
 .vps-host
+assets/music/*.mp3
+assets/music/*.m4a
+assets/music/*.wav
