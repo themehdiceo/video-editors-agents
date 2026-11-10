@@ -738,8 +738,21 @@ def git(*args) -> subprocess.CompletedProcess:
     return subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True)
 
 
+def heal_conflicts() -> list:
+    """Fichiers restés en conflit (modif locale d'un agent remise par-dessus une mise à jour) : la version
+    du dépôt gagne, la modif locale reste de côté dans « git stash ». Sans ça, plus aucune mise à jour ne passe
+    et le fichier garde des marques <<<<<<< qui cassent les rendus."""
+    files = [f for f in git("diff", "--name-only", "--diff-filter=U").stdout.split() if f]
+    for f in files:
+        git("checkout", "HEAD", "--", f)
+    if files:
+        git("reset", "-q")
+    return files
+
+
 def pull_updates():
     """Récupère les nouveautés de GitHub. Renvoie (True, liste des changements), (False, erreur) ou None si rien."""
+    heal_conflicts()
     if git("fetch", "-q", "origin", "main").returncode != 0:
         return None
     if git("rev-list", "--count", "HEAD..origin/main").stdout.strip() in ("", "0"):
@@ -752,7 +765,11 @@ def pull_updates():
         r = git("pull", "-q", "--rebase", "--autostash", "-X", "theirs", "origin", "main")
         if r.returncode != 0:
             git("rebase", "--abort")
+            heal_conflicts()
             return False, r.stderr.strip()[-300:]
+    healed = heal_conflicts()
+    if healed:
+        log.warning("Modifs locales mises de côté (git stash) : %s", ", ".join(healed))
     return True, news
 
 
