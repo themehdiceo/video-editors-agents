@@ -83,3 +83,10 @@ Style par défaut : `style/style.json`. C'est la mémoire du goût de Mehdi. Le 
 - Le B-roll vient de vraies sources : fichiers de Mehdi, captures de la vidéo elle-même, `tools/find_media.py` (Openverse, Wikimedia Commons, Pexels si clé), yt-dlp. Jamais d'image générée par IA sauf si Mehdi le demande.
 - Chaque média externe est noté dans `work/credits.json` ; résume les crédits à donner en description dans `out/credits.md`.
 - Montre la chose dont on parle, au mot près. Les jeux de mots visuels sont bienvenus (« fuite » → robinet qui goutte).
+
+## Défauts verrouillés de Mehdi (2026-11-10) — s'appliquent à chaque vidéo sans qu'il le demande
+- Voix nettoyée : `afftdn=nf=-25` puis `loudnorm=I=-14:TP=-1.5:LRA=11`. Voix toujours devant la musique.
+- Sous-titres sur toute la vidéo (interview comprise) : style de `style/interview-v1/style.json` (blanc, mots-clés verts 1FBF6F en italique, phrase qui se construit).
+- Police : UNE seule police verrouillée (champ `subtitles.font`). Ne jamais en changer sauf si Mehdi demande un test.
+- Musique : sous l'intro/hook avec `tools/add_music.py --volume 0.5` (baisse auto sous la voix, ratio 3).
+- Ces défauts priment sur les anciennes règles « 0 sous-titre / pas de musique » de STYLE.md.
