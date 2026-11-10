@@ -127,6 +127,23 @@ def main():
     run(["ffmpeg", "-y", "-v", "error", "-i", raw, "-vf", vf, "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
          "-c:v", "libx264", "-preset", "veryfast", "-crf", "21" if not final else "18", "-pix_fmt", "yuv420p",
          "-c:a", "aac", "-b:a", "192k", "-ar", "48000", outp])
+    # Musique choisie par Mehdi : toujours reposée à chaque rendu (brouillon ET 1080p), sinon elle se perd
+    # quand on refait le montage (bug du 09/11 : musique absente après la correction du masque).
+    ma = plan.get("music_after")
+    if ma and ma.get("file"):
+        mfile = ma["file"] if os.path.isabs(ma["file"]) else (
+            os.path.join(job, ma["file"]) if os.path.exists(os.path.join(job, ma["file"])) else os.path.join(ROOT, ma["file"]))
+        tmp = outp.replace(".mp4", "_music.mp4")
+        cmd = ["python3", os.path.join(ROOT, "tools/add_music.py"), outp, mfile, tmp,
+               "--volume", str(min(0.4, ma.get("volume", 0.3))), "--until", str(ma.get("until", hook_end))]
+        for k in ("start", "delay", "duck_ratio"):
+            if ma.get(k) is not None:
+                cmd += [f"--{k.replace('_', '-')}", str(ma[k])]
+        if ma.get("duck") is False:
+            cmd.append("--no-duck")
+        run(cmd)
+        os.replace(tmp, outp)
+        print(f"musique {os.path.basename(mfile)} posée (volume {min(0.4, ma.get('volume', 0.3))})")
     print(f"hook {hook_end:.1f} s + noir {bs} s -> {outp}")
 
 

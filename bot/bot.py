@@ -647,7 +647,7 @@ async def validate(update: Update, ctx, job_id: str) -> None:
         await update.message.reply_text(f"⚠️ Échec du rendu final :\n{(r.stderr or r.stdout)[-800:]}")
         return
     ma = json.loads(plan.read_text()).get("music_after")  # musique posée après coup (tools/add_music.py)
-    if ma and ma.get("file"):
+    if ma and ma.get("file") and tool == "compose.py":  # hook_build.py pose déjà la musique lui-même
         tmp = final.with_name("final_1080_music.mp4")
         cmd = [sys.executable, str(REPO / "tools" / "add_music.py"), str(final), str(JOBS / job_id / ma["file"]
                if not Path(ma["file"]).is_absolute() and (JOBS / job_id / ma["file"]).exists() else REPO / ma["file"]),

@@ -24,20 +24,25 @@ def main():
     ap.add_argument("video")
     ap.add_argument("music")
     ap.add_argument("out")
-    ap.add_argument("--volume", type=float, default=0.08)
+    ap.add_argument("--volume", type=float, default=0.3)
+    ap.add_argument("--start", type=float, default=0.0, help="décalage dans le morceau (passer une intro molle)")
+    ap.add_argument("--delay", type=float, default=0.0, help="la musique commence à cet instant de la vidéo")
+    ap.add_argument("--duck-ratio", type=float, default=3.0, help="force de la baisse sous la voix (2 léger, 6 fort)")
     ap.add_argument("--until", type=float)
     ap.add_argument("--fade", type=float, default=1.5)
     ap.add_argument("--no-duck", action="store_true")
     a = ap.parse_args()
     end = a.until or duration(a.video)
-    fade_st = max(0.0, end - a.fade)
-    m = (f"[1:a]aloop=loop=-1:size=2e9,atrim=0:{end:.3f},asetpts=PTS-STARTPTS,volume={a.volume},"
-         f"afade=t=in:d=0.5,afade=t=out:st={fade_st:.3f}:d={a.fade}[m]")
+    span = max(0.5, end - a.delay)
+    fade_st = max(0.0, span - a.fade)
+    dl = int(a.delay * 1000)
+    m = (f"[1:a]aloop=loop=-1:size=2e9,atrim={a.start:.3f}:{a.start + span:.3f},asetpts=PTS-STARTPTS,loudnorm=I=-14:TP=-2,volume={a.volume},"
+         f"afade=t=in:d=0.8,afade=t=out:st={fade_st:.3f}:d={a.fade},adelay={dl}|{dl},aresample=48000[m]")
     if a.no_duck:
-        mix = "[0:a][m]amix=inputs=2:duration=first:normalize=0[mx]"
+        mix = "[0:a]aresample=48000[v0];[v0][m]amix=inputs=2:duration=first:normalize=0[mx]"
         graph = m + ";" + mix
     else:
-        graph = (m + ";[0:a]asplit=2[v][sc];[m][sc]sidechaincompress=threshold=0.02:ratio=6:attack=20:release=400[md];"
+        graph = (m + f";[0:a]aresample=48000,asplit=2[v][sc];[m][sc]sidechaincompress=threshold=0.05:ratio={a.duck_ratio}:attack=30:release=500[md];"
                  "[v][md]amix=inputs=2:duration=first:normalize=0[mx]")
     graph += ";[mx]loudnorm=I=-14:TP=-1.5:LRA=11[aout]"
     cmd = ["ffmpeg", "-y", "-v", "error", "-i", a.video, "-i", a.music, "-filter_complex", graph,
