@@ -20,7 +20,7 @@
     ]
   },
   "subtitles": {
-    "font": "Montserrat ExtraBold",
+    "font": "Avenir Next Heavy",
     "size": 50,
     "color": "FFFFFF",
     "highlight": "1FBF6F",
@@ -34,7 +34,7 @@
     "build_word_by_word": true,
     "hold": 0.15,
     "max_gap": 0.6,
-    "font_locked": false
+    "font_locked": true
   },
   "music": {
     "volume": 0.5,
