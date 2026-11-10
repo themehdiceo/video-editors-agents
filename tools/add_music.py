@@ -37,12 +37,12 @@ def main():
     fade_st = max(0.0, span - a.fade)
     dl = int(a.delay * 1000)
     m = (f"[1:a]aloop=loop=-1:size=2e9,atrim={a.start:.3f}:{a.start + span:.3f},asetpts=PTS-STARTPTS,loudnorm=I=-14:TP=-2,volume={a.volume},"
-         f"afade=t=in:d=0.8,afade=t=out:st={fade_st:.3f}:d={a.fade},adelay={dl}|{dl},aresample=48000[m]")
+         f"afade=t=in:d=0.8,afade=t=out:st={fade_st:.3f}:d={a.fade},adelay={dl}|{dl},aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo[m]")
     if a.no_duck:
-        mix = "[0:a]aresample=48000[v0];[v0][m]amix=inputs=2:duration=first:normalize=0[mx]"
+        mix = "[0:a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo[v0];[v0][m]amix=inputs=2:duration=first:normalize=0[mx]"
         graph = m + ";" + mix
     else:
-        graph = (m + f";[0:a]aresample=48000,asplit=2[v][sc];[m][sc]sidechaincompress=threshold=0.05:ratio={a.duck_ratio}:attack=30:release=500[md];"
+        graph = (m + f";[0:a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo,asplit=2[v][sc];[m][sc]sidechaincompress=threshold=0.05:ratio={a.duck_ratio}:attack=30:release=500[md];"
                  "[v][md]amix=inputs=2:duration=first:normalize=0[mx]")
     graph += ";[mx]loudnorm=I=-14:TP=-1.5:LRA=11[aout]"
     cmd = ["ffmpeg", "-y", "-v", "error", "-i", a.video, "-i", a.music, "-filter_complex", graph,
