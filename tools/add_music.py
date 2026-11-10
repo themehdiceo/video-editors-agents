@@ -44,7 +44,7 @@ def main():
     else:
         graph = (m + f";[0:a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo,asplit=2[v][sc];[m][sc]sidechaincompress=threshold=0.05:ratio={a.duck_ratio}:attack=30:release=500[md];"
                  "[v][md]amix=inputs=2:duration=first:normalize=0[mx]")
-    graph += ";[mx]loudnorm=I=-14:TP=-1.5:LRA=11[aout]"
+    graph += ";[mx]loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000[aout]"
     cmd = ["ffmpeg", "-y", "-v", "error", "-i", a.video, "-i", a.music, "-filter_complex", graph,
            "-map", "0:v", "-map", "[aout]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", a.out]
     r = subprocess.run(cmd)
