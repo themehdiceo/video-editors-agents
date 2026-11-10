@@ -320,7 +320,8 @@ async def on_text(update: Update, ctx):
             await enqueue(update, await asyncio.to_thread(start_build, parent, m.text or "ok"), "montage")
             return
         if parent and VALIDATE_RE.match(m.text or ""):
-            await validate(update, ctx, parent)
+            # En tâche de fond : le bot reste à l'écoute (stop, statut…) pendant le rendu 1080p.
+            asyncio.create_task(validate(update, ctx, parent))
             return
         if parent and json.loads((JOBS / parent / "job.json").read_text()).get("type") == "ask":
             prev = json.loads((JOBS / parent / "job.json").read_text())
@@ -539,9 +540,14 @@ async def stop_current(update: Update) -> None:
         proc = PROCS.get(name)
         if proc and proc.returncode is None:
             try:
-                proc.kill()
-            except ProcessLookupError:
-                pass
+                if os.getpgid(proc.pid) == os.getpgid(0):
+                    raise OSError("même groupe que le bot")  # ne jamais tuer le bot lui-même
+                os.killpg(proc.pid, 9)  # rendu 1080p : tout le groupe, ffmpeg compris
+            except (ProcessLookupError, PermissionError, OSError):
+                try:
+                    proc.kill()
+                except ProcessLookupError:
+                    pass
     await update.message.reply_text(f"🛑 Tout est arrêté ({len(current)} en cours, {dropped} en attente). "
                                     "Envoie ta nouvelle demande, je repars de la dernière version que tu as reçue.")
 
@@ -640,11 +646,21 @@ async def validate(update: Update, ctx, job_id: str) -> None:
     await update.message.reply_text("👍 Validé. Rendu final en 1080p (sans Claude, ça ne consomme rien)…")
     # Intro d'interview montée avec hook_build.py (plan de type hook_interview) : même outil pour le 1080p.
     tool = "hook_build.py" if json.loads(plan.read_text()).get("type") == "hook_interview" else "compose.py"
-    r = await asyncio.to_thread(subprocess.run, [sys.executable, str(REPO / "tools" / tool), str(plan),
-                                                 "--final"], capture_output=True, text=True)
+    key = f"1080-{job_id}"
+    proc = await asyncio.create_subprocess_exec(sys.executable, str(REPO / "tools" / tool), str(plan), "--final",
+                                                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
+                                                start_new_session=True)  # groupe à part : /stop tue aussi ffmpeg
+    PROCS[key], current[key] = proc, JOBS / job_id
+    try:
+        out = (await proc.communicate())[0].decode(errors="replace")
+    finally:
+        PROCS.pop(key, None)
+        current.pop(key, None)
+    if proc.returncode in (-9, -15):
+        return  # arrêté par /stop : stop_current a déjà répondu
     final = JOBS / job_id / "out" / "final_1080.mp4"
-    if r.returncode != 0 or not final.exists():
-        await update.message.reply_text(f"⚠️ Échec du rendu final :\n{(r.stderr or r.stdout)[-800:]}")
+    if proc.returncode != 0 or not final.exists():
+        await update.message.reply_text(f"⚠️ Échec du rendu final :\n{out[-800:]}")
         return
     ma = json.loads(plan.read_text()).get("music_after")  # musique posée après coup (tools/add_music.py)
     if ma and ma.get("file") and tool == "compose.py":  # hook_build.py pose déjà la musique lui-même
