@@ -132,3 +132,6 @@ Comment : `python3 tools/music.py "<mood de style.json>" work/music.mp3 --dur <d
 
 ### 2026-11-10 – musique trop faible (« j'entends pas du tout la musique »)
 `add_music.py` normalise maintenant la musique avant de la mixer : volume standard **0,3** (environ 12-15 dB sous la voix, la voix reste claire), baisse légère sous la voix (ratio 3), départ 1 s après le début (`delay: 1`). `hook_build.py` repose la musique de `music_after` à CHAQUE rendu : ne l'enlève jamais en refaisant un montage.
+
+### 2026-11-10 – « garde le format YouTube »
+Un fichier 1920x1080 ne suffit pas : **chaque plan doit remplir tout l'écran 16:9**. Les sources (appel vidéo) sont des tuiles verticales : un plan « une seule personne » rendu en bande verticale avec du flou sur les côtés est perçu comme du vertical → refusé. Pour un plan solo : recadre en 16:9 sur le visage (zoom, yeux au tiers haut), sans bords flous. Si le zoom rend l'image trop floue, utilise le split 50/50. Le dashboard (écran de téléphone) peut garder un fond flou. Ne réponds jamais « c'est déjà en 16:9 » : regarde la planche contact et cherche les bandes verticales.
