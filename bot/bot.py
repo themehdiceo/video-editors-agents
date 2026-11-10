@@ -547,6 +547,17 @@ async def stop_current(update: Update) -> None:
 
 
 @only_me
+async def cmd_renvoie(update: Update, ctx):
+    """Renvoie le dernier rendu (si l'envoi a échoué à cause d'internet)."""
+    jobs = [d for d in sorted(JOBS.glob("2*-*"), reverse=True) if any((d / "out").glob("*.mp4")) or (d / "out" / "summary.md").exists()]
+    if not jobs:
+        await update.message.reply_text("Aucun rendu à renvoyer.")
+        return
+    await update.message.reply_text(f"📤 Je renvoie {jobs[0].name}…")
+    await send_outputs(ctx.application, update.effective_chat.id, jobs[0], 0)
+
+
+@only_me
 async def cmd_stop(update: Update, ctx):
     await stop_current(update)
 
@@ -1012,12 +1023,22 @@ async def process_job(app: Application, chat_id: int, job_dir: Path) -> None:
                 f.write(json.dumps({"kind": kind, "min": round((time.time() - t0) / 60, 1), "ok": ok}) + "\n")
         except Exception:  # noqa: BLE001
             pass
-        try:
-            if not stopped:
-                await send_outputs(app, chat_id, job_dir, task.result())
-        except Exception as e:  # noqa: BLE001
-            log.exception("envoi")
-            await app.bot.send_message(chat_id, f"⚠️ Erreur à l'envoi : {e}")
+        # Coupure internet au moment d'envoyer (NetworkError du 09/11) : on réessaie 5 fois avant d'abandonner.
+        for attempt in range(5):
+            try:
+                if not stopped:
+                    await send_outputs(app, chat_id, job_dir, task.result())
+                break
+            except Exception as e:  # noqa: BLE001
+                log.exception("envoi (essai %s)", attempt + 1)
+                if attempt == 4:
+                    try:
+                        await app.bot.send_message(chat_id, f"⚠️ Impossible d'envoyer {job_dir.name} ({type(e).__name__}). "
+                                                            f"Le rendu est prêt : {job_dir / 'out'}. Envoie /renvoie.")
+                    except Exception:  # noqa: BLE001
+                        pass
+                else:
+                    await asyncio.sleep(30 * (attempt + 1))
         current.pop(job_dir.name, None)
         queue.task_done()
         if queue.empty() and not current:  # job fini : on installe les améliorations en attente
@@ -1207,6 +1228,7 @@ def main() -> None:
     app.add_handler(CommandHandler(["mac", "serveur", "server"], cmd_switch))
     app.add_handler(CommandHandler(["phrases", "guide"], cmd_phrases))
     app.add_handler(CommandHandler(["stop", "stoppe"], cmd_stop))
+    app.add_handler(CommandHandler(["renvoie", "renvoyer", "renvoi"], cmd_renvoie))
     app.add_handler(CallbackQueryHandler(on_rate, pattern=r"^rate:"))
     app.add_handler(CallbackQueryHandler(on_music_pick, pattern=r"^music:"))
     app.add_handler(CommandHandler(["musique", "musiques"], cmd_musique))
