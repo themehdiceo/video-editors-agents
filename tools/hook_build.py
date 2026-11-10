@@ -102,6 +102,14 @@ def main():
             zx, zy, zw, zh = sh["crop"]
             return f"[{inp}]crop={zw}:{zh}:{zx}:{zy},scale={W}:{H},setsar=1,fps={FPS}[{outp}]"
         tl = tiles[lay]
+        if plan.get("fill", False):
+            # plein cadre 16:9 SANS bords flous : zoom sur la tuile (bande 16:9, fy = 0 haut ... 1 bas, par shot ou par tuile)
+            ch = min(tl["h"], int(tl["w"] * H / W))
+            cw = int(ch * W / H)
+            fy = sh.get("fy", tl.get("fy", 0.0))
+            cy = tl["y"] + int((tl["h"] - ch) * fy)
+            cx = tl["x"] + int((tl["w"] - cw) * tl.get("face_x", 0.5))
+            return f"[{inp}]crop={cw}:{ch}:{cx}:{cy},scale={W}:{H},setsar=1,fps={FPS}[{outp}]"
         return (f"[{inp}]crop={tl['w']}:{tl['h']}:{tl['x']}:{tl['y']},split=2[a{u}][b{u}];"
                 f"[b{u}]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},boxblur=24:6,eq=brightness=-0.2[bg{u}];"
                 f"[a{u}]scale=-2:{H}[fg{u}];[bg{u}][fg{u}]overlay=(W-w)/2:0,setsar=1,fps={FPS}[{outp}]")

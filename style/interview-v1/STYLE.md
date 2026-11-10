@@ -194,3 +194,8 @@ Sinon : `python3 tools/music.py "<mood de style.json>" work/music.mp3 --dur <dur
 - **Le téléphone BOUGE** (la marque se déplace de y≈470 à 800 en 4 s) : un masque fixe rate la marque (retour de Mehdi : « ca doit pas apparaitre du tout »). Toujours un masque SUIVI : `python3 tools/track_mask.py source.mov t0 t1 --out work/masks.json` (suit le haut de la carte claire, la marque est juste au-dessus) puis coller la liste dans `masks` (entrées à 7 valeurs avec temps source). Vérifier une planche à 5 images/s sur tout le plan : zéro image où la marque se voit.
 - Le masque se pose avant le recadrage : il couvre la marque dans tous les plans du shot. Toujours le faire sans qu'on le redemande quand une marque/nom d'interviewé client est lisible.
 - hook_build ne pose PAS la musique : relancer `tools/add_music.py` avec `music_after` après chaque rendu.
+
+### 2026-11-10 – plans solo : plein cadre 16:9, jamais de bandes floues (retour 062022)
+- Mehdi veut des plans solo qui REMPLISSENT le 16:9 : pas de tuile verticale sur fond flou. Dans plan.json : `"fill": true` (géré par `tools/hook_build.py`) = zoom sur une bande 16:9 de la tuile (≈1,3x sur la source 3024 px, net en 1080p). Réglage vertical `fy` (0 haut → 1 bas) par tuile ou par shot : 0,3 pour les visages, 0,5 pour le dashboard (chiffres visibles).
+- Le front est un peu rogné (la tuile Meet est presque carrée) : normal. Si un zoom devient trop flou, garder le `split`.
+- Le format reste TOUJOURS 16:9 1920x1080. Ne jamais produire de vertical pour un YouTube.
