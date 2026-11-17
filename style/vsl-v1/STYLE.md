@@ -47,3 +47,10 @@ S'applique à toute VSL / vidéo face caméra de Mehdi (note « VSL », « lead 
 - Slides (v7, script `jobs/vsl-ebook-0156/work/reorder/v7/slides.py`) : écran noir plein cadre #000, la voix continue dessous. Police Plus Jakarta Sans 800 (`assets/fonts/PlusJakartaSans[wght].ttf`). Texte blanc, mots-clés vert #D0FE16, petites pastilles rondes vertes (✓) ou rouges (✗) avec le symbole en noir. Surtitre gris #A3A3A3 en capitales espacées, précédé d'un trait vert. Cartes #0d0d0d, bord #262626, coins arrondis 28 px. « PROFIT PARTNERS CAPITAL » en gris #555, petit, en bas à droite. Chaque élément apparaît sur le mot (glisse de 26 px, 0,32 s, pas de glow). Fondu 0,25 s à l'entrée et à la sortie.
 - Motions + slides : garder les DEUX, jamais en même temps (au moins 0,5 s d'écart). Une slide se place dans un trou entre deux motions et se cale sur un début ou une fin de phrase (temps des mots : le .ass des sous-titres).
 - Rendu : ne ré-encoder que les morceaux modifiés, découpés aux images clés (segment muxer `-segment_frames`). Recoller en h264 annexb (pas le concat demuxer : il décale d'une image). Le reste est copié. Vérifier par PSNR que l'image est identique au rendu d'avant.
+- Photos (v8 validée le 2026-11-17, script `jobs/vsl-ebook-0156/work/reorder/v8/photos.py` + `build_v8.py`) :
+  - Produit dont il parle : ses photos (WEBP) sur noir, carte arrondie, surtitre du produit (ex. « PERIOD PAIN RELIEF »), environ 2 s par photo, pile sur la phrase.
+  - « Ça a changé ma vie » : diaporama lifestyle (business class, voyages, montre…), environ 0,7 s par photo, la vidéo environ 1,2 s, léger zoom. Plein cadre si la photo est horizontale, sinon carte sur noir.
+  - Preuves (Shopify, notif « Money received ») juste après la motion du chiffre, environ 2 s puis 1,5 s, zoom vers le chiffre clé.
+  - Captures d'écran : recadrer pour enlever l'interface (Insta, barres, « Next payout », « live visitors »).
+  - Ne jamais montrer : alcool, cigarettes, nom « Thaïlande », photo vide sans lui.
+  - Toujours au moins 0,5 s d'écart avec les motions.
