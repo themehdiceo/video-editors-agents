@@ -41,6 +41,15 @@ Modèles rejouables : `templates/faq/` (Python + Pillow, rendu qtrle avec alpha 
 - Spécifications par vidéo : `motions_spec.json` / `slides_spec.json` (texte + mot déclencheur, temps SOURCE pour survivre aux re-découpes).
 - Sous-titres : chaque mot reste dans UN passage gardé (sinon il disparaît aux coupes) : `build_sub_words.py` le garantit, vérifier « N mots = N événements ».
 
+### 5 ter. Animations explicatives (validé « à 2000 % » par Mehdi le 2026-11-18, FAQ v8) — préférées aux cartes motion
+- Sur un concept, une métaphore ou un calcul : un VRAI petit film schématique plein écran, calé mot à mot sur sa voix (pas une carte texte). Ex. : `jobs/20261118-062812-edit/work/mountain_render.py` (grimpeur bute sur « 3A9BA = l'identité l9dima », passe, coche « lflous », « l'business », drapeau « FORSA ») et `calc_render.py` (calcul).
+- Python + Pillow, coût 0 €, style des slides (noir, Plus Jakarta Sans 800, vert #D0FE16, gris, rouge #FF6B6B pour ce qu'on enlève). Rendu 2x puis réduit pour les formes. Sous-titres masqués pendant l'écran.
+- Calcul pour débutant : UNE idée par scène, l'une après l'autre (ticket « Prix − frais = rbe7 », puis « objectif ÷ rbe7 = nombre de ventes » avec les colis, puis la comparaison). Jamais deux colonnes chargées d'un coup (« pas clair », Mehdi). Version « pièces qui s'envolent vers camion/mégaphone » testée : Mehdi préfère le ticket (v8b).
+- Jeremy choisit les passages ; ~8 par FAQ de 8 min. Compter TOUS les écrans pleins (anciennes slides comprises) : v9 = 47 %, au-dessus des 35 % visés, à arbitrer avec Mehdi. Jamais deux écrans pleins bout à bout : raccourcir l'ancien pour laisser ≥ 2 s de visage (sous-titres remis sur ce trou).
+- Quand il dit « f akfes l7alat », l'écrire à l'écran : pastille « F AKFES L7ALAT (le pire des cas) » (Mehdi, 2026-11-18). Vérifier que deux « pires cas » de la même vidéo ne se contredisent pas (sinon : Jeremy, puis Mehdi).
+- Modèles validés « parfait » (FAQ v9, 2026-11-18) : `templates/anim/` (mountain_render.py, calc_render.py, anim5_render.py : budget, angles, pire cas en ticket, enchère Facebook, circuit de l'argent Maroc → US → Maroc). Le ticket « Prix − frais = Rbe7 » est le format préféré pour tout calcul.
+- Vraies personnes (voyage, vie de rêve) : B-roll Mixkit (gratuit, sans crédit, `assets.mixkit.co/videos/<id>/<id>-720.mp4`), sous-titres gardés dessus.
+
 ## 6. Musique
 - Lui proposer 5 variations, en extraits de 10 s mixés sous sa voix, sauf s'il donne un morceau.
 - Tonalité sur la note de sa voix, tempo de 90 à 98 BPM, pas de mélodie lead.
