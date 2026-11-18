@@ -1,0 +1,416 @@
+[
+ {
+  "kick": "QUESTION 1",
+  "hint": 0.0,
+  "lines": [
+   [
+    "3lach ba9i ma bditich ?",
+    "Iwa"
+   ]
+  ],
+  "hint_src": 5.4
+ },
+ {
+  "kick": "",
+  "hint": 12.0,
+  "lines": [
+   [
+    "Nefs lkhdma",
+    "lkhdma,"
+   ],
+   [
+    "Nefs routine",
+    "routine,"
+   ],
+   [
+    "Nefs salaire",
+    "salaire."
+   ]
+  ],
+  "hint_src": 20.44
+ },
+ {
+  "kick": "9A3IDA",
+  "hint": 31.0,
+  "lines": [
+   [
+    "Ra7a katji men ba3d",
+    "ra7a"
+   ]
+  ],
+  "hint_src": 56.54
+ },
+ {
+  "kick": "QUESTION 2",
+  "hint": 77.0,
+  "lines": [
+   [
+    "Ila khsert 500 $ ?",
+    "So2al"
+   ]
+  ],
+  "hint_src": 161.72
+ },
+ {
+  "kick": "PROFIT PARTNERS CAPITAL",
+  "hint": 100.0,
+  "lines": [
+   [
+    "1 % : l'recherche dyal les produits",
+    "1 %"
+   ],
+   [
+    "99 % : l'ichhar",
+    "99 %"
+   ]
+  ],
+  "hint_src": 216.46
+ },
+ {
+  "kick": "",
+  "hint": 124.0,
+  "lines": [
+   [
+    "500 $ = l'minimum bach tbda",
+    "500 $"
+   ]
+  ],
+  "hint_src": 270.94
+ },
+ {
+  "kick": "",
+  "hint": 137.0,
+  "lines": [
+   [
+    "Lkra",
+    "lkra,"
+   ],
+   [
+    "L9raya dyal wladek",
+    "l9raya"
+   ],
+   [
+    "Khellihom 3endek",
+    "3endek."
+   ]
+  ],
+  "hint_src": 305.98
+ },
+ {
+  "kick": "",
+  "hint": 157.0,
+  "lines": [
+   [
+    "Bda b un budget li t9der tnsah",
+    "Donc"
+   ]
+  ],
+  "hint_src": 360.02
+ },
+ {
+  "kick": "QUESTION 3",
+  "hint": 167.0,
+  "lines": [
+   [
+    "Chno ghangoul l l3a2ila ?",
+    "So2al"
+   ]
+  ],
+  "hint_src": 377.6
+ },
+ {
+  "kick": "",
+  "hint": 198.5,
+  "lines": [
+   [
+    "Khdem f skat",
+    "khdem"
+   ]
+  ],
+  "hint_src": 468.98
+ },
+ {
+  "kick": "QUESTION 4",
+  "hint": 213.5,
+  "lines": [
+   [
+    "Produits ghalyin : wach ghaytba3o ?",
+    "Wa7d"
+   ]
+  ],
+  "hint_src": 494.76
+ },
+ {
+  "kick": "PRODUIT RKHIS",
+  "hint": 228.0,
+  "lines": [
+   [
+    "Produit : 20 $",
+    "20 $."
+   ],
+   [
+    "Rbe7 : 5 $",
+    "5 $"
+   ],
+   [
+    "200 mabi3a",
+    "Bach"
+   ]
+  ],
+  "hint_src": 527.04
+ },
+ {
+  "kick": "PRODUIT GHALI",
+  "hint": 242.0,
+  "lines": [
+   [
+    "Produit : 390 $",
+    "390 $."
+   ],
+   [
+    "Rbe7 : 100 $",
+    "100 $"
+   ],
+   [
+    "10 mabi3at",
+    "Donc"
+   ]
+  ],
+  "hint_src": 568.38
+ },
+ {
+  "kick": "",
+  "hint": 254.0,
+  "lines": [
+   [
+    "200 mabi3a vs 10 mabi3at",
+    "w",
+    612.12,
+    "src"
+   ],
+   [
+    "Nefs rrbe7",
+    "w",
+    612.12,
+    "src"
+   ]
+  ],
+  "hint_src": 599.48
+ },
+ {
+  "kick": "",
+  "hint": 267.0,
+  "lines": [
+   [
+    "C'est deux cents problèmes à gérer",
+    "c'est",
+    632.32,
+    "src"
+   ]
+  ],
+  "hint_src": 629.42
+ },
+ {
+  "kick": "QUESTION 5",
+  "hint": 288.0,
+  "lines": [
+   [
+    "Le programme dyal les trente jours",
+    "Alors"
+   ]
+  ],
+  "hint_src": 666.86
+ },
+ {
+  "kick": "",
+  "hint": 304.8,
+  "lines": [
+   [
+    "« L'produit ma khdamch »",
+    "W"
+   ],
+   [
+    "= akbar kedba f l'e-commerce",
+    "akbar"
+   ]
+  ],
+  "hint_src": 739.1
+ },
+ {
+  "kick": "NEFS L'PRODUIT",
+  "hint": 327.0,
+  "lines": [
+   [
+    "L3yalat",
+    "l3yalat,"
+   ],
+   [
+    "Rjal",
+    "rjal,"
+   ],
+   [
+    "Nas kbar f l3mer",
+    "kbar"
+   ]
+  ],
+  "hint_src": 778.32
+ },
+ {
+  "kick": "SIMANA 2",
+  "hint": 356.0,
+  "lines": [
+   [
+    "Ma khdamch : kan9et3ouh",
+    "kan9et3ouh,"
+   ],
+   [
+    "Khdam : kanzido l'budget",
+    "kanzido"
+   ]
+  ],
+  "hint_src": 857.2
+ },
+ {
+  "kick": "",
+  "hint": 378.0,
+  "lines": [
+   [
+    "Ma bi3tich f lowel ?",
+    "ila"
+   ],
+   [
+    "Rak katchri de la data",
+    "data,"
+   ]
+  ],
+  "hint_src": 888.8
+ },
+ {
+  "kick": "QUESTION 6",
+  "hint": 397.5,
+  "lines": [
+   [
+    "Akfes l7alat, b l'ar9am",
+    "Wach"
+   ]
+  ],
+  "hint_src": 916.7
+ },
+ {
+  "kick": "AKFES L7ALAT",
+  "hint": 407.0,
+  "lines": [
+   [
+    "Produit : 390 $",
+    "390 $,"
+   ],
+   [
+    "Fournisseur : − 250 $",
+    "250 $,"
+   ],
+   [
+    "Rbe7 : 140 $",
+    "140 $"
+   ]
+  ],
+  "hint_src": 936.32
+ },
+ {
+  "kick": "",
+  "hint": 425.5,
+  "lines": [
+   [
+    "Coût d'acquisition : 120 $",
+    "120 $"
+   ],
+   [
+    "140 $ − 120 $ = 20 $ rbe7",
+    "20 $"
+   ]
+  ],
+  "hint_src": 968.94
+ },
+ {
+  "kick": "",
+  "hint": 449.0,
+  "lines": [
+   [
+    "Produit : 60 $",
+    "60 $,"
+   ],
+   [
+    "Rbe7 : 5 $",
+    "5 $"
+   ],
+   [
+    "Ma y9derch ysref 120 $",
+    "Ma",
+    1026.54,
+    "src"
+   ]
+  ],
+  "hint_src": 1006.02
+ },
+ {
+  "kick": "QUESTION 7",
+  "hint": 479.0,
+  "lines": [
+   [
+    "Kifach ddkhel lflous w nta f l'Maghrib ?",
+    "Ba9i"
+   ]
+  ],
+  "hint_src": 1055.24
+ },
+ {
+  "kick": "",
+  "hint": 497.5,
+  "lines": [
+   [
+    "Des cartes virtuelles",
+    "cartes"
+   ],
+   [
+    "Cashback 2 % jusqu'à 5 %",
+    "cashback."
+   ]
+  ],
+  "hint_src": 1093.32
+ },
+ {
+  "kick": "",
+  "hint": 509.5,
+  "lines": [
+   [
+    "Mabi3at",
+    "Flous"
+   ],
+   [
+    "Compte f Mirikan",
+    "Mirikan,"
+   ],
+   [
+    "Compte bancaire f l'Maghrib",
+    "l'Maghrib."
+   ]
+  ],
+  "hint_src": 1113.34
+ },
+ {
+  "kick": "",
+  "hint": 525.0,
+  "lines": [
+   [
+    "Plus de six ans",
+    "plus",
+    1144.74,
+    "src"
+   ],
+   [
+    "Jamais eu de problème",
+    "jamais"
+   ]
+  ],
+  "hint_src": 1138.74
+ }
+]

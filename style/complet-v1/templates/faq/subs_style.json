@@ -1,0 +1,3 @@
+{"subtitles": {"font": "Avenir Next Heavy", "size": 53, "color": "FFFFFF", "highlight": "1FBF6F", "outline": 3,
+ "y": 0.8796, "max_words": 6, "uppercase": false, "scope": "all", "keyword_scale": 1.3, "keyword_italic": true,
+ "build_word_by_word": true, "hold": 0.15, "max_gap": 0.6, "font_locked": true}}
