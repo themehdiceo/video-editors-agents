@@ -317,7 +317,7 @@ def t_a2():
 # ---------- a3 : akfes l7alat ----------
 def a3(t, T):
     img = Image.new("RGB", (W, H)); d = ImageDraw.Draw(img)
-    header(d, "AKFES L7ALAT", "AKFES L7ALAT : PRODUIT B 390 $")
+    header(d, "LE CPA", "CHHAL KAYTQAM 3LIK CLIENT ?")
     ticket(d, t, [(T["p390"], "Prix", "390 $", WHITE), (T["four"], "− Fournisseur", "250 $", RED),
                   (T["m140"], "= Marge", "140 $", WHITE), (T["pub"], "− L'ichhar (1 client)", "120 $", RED),
                   (T["r20"], "= Rbe7", "20 $", GREEN)], y0=170)
@@ -338,7 +338,7 @@ def a3(t, T):
     # calcul final
     text(d, (1390, 680), "140 $ − 120 $", 70, WHITE, up(t, T["calc"]))
     text(d, (1390, 790), "= 20 $ d rbe7", 70, GREEN, up(t, T["r20"]))
-    pill(d, 1390, 900, "F AKFES L7ALAT", GREY, BLACK, 32, up(t, T["akfes"]))
+    pill(d, 1390, 900, "F AKFES L7ALAT  (le pire des cas)", GREEN, BLACK, 32, up(t, T["akfes"]))
     return img
 
 
