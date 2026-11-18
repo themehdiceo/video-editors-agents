@@ -52,6 +52,8 @@ Personne ne peut valider une commande pendant un job. Pour que rien ne soit bloq
 - **Commande refusée** (« The user doesn't want to proceed… ») : ce n'est PAS Mehdi, c'est la liste des commandes autorisées. Ne t'arrête jamais pour ça : reformule et continue.
 - Commandes shell autorisées : `ffmpeg`, `ffprobe`, `yt-dlp`, `python3 tools/…`, `ls`, `head`, `tail`, `cp`, `wc`, `mkdir -p jobs/…`, `git` (skills). Si une commande est refusée, reformule-la ainsi. Ne demande jamais d'autorisation : personne ne répondra.
 - Le bot transcrit la vidéo AVANT de te lancer (ElevenLabs Scribe si la clé existe, sinon Whisper large-v3-turbo) : `work/words.json` existe déjà. Avec Scribe, chaque mot a un champ `speaker` (qui parle) : sers-t'en pour l'alternance A/B. Utilise-le, ne retranscris pas. S'il manque, lance `python3 tools/transcribe.py … --model large-v3-turbo --lang ar` au premier plan avec un timeout de 600000 ms.
+- **Transcription sur le Mac (règle Mehdi 2026-11-18, ne jamais l'oublier)** : TOUJOURS ElevenLabs Scribe, jamais Whisper (mauvais en darija). Clé dans `~/.video-editors-agents.env`. Commande : `set -a; . ~/.video-editors-agents.env; set +a; .venv/bin/python tools/transcribe.py <audio.opus> <out.json> --engine scribe` (audio extrait en opus mono 48k, piste 0:a:0 de l'original).
+- **Mise à jour 2026-11-18 (choix de Mehdi)** : ElevenLabs trop cher / clé refusée → **Gemini** (`GEMINI_API_KEY` dans ~/.claude/secrets.env, gemini-3.8-flash) pour transcrire et pour réécouter chaque montage avant livraison (`style/complet-v1/templates/faq/gemini_check.py`). Minutages Gemini approximatifs : couper sur la forme d'onde.
 - **Darija** : la transcription peut être en lettres arabes, avec des mots français. C'est normal. Lis-la, comprends-la, et réécris toi-même les sous-titres en darija latine (« kifach », « 3ndek ») en gardant les horodatages des mots. Les phrases citées dans la note t'aident à retrouver les bons passages.
 - **« intro seulement »** dans la note : ne monte et ne rends que l'intro (hook). Livraison rapide, Mehdi valide avant la suite.
 - **Ne bloque jamais sans livrable.** Si la transcription est douteuse, livre quand même le meilleur brouillon possible (passages choisis à l'image et au son, sous-titres, preuve à l'écran) et liste les doutes dans le résumé. Mehdi corrigera en répondant au rendu.
@@ -78,6 +80,11 @@ Style par défaut : `style/style.json`. C'est la mémoire du goût de Mehdi. Le 
 - Si la note dit « style <nom> », lis `style/<nom>/STYLE.md` et applique `style/<nom>/style.json` par-dessus `style/style.json`. Respecte ses garde-fous chiffrés.
 - Si la note ne nomme aucun style : une seule personne face caméra → `solo-v1` ; deux personnes, interview ou témoignage → `interview-v1` (si le dossier contient un STYLE.md). Dis dans le résumé quel style tu as pris.
 - Les retours de Mehdi sur une vidéo montée avec un style modifient ce style (`style/<nom>/STYLE.md`), pas les règles générales.
+- Reel histoire animée Pixar (9:16, darija ; note « Pixar », « histoire animée », « comme Anas ») → `style/pixar-story-v1/STYLE.md` + `style/pixar-story-v1/feedback-video.md`, outils `tools/pixar/`. Validé à 100 % par Mehdi le 2026-11-16 (pub Anas v7). Ses règles de voix priment sur les défauts verrouillés : voix TTS jamais débruitée, étirée ni rognée, seule sa position bouge.
+
+- **« montage complet v1 »** (ou « montage complet ») dans la note → `style/complet-v1/STYLE.md` (validé à 100 % le 2026-11-18) : coupes, sous-titres darija, zooms ×1,08, cartes motion à côté de la tête + écrans noirs animés HyperFrames, musique calée sur sa voix (12-14 dB dessous), flou des données privées, 1080p Bunny. Applique tout sans demander.
+
+- VSL / face caméra de Mehdi avec motion (note « VSL », « lead magnet », « motion ») → `style/vsl-v1/STYLE.md` (validé à 2000 % le 2026-11-16). Ses règles voix (MP3 CapCut de Mehdi, non retouché) et zooms ×1,08 priment sur les défauts verrouillés.
 
 ## Vraies images, pas d'images générées
 - Le B-roll vient de vraies sources : fichiers de Mehdi, captures de la vidéo elle-même, `tools/find_media.py` (Openverse, Wikimedia Commons, Pexels si clé), yt-dlp. Jamais d'image générée par IA sauf si Mehdi le demande.
@@ -90,3 +97,7 @@ Style par défaut : `style/style.json`. C'est la mémoire du goût de Mehdi. Le 
 - Police VERROUILLÉE : **Avenir Next Heavy** (choisie par Mehdi le 2026-11-10). Ne jamais en changer sauf s'il demande un test. Police système Mac (Avenir Next.ttc) : absente sur Linux/VPS, donc le rendu avec sous-titres se fait sur le Mac.
 - Musique : sous l'intro/hook avec `tools/add_music.py --volume 0.5` (baisse auto sous la voix, ratio 3).
 - Ces défauts priment sur les anciennes règles « 0 sous-titre / pas de musique » de STYLE.md.
+
+## Après validation de l'aperçu final (règle de Mehdi, 2026-11-17)
+- Dès que Mehdi a validé l'aperçu final (celui qu'il publie), mets à la Corbeille tous les aperçus et brouillons de cette vidéo (480p « a valider », v2…vN). Par défaut, sans lui demander. Corbeille seulement, jamais de suppression définitive.
+- Garde toujours la finale validée et TOUS les originaux (rushs bruts, audio CapCut, photos, sources des témoignages) : ils servent à refaire d'autres montages. Rangement : ~/Desktop/Profit Partners Capital/09 Sources vidéo brutes.
