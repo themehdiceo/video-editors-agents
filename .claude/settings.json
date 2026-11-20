@@ -34,7 +34,35 @@
       "Read(/etc/video-editors-agents/**)",
       "Read(**/.env)",
       "Bash(sudo:*)",
-      "Bash(rm -rf /:*)"
+      "Bash(rm -rf /:*)",
+      "mcp__claude_ai_Vercel",
+      "mcp__claude_ai_Resend",
+      "mcp__claude_ai_Whop",
+      "mcp__claude_ai_Railway",
+      "mcp__claude_ai_Shopify",
+      "mcp__claude_ai_Gmail",
+      "mcp__claude_ai_Google_Sheets",
+      "mcp__claude_ai_Wistia",
+      "mcp__cmc-mcp",
+      "mcp__f70fb61e-1a93-4511-a9ee-89d0f22cfc85",
+      "mcp__4a790bca-8473-4600-8c58-93ab1c32fcc7",
+      "mcp__c7681b36-5853-40e1-b4c7-c551c116657a",
+      "mcp__631a8c71-f149-4390-b57b-b0cc4b44e31e",
+      "mcp__663716aa-9d2e-4c0e-ab5d-9a5da45ba365",
+      "mcp__e31648b4-6293-45f2-957d-a819c0dfaad9",
+      "mcp__4883beac-5a96-445b-9c0d-01766b4e058e"
+    ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/tools/chat_long.py\""
+          }
+        ]
+      }
     ]
   }
 }

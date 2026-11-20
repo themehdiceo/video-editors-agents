@@ -44,6 +44,10 @@ Types de job :
 - Pas de clé API dans le code ni dans les logs. Les secrets sont dans les variables d'environnement.
 - Si un outil échoue (téléchargement bloqué, API indisponible), utilise une alternative et note-le dans le résumé. Ne t'arrête pas.
 
+## 1 vidéo = 1 chat (forfait, règle Mehdi 2026-11-20)
+- Chaque message relit tout le chat. Un chat neuf par vidéo ou par sujet. Passé 150 tours, le hook `tools/chat_long.py` le rappelle : écris `work/reprise.md` (consignes, minutages, plan.json, style, reste à faire), puis propose un chat neuf à Mehdi.
+- Connecteurs inutiles au montage bloqués dans `.claude/settings.json` (deny). Pour en rebrancher un, retire sa ligne.
+
 ## Exécution sans surveillance (important)
 
 Personne ne peut valider une commande pendant un job. Pour que rien ne soit bloqué :
