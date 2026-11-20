@@ -16,6 +16,13 @@ Modèles rejouables : `jobs/img0151/work/build.py` (face caméra), `jobs/img0151
 - Transcription : Scribe fusionne les reprises (« w 99%… w 99% » écrit une fois). Donc après chaque découpe, faire RÉÉCOUTER le montage par Gemini (`templates/faq/gemini_check.py`, accord de Mehdi le 2026-11-18) : reprises, souffles, mots rognés. Gemini dit QUOI couper, jamais OÙ (ses minutages sont faux à ±0,5 s) : poser chaque borne dans le silence voisin, puis revérifier sur un extrait court. Livrer seulement quand Gemini ne trouve plus rien de réel.
 - Rushs HDR : convertir UNE fois la source en SDR (`source_sdr.mp4`, h264_videotoolbox 30M, ~10 min pour 19 min), puis toutes les découpes partent de cette copie (6 min au lieu de 30).
 
+## Médias perso de Mehdi (B-roll vie, voyage, preuves) — règle du 18/11
+- Tu PEUX voir ses photos et vidéos : ouvre-les et regarde-les (planche contact avec Pillow + ImageOps.exif_transpose, ou sips pour les HEIC, puis Read de l'image). Ne dis JAMAIS « je ne trouve pas » avant d'avoir regardé TOUS ses dossiers.
+- Où : ~/Desktop/Mes photos/ (Business class, Lifestyle (Rolex = IMG_0020.jpg), Villas et piscines, Voyages, Captures preuves). Interview Anas brute (Meet, 20 min) : disque Sandisk « Profit Partners Capital Data/03 Témoignages/Originaux/Interview Anas brut/ ».
+- Vie de rêve / voyage : SES médias en priorité, jamais du stock (Mixkit) ni un avion sans contexte. Défilé rapide de plusieurs photos (~1 s chacune), chaque lieu montré UNE fois (business class une seule fois).
+- Défilé photos (Mehdi 19/11) : FOND NOIR, chaque photo dans son format, en petit (h 760 max, pas d'agrandissement), glissement façon film + clic d'appareil photo à chaque photo, ~1,5-2 s chacune (le temps de voir la Rolex). Vidéo business class accélérée (×2,5) pour montrer toute la suite. Modèle : jobs/case23m/work/slideshow.py.
+- Appel avec Anas : montrer le moment exact demandé (ex. « t9der t9erreb l caméra » à 620 s, il approche son téléphone avec ses chiffres), même durée que la phrase, code Meet recadré.
+
 ## 3. Sous-titres
 - Darija en lettres latines, orthographe de son script, texte réécrit à la main par bloc et calé sur les mots Scribe.
 - Avenir Next Heavy, blanc, mots-clés verts 1FBF6F en italique, la phrase se construit (style interview-v1).
@@ -56,6 +63,7 @@ Modèles rejouables : `templates/faq/` (Python + Pillow, rendu qtrle avec alpha 
 - Couper l'intro presque muette du morceau.
 - Musique plus courte que la vidéo : la boucler SANS sa fin qui baisse. Couper juste avant la baisse de fin (Solitude M83, version from16 : à 182 s), puis enchaîner en fondu de 2 s sur le début déjà sans intro muette. Vérifier l'enveloppe : aucun creux aux raccords, la musique tourne jusqu'à la dernière seconde (Mehdi, 2026-11-18, FAQ).
 - Niveau : mesurer la voix en LUFS, mettre la musique 12 à 14 dB dessous, ducking léger (`jobs/img0151/work/mix_lu.py --start 12 --end 14`). Voix jamais retouchée.
+- Voix faible (micro fixe du Mac, ~-21 LUFS) : `--start 12 --end 14` donne en réalité ~20 dB d'écart (ducking compris) et Mehdi la trouve TROP FORTE (case study 2,3M, 2026-11-19). Utiliser `--start 20 --end 20` (≈ 26 dB d'écart moyen mesuré, musique −6 dB). Vérifier l'écart réel : mix − voix, par fenêtres de 20 s.
 
 ## 7. Données privées
 - Partage d'écran : flouter le nom de la boutique, l'URL, les badges de commandes, les chiffres de conversion, la ligne des commandes et des litiges, et les apps privées. Le flou suit les zooms (`jobs/img0151b/work/shop_blur.py`).
@@ -71,3 +79,9 @@ Modèles rejouables : `templates/faq/` (Python + Pillow, rendu qtrle avec alpha 
 ## 8. Livraison
 - Aperçu 480p « A VALIDER » dans Téléchargements, puis finale **1080p** (pas de 4K) sur Bunny Stream.
 - Ensuite : aperçus à la Corbeille, finale et originaux dans « 09 Sources vidéo brutes ».
+
+## Pubs courtes et animations (Mehdi, 2026-11-20)
+- « Animations » = petits films de PERSONNAGES qui bougent (style montagne / grimpeur validé), pas des slides de texte. Modèles 9:16 : jobs/anti-guru-ads/work/anim9.py (gourou qui vend la formation puis laisse le gars seul, deal qui monte ensemble + win-win, balance lflous/lwe9t, panneaux contradictoires, train « lfourssa » qui part).
+- Pub de 30-45 s : 2 à 3 écrans pleins de ~3-4 s chacun, pas plus (jamais un écran de 6 s). Entre eux : cartes motion SUR sa tête (le visage reste, des éléments apparaissent). Un élément visuel toutes les 10-15 s.
+- Quand il parle de son argent ou de sa vie (« 10 d lmlyon », « 20 3am », « millionnaire ») : défilé de SES photos (Rolex, business class, piscine, coucher de soleil), ~1-1,3 s par photo, clic photo (photos9.py). Ne jamais laisser ce moment avec juste sa tête.
+- Rush avec musique déjà dedans : ne rien ajouter sous la voix ; rap joyeux en outro sous l écran de fin seulement. Toujours laisser finir « ntla9aw f jiha lokhra ».
