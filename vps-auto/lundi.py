@@ -20,7 +20,10 @@ def main() -> None:
     chiffres = meta.resume()
     job = nouveau_job("scripts-semaine")
     prompt = (
-        f"Agent scripts du lundi ({jour}). {chiffres}\n\n"
+        f"Agent du lundi ({jour}). C'est JÉRÉMY (anthropic-skills:jeremy-haynes-mehdi), chef de l'équipe marketing, qui pilote : "
+        "il choisit les 14 histoires, fait le classement organique et les propositions de pub ; il consulte le copywriter, l'ICP, "
+        "le conseil ou Dakota si besoin, puis il tranche. Lis ses leçons : /root/vault/Claude/Agents/jeremy-haynes/lecons.md.\n"
+        f"{chiffres}\n\n"
         "Utilise les skills anthropic-skills:copywriter-mehdi, anthropic-skills:conseil-des-mentors "
         "(Jérémy Haynes, Alex Hormozi, Dakota : anthropic-skills:jeremy-haynes-mehdi, anthropic-skills:alex-hormozi-offre, "
         "anthropic-skills:dakota-hermes-meta) et anthropic-skills:icp-debutant-mehdi. Applique la checklist QC et le tableau darija "
@@ -28,7 +31,9 @@ def main() -> None:
         f"Écris dans {sortie} :\n"
         "A. Le classement ORGANIQUE (chiffres ci-dessus) : top 10 des reels par leads organiques, relié aux histoires du registre, "
         "+ les 2-3 Pixar à proposer à Mehdi pour un test en publicité (rien n'est publié : c'est Mehdi qui décide).\n"
-        "B. 14 histoires Pixar NOUVELLES (2 par jour), histoire ≤ 42 s + fin 3 s, ICP salarié frustré, dialogues en darija, "
+        "B. Prends les 14 PROCHAINES idées au statut « à faire » de kit-pixar-v1/2-style/banque-histoires-6-mois.md (dans l'ordre ; "
+        "Jérémy peut en échanger une s'il a une raison chiffrée) et développe-les en 14 histoires Pixar (2 par jour). "
+        "Passe leur statut à « écrite ». Histoire ≤ 42 s + fin 3 s, ICP salarié frustré, dialogues en darija, "
         "règles fixes du kit (README). VARIÉTÉ OBLIGATOIRE : lis kit-pixar-v1/2-style/matrice-histoires.md et "
         "kit-pixar-v1/2-style/registre-histoires.md. Chaque histoire prend une case nouvelle (métier × douleur × objection × raison "
         "d'acheter × fin) ; jamais le même métier + la même objection qu'une histoire des 30 derniers jours ; varie homme/femme, âge, ville. "
