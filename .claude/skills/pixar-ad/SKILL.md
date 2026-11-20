@@ -10,6 +10,8 @@ description: Créer ou monter une pub Pixar (Profit Partners) - script, scènes 
 3. `private/pixar/lecons.md` : toutes les validations et tous les refus de Mehdi. Ne refais jamais une erreur qui y figure.
 4. Les jobs Pixar précédents : `ls jobs`, puis lis `job.json` et `out/summary.md` de ceux dont la note parle de Pixar. Reprends ce qui a été validé.
 Mehdi ne répète pas ses consignes : tout ce qui est dans ces fichiers reste valable.
+5. Sons obligatoires : `ls private/pixar/pack/banque-pixar/sons/`. Si `music.mp3` ou `shopify-1.mp3` manque, ARRÊTE-TOI : écris dans `out/summary.md` « Son manquant : <nom>. Envoie-le dans private/pixar/pack/banque-pixar/sons/ » et livre seulement ce qui est fait. Ne remplace jamais par un autre son sans OK de Mehdi.
+6. Voix TTS : aucun traitement (pas d'égaliseur, compresseur, afftdn, loudnorm, étirement, pitch).
 
 ## 2. Script
 - `copywriter-video-editor` écrit hook, scènes et CTA avec le contexte ci-dessus. 30-45 s, 45 s max écran compris.
@@ -27,7 +29,7 @@ Mehdi ne répète pas ses consignes : tout ce qui est dans ces fichiers reste va
 - `dur` de chaque plan <= durée réelle du clip (ffprobe). Coupe franche ou fondu 0,25 s, jamais de flash.
 
 ## 5. Contrôle qualité
-- `python3 tools/flicker_check.py jobs/<id>/out/final.mp4` : doit afficher 0 clignotement. Sinon, corrige le plan concerné et relance.
+- `python3 tools/flicker_check.py jobs/<id>/out/final.mp4` : doit afficher « verdict : OK » (0 clignotement, images dupliquées <= 8 %, fps constant). Sinon, corrige le plan concerné et relance.
 - Puis la planche contact (`tools/frames.py`), comme d'habitude.
 
 ## 6. Après un retour de Mehdi

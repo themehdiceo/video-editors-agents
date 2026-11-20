@@ -22,7 +22,7 @@
     "transitions": "coupe franche ou fondu 0,25 s (xfade fade). Jamais de flash.",
     "duree_plan": "dur d'un plan <= durée réelle du clip (ffprobe), sinon l'image du dessous apparaît une frame",
     "texte_sous_titres": "pas d'apparition/disparition en moins de 0,3 s",
-    "qa": "python3 tools/flicker_check.py out/final.mp4 doit sortir 0 clignotement AVANT d'envoyer à Mehdi"
+    "qa": "python3 tools/flicker_check.py out/final.mp4 doit sortir « verdict : OK » AVANT d'envoyer à Mehdi"
   },
   "encodage": {"codec": "libx264", "crf": 18, "preset": "slow", "pix_fmt": "yuv420p", "profil": "high", "audio": "aac 192k 48 kHz", "movflags": "+faststart"},
   "voix": {"moteur": "Gemini TTS (private/pixar/pack/banque-pixar/voix/RECETTE.md)",
