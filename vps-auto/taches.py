@@ -43,7 +43,7 @@ def main() -> None:
             "- Copie, titre, offre, pub : fais travailler le copywriter (et Jérémy/conseil si choix entre options).\n"
             f"- Termine par {job}/out/resultat.md : 3 à 8 lignes en français simple, style direct, avec les chemins des livrables."
         )
-        code = lancer_claude(job, prompt, BUDGET)
+        code = lancer_claude(job, prompt, BUDGET, quoi=f"tâche VPS « {src.stem} »", minutes=30)
         res = job / "out" / "resultat.md"
         texte = res.read_text().strip() if res.exists() else f"⚠️ Pas de résultat (code {code}). Journal : {job}/claude.log"
         with open(tache, "a") as f:

@@ -22,7 +22,7 @@ prompt = (
     "Pas de génération Higgsfield."
 )
 with Verrou(attente_s=600):
-    lancer_claude(job, prompt, budget=0)
+    lancer_claude(job, prompt, budget=0, quoi="histoire Pixar de test", minutes=10)
 if not cible.exists():
     journal(f"test : histoire pas écrite ({job}/claude.log)")
     sys.exit(1)

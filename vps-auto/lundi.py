@@ -32,7 +32,7 @@ def main() -> None:
         "Pas de génération Higgsfield (0 crédit). Français simple, style Hormozi."
     )
     with Verrou(attente_s=2 * 3600):
-        lancer_claude(job, prompt, budget=0)
+        lancer_claude(job, prompt, budget=0, quoi="scripts de la semaine (3 à filmer + 14 Pixar)", minutes=25)
     if sortie.exists():
         lien = "obsidian://open?vault=" + urllib.parse.quote("Obsidian Vault") + "&file=" + urllib.parse.quote(rel[:-3])
         tg_texte(f"📝 Scripts de la semaine prêts : 3 à filmer + 14 Pixar.\n{lien}\n\n{chiffres[:500]}")

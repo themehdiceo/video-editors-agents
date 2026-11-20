@@ -624,11 +624,19 @@ def last_claude_text(log_path: Path) -> str:
     return ""
 
 
+DUREES = {"edit": ("montage complet v1", 45), "build": ("montage du plan validé", 30), "plan": ("plan de montage", 15),
+          "clip": ("clips depuis la vidéo longue", 30), "script": ("script", 10), "feedback": ("corrections", 20),
+          "ask": ("réponse de l'équipe", 3), "style": ("apprentissage du style", 20), "bilan": ("bilan", 10)}
+
+
 async def worker(app: Application) -> None:
     while True:
         chat_id, job_dir = await queue.get()
         current[job_dir.name] = job_dir
-        await app.bot.send_message(chat_id, f"🎬 Je commence {job_dir.name}")
+        # Règle Mehdi 20/11 : quoi + durée + coût AVANT de commencer (le montage ne génère rien sur Higgsfield).
+        kind = json.loads((job_dir / "job.json").read_text()).get("phase") or json.loads((job_dir / "job.json").read_text()).get("type")
+        quoi, minutes = DUREES.get(kind, ("job " + str(kind), 30))
+        await app.bot.send_message(chat_id, f"🎬 Je commence : {quoi} ({job_dir.name}) · durée estimée ≈ {minutes} min · coût estimé 0 crédit (0 $)")
         task = asyncio.create_task(run_job(job_dir))
         seen, quiet, last_note = 0, 0, ""
         while not task.done():

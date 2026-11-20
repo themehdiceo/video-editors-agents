@@ -77,7 +77,7 @@ def lire(p: Path, defaut="") -> str:
 
 def faire_planche(h: Path, test=False, extra="") -> bool:
     job = nouveau_job("planche-" + h.stem)
-    lancer_claude(job, prompt_planche(h, job, extra), 0 if extra else 25)
+    lancer_claude(job, prompt_planche(h, job, extra), 0 if extra else 25, quoi=f"planche Pixar « {h.stem} »", minutes=15)
     planche = job / "out/planche.jpg"
     if not planche.exists():
         journal(f"planche ratée pour {h.name} ({job.name})")
@@ -95,7 +95,8 @@ def faire_planche(h: Path, test=False, extra="") -> bool:
 def faire_video(h: Path, budget=BUDGET, extra="") -> bool:
     fm = frontmatter(h)
     job = nouveau_job("video-" + h.stem)
-    lancer_claude(job, prompt_video(h, job, f"{fm.get('planche')} (job {fm.get('job_planche')})", budget, extra), budget)
+    lancer_claude(job, prompt_video(h, job, f"{fm.get('planche')} (job {fm.get('job_planche')})", budget, extra), budget,
+                  quoi=f"vidéo Pixar « {h.stem} »", minutes=40)
     video = job / "out/final.mp4"
     if not video.exists() or not qc_ok(video):
         journal(f"vidéo ratée ou qc KO pour {h.name} ({job.name})")

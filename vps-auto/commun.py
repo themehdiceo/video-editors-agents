@@ -76,9 +76,13 @@ def tg_fichier(chemin, legende: str = "") -> bool:
 
 
 def boite_matin(texte: str, fichier: str | None = None) -> None:
-    """Message gardé pour l'envoi du matin (Mehdi dort)."""
-    with open(ETAT / "boite-matin.jsonl", "a") as f:
-        f.write(json.dumps({"texte": texte, "fichier": fichier}, ensure_ascii=False) + "\n")
+    """Résultat envoyé dès la fin (règle Mehdi 20/11 21h46). Gardé pour 8h seulement si Telegram échoue."""
+    ok = tg_fichier(fichier, texte[:1000]) if fichier and Path(fichier).exists() else tg_texte(texte)
+    if ok and fichier and len(texte) > 1000:
+        tg_texte(texte)
+    if not ok:
+        with open(ETAT / "boite-matin.jsonl", "a") as f:
+            f.write(json.dumps({"texte": texte, "fichier": fichier}, ensure_ascii=False) + "\n")
 
 
 # ---------- Verrou : un seul claude -p à la fois sur le VPS ----------
@@ -120,8 +124,11 @@ OUTILS = [
 ] + [f"mcp__claude_ai_Higgsfield__{n}" for n in HIGGSFIELD_OK]
 
 
-def lancer_claude(job_dir: Path, prompt: str, budget: float, timeout_s: int = 3 * 3600) -> int:
+def lancer_claude(job_dir: Path, prompt: str, budget: float, timeout_s: int = 3 * 3600, quoi: str = "", minutes: int = 30) -> int:
     """claude -p à la racine du dépôt (agents, skills et kit du dépôt), plafond crédits par hooks."""
+    # Règle Mehdi 20/11 : annoncer quoi + durée + coût AVANT, résultat à la fin (fait par l'appelant).
+    tg_texte(f"▶️ Je commence : {quoi or job_dir.name} · durée estimée ≈ {minutes} min · "
+             f"coût estimé ≤ {budget:g} crédits ({budget * 0.017:.2f} $)")
     s = secrets()
     env = {k: v for k, v in os.environ.items() if k != "CLAUDE_CODE_OAUTH_TOKEN"}
     env.update(GEMINI_API_KEY=s.get("GEMINI_API_KEY", ""), JOB_DIR=str(job_dir), CREDITS_JOB_MAX=str(budget),
