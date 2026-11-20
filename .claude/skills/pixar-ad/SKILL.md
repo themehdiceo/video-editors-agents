@@ -12,7 +12,7 @@ description: Créer ou monter une pub Pixar (Profit Partners) - script, scènes 
 Mehdi ne répète pas ses consignes : tout ce qui est dans ces fichiers reste valable.
 
 ## 2. Script
-- `copywriter-video-editor` écrit hook, scènes et CTA avec le contexte ci-dessus. 40 s max écran compris.
+- `copywriter-video-editor` écrit hook, scènes et CTA avec le contexte ci-dessus. 30-45 s, 45 s max écran compris.
 - Une seule raison d'agir par pub. Structure : situation du salarié, déclic, 1re vente en famille, preuve, CTA.
 
 ## 3. Scènes
@@ -24,7 +24,7 @@ Mehdi ne répète pas ses consignes : tout ce qui est dans ces fichiers reste va
 - `format.fps` = 24 constant. Pas de minterpolate. Encodage : section `encodage` (crf 18, preset slow).
 - Clips vidéo IA dans plan.json : `"zoom": 0`, pas de `blur_in`, `"vf": "deflicker=size=5:mode=pm"`.
 - Images fixes animées : agrandies x4 puis zoom lent linéaire x1.08 max (`anti_flicker.images_animees`). Luminosité égalisée entre plans voisins.
-- `dur` de chaque plan <= durée réelle du clip (ffprobe). Coupes sèches, pas de fondu.
+- `dur` de chaque plan <= durée réelle du clip (ffprobe). Coupe franche ou fondu 0,25 s, jamais de flash.
 
 ## 5. Contrôle qualité
 - `python3 tools/flicker_check.py jobs/<id>/out/final.mp4` : doit afficher 0 clignotement. Sinon, corrige le plan concerné et relance.
