@@ -50,6 +50,25 @@ def envoyer(video: Path, titre: str) -> str | None:
         return None
 
 
+def supprimer_anciennes(titre: str, garder: str) -> int:
+    """Supprime de la collection les autres versions de la même histoire (titre « date · titre »),
+    SEULEMENT si la vidéo `garder` est bien en ligne (status 3/4)."""
+    try:
+        if _api("GET", f"/videos/{garder}").get("status") not in (3, 4):
+            return 0
+        items = _api("GET", f"/videos?collection={collection_id()}&search={urllib.request.quote(titre)}&itemsPerPage=100").get("items", [])
+        n = 0
+        for v in items:
+            if v["guid"] != garder and v.get("title", "").split(" · ", 1)[-1].strip() == titre.strip():
+                _api("DELETE", f"/videos/{v['guid']}")
+                journal(f"Bunny : ancienne version supprimée {v.get('title')} ({v['guid']})")
+                n += 1
+        return n
+    except Exception as e:
+        journal(f"Bunny suppression anciennes ratée pour {titre} : {type(e).__name__} {e}")
+        return 0
+
+
 if __name__ == "__main__":
     if sys.argv[1:2] == ["envoyer"]:
         r = envoyer(Path(sys.argv[2]), sys.argv[3])

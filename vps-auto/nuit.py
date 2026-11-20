@@ -22,10 +22,13 @@ PAR_NUIT = 2
 BUDGET = 50  # crédits max par Pixar : 2 par nuit x 7 = 700 ≤ 750 (Mehdi 20/11)
 
 LIRE_KIT = (
-    "Lis d'abord, dans cet ordre : kit-pixar-v1/README.md, kit-pixar-v1/1-reglages/reglages-defaut.json (OBLIGATOIRE), "
-    "kit-pixar-v1/2-style/STYLE.md, kit-pixar-v1/2-style/feedback-video.md, kit-pixar-v1/2-style/lecons.md "
-    "(une correction déjà faite ne revient JAMAIS), kit-pixar-v1/4-voix/REGLES-VOIX.md, kit-pixar-v1/5-banque-pixar/INDEX.md, "
-    "kit-pixar-v1/3-exemple-anas-v7/. Les chemins « banque-pixar/ » et « tools/pixar/ » du kit = kit-pixar-v1/5-banque-pixar/ et kit-pixar-v1/6-outils/. "
+    "Lis d'abord, dans cet ordre : kit-pixar-v1/3-exemple-prof-v3/README.md + structure.md (modèle OBLIGATOIRE, un moule : "
+    "on change l'histoire, jamais la structure, les sous-titres ni le montage), kit-pixar-v1/5-banque-pixar/SOP-1-pixar-par-jour.md "
+    "(section Garde-fous), kit-pixar-v1/1-reglages/reglages-defaut.json (OBLIGATOIRE), kit-pixar-v1/2-style/lecons.md "
+    "(une correction déjà faite ne revient JAMAIS), la skill anthropic-skills:montage-video-mehdi, puis kit-pixar-v1/README.md, "
+    "kit-pixar-v1/2-style/STYLE.md, kit-pixar-v1/2-style/feedback-video.md, kit-pixar-v1/4-voix/REGLES-VOIX.md, kit-pixar-v1/5-banque-pixar/INDEX.md. "
+    "Interdits : histoire écrite ou coupée pour économiser des crédits (budget insuffisant = arrête-toi et écris-le dans resultat.md), "
+    "personnage en image fixe, version au rabais. Les chemins « banque-pixar/ » et « tools/pixar/ » du kit = kit-pixar-v1/5-banque-pixar/ et kit-pixar-v1/6-outils/. "
     "N'utilise JAMAIS mapwarp.py. Voix : kit-pixar-v1/4-voix/tts-boucle.py (Gemini, jamais de voix clonée, aucun traitement)."
 )
 CREDITS = (
@@ -58,10 +61,17 @@ def prompt_video(h: Path, job: Path, planche: str, budget: int = BUDGET, extra: 
     return (f"Pixar de nuit, étape VIDÉO. Histoire : {h}. Planche validée (OK n°2) : {planche} "
             f"(voix et images dans le dossier du job de la planche, à réutiliser). Dossier de travail : {job}/. {LIRE_KIT}\n"
             "Fais : vidéos (Seedance 720p seulement action/dialogue, sinon images animées x4 + zoom ≤ 1.08 ou plans banque), "
-            "montage avec kit-pixar-v1/6-outils/prog.py (modèle cfg28-anas-v7.json), écran de fin endcard.py, "
-            "mix final pic ≤ -1 dB (alimiter puis volume=-1.5dB), 24 i/s constant, 9:16 1080x1920, crf 18, ≤ 45 s. "
-            f"Livrable : {job}/out/final.mp4. Contrôle OBLIGATOIRE : python3 kit-pixar-v1/6-outils/qc_clignote.py {job}/out/final.mp4 "
-            "doit dire verdict OK ; sinon corrige et relance AVANT de finir. "
+            f"range chaque clip Seedance payé dans {job}/plans/ (nom = scène), "
+            f"montage avec une copie adaptée de kit-pixar-v1/3-exemple-prof-v3/build.py lancée depuis {job}/ (sous-titres darija latine "
+            "Avenir Next + mots-clés verts sur toute l'histoire, écran de fin 3 s, mix pic ≤ -1 dB), 24 i/s, 1080x1920, ≤ 45 s. prog.py est interdit (pas de sous-titres). "
+            f"Livrable : {job}/out/final.mp4 + {job}/subs.ass. CONTRÔLE BLOQUANT (corrige et revérifie jusqu'à tout OK) : "
+            f"1) python3 kit-pixar-v1/6-outils/qc_pixar.py {job}/out/final.mp4 {job}/subs.ass = verdict OK ; "
+            "2) l'œil : skill anthropic-skills:regarde, la vidéo seconde par seconde ; "
+            "3) planche contact (python3 tools/frames.py) comparée à kit-pixar-v1/3-exemple-prof-v3/planche-fin-v3.jpg ; "
+            "4) python3 kit-pixar-v1/6-outils/judge.py ; 5) avis de Jérémy (anthropic-skills:jeremy-haynes-mehdi) oui/non ; "
+            "6) note de l'ICP (anthropic-skills:icp-debutant-mehdi) sur 10. "
+            f"Écris {job}/out/controle.json : {{\"qc_pixar\": \"OK|KO\", \"oeil\": \"…\", \"planche\": \"…\", \"judge\": \"…\", "
+            "\"jeremy\": \"oui|non\", \"jeremy_avis\": \"…\", \"icp_note\": 0-10, \"icp_avis\": \"…\"}. "
             + CREDITS.format(b=budget, j=job) +
             extra + f" Termine par {job}/out/resultat.md (3 à 6 lignes, verdict qc, doutes).")
 
@@ -69,6 +79,33 @@ def prompt_video(h: Path, job: Path, planche: str, budget: int = BUDGET, extra: 
 def qc_ok(video: Path) -> bool:
     r = subprocess.run(["python3", str(KIT / "6-outils/qc_clignote.py"), str(video)], capture_output=True, text=True)
     return r.returncode == 0 and '"verdict": "OK"' in r.stdout
+
+
+def controle(job: Path) -> tuple[bool, str]:
+    """Contrôle BLOQUANT (Mehdi 20/11) : qc_pixar.py (sous-titres, ≤ 45 s, fin 3 s, -1 dB, clignote) + Jérémy oui + ICP ≥ 7."""
+    video, ass = job / "out/final.mp4", job / "subs.ass"
+    r = subprocess.run(["python3", str(KIT / "6-outils/qc_pixar.py"), str(video), str(ass)], capture_output=True, text=True)
+    try:
+        q = json.loads(r.stdout)
+        ko = [k for k, v in q.items() if isinstance(v, dict) and not v.get("ok")]
+    except ValueError:
+        ko = ["qc_pixar illisible"]
+    try:
+        c = json.loads((job / "out/controle.json").read_text())
+    except (OSError, ValueError):
+        c = {}
+    try:
+        icp = float(c.get("icp_note", 0))
+    except (TypeError, ValueError):
+        icp = 0
+    if str(c.get("jeremy", "")).strip().lower() != "oui":
+        ko.append("Jérémy ≠ oui")
+    if icp < 7:
+        ko.append(f"ICP {icp:g}/10 < 7")
+    txt = (f"Contrôle : {'OK' if not ko else 'KO → ' + ', '.join(ko)}\n"
+           f"qc_pixar {'OK' if r.returncode == 0 else 'KO'} · Jérémy {c.get('jeremy', '?')} · ICP {icp:g}/10\n"
+           f"Œil : {str(c.get('oeil', '?'))[:200]}\nJudge : {str(c.get('judge', '?'))[:150]}")
+    return not ko, txt
 
 
 def lire(p: Path, defaut="") -> str:
@@ -98,17 +135,19 @@ def faire_video(h: Path, budget=BUDGET, extra="") -> bool:
     lancer_claude(job, prompt_video(h, job, f"{fm.get('planche')} (job {fm.get('job_planche')})", budget, extra), budget,
                   quoi=f"vidéo Pixar « {h.stem} »", minutes=40)
     video = job / "out/final.mp4"
-    if not video.exists() or not qc_ok(video):
-        journal(f"vidéo ratée ou qc KO pour {h.name} ({job.name})")
-        boite_matin(f"⚠️ Vidéo Pixar pas livrable (absente ou qc_clignote KO) : {h.stem}. Journal : {job}/claude.log")
+    ok, ctl = controle(job) if video.exists() else (False, "vidéo absente")
+    if not ok:
+        journal(f"vidéo ratée ou contrôle KO pour {h.name} ({job.name})")
+        boite_matin(f"⚠️ Vidéo Pixar pas livrable (contrôle bloquant) : {h.stem}\n{ctl}\nJournal : {job}/claude.log")
         maj_frontmatter(h, video="ratee", job_video=str(job))
         return False
     RESULTATS.mkdir(parents=True, exist_ok=True)
     copie = RESULTATS / f"{h.stem}.mp4"
     shutil.copy(video, copie)
     maj_frontmatter(h, video=str(copie), job_video=str(job), ok3="non")
-    boite_matin(f"🎬 Pixar prêt : {h.stem}\n{lire(job / 'out/resultat.md')}\n{lire(job / 'out/cout.md')}\n\n"
-                f"OK n°3 (Bunny) ? Écris « ok3: oui » en haut du fichier {h.name}.", str(video))
+    boite_matin(f"🎬 Pixar prêt : {h.stem}\n{ctl}\n{lire(job / 'out/resultat.md')}\n{lire(job / 'out/cout.md')}\n\n"
+                f"OK n°3 (Bunny) ? Écris « ok3: oui » en haut du fichier {h.name}. "
+                f"Refus : « ok3: refus » (+ « plans_critiques: s3, s7 » si des plans sont à jeter).", str(video))
     return True
 
 
@@ -147,10 +186,38 @@ def matin() -> None:
             tg_texte(m["texte"])
 
 
+def garder_plans(h: Path, fm: dict) -> int:
+    """Version refusée : plans Seedance payés gardés dans la banque (sauf critiqués), avec une note."""
+    job = Path(fm.get("job_video") or "/x")
+    critiques = {c.strip().lower() for c in str(fm.get("plans_critiques", "")).split(",") if c.strip()}
+    dest = VAULT / "Claude/Livrables/kit-pixar-v1/5-banque-pixar/plans" / f"{maintenant():%Y-%m-%d}-{h.stem}"[:80]
+    n = 0
+    for p in sorted((job / "plans").glob("*.mp4")) if (job / "plans").is_dir() else []:
+        if p.stem.lower() in critiques:
+            continue
+        dest.mkdir(parents=True, exist_ok=True)
+        shutil.copy(p, dest / p.name)
+        n += 1
+    if n:
+        (dest / "note.md").write_text(f"Plans payés de la version refusée de « {fm.get('titre') or h.stem} » ({h.name}). "
+                                      f"Exclus (critiqués par Mehdi) : {', '.join(sorted(critiques)) or 'aucun'}.\n")
+    return n
+
+
 def bunny() -> None:
     import bunny as b
     for h in histoires():
         fm = frontmatter(h)
+        if fm.get("ok3") == "refus" and fm.get("video", "").endswith(".mp4"):
+            # Refusée : JAMAIS sur Bunny. Plans payés non critiqués -> banque, puis suppression du reste.
+            n = garder_plans(h, fm)
+            for d in (fm.get("job_video"),):
+                if d and Path(d).is_dir() and Path(d).parent.name == "jobs":
+                    shutil.rmtree(d)
+            Path(fm["video"]).unlink(missing_ok=True)
+            maj_frontmatter(h, video="refusee", ok2="non", planche="")
+            tg_texte(f"🗑️ « {fm.get('titre') or h.stem} » refusée : pas sur Bunny. {n} plan(s) payé(s) gardé(s) dans la banque, le reste supprimé.")
+            continue
         if fm.get("ok3") != "oui" or fm.get("bunny") or not fm.get("video", "").endswith(".mp4"):
             continue
         titre = fm.get("titre") or h.stem
@@ -166,7 +233,9 @@ def bunny() -> None:
             if p:
                 Path(p).unlink(missing_ok=True)
         maj_frontmatter(h, bunny=vid, video="sur-bunny")
-        tg_texte(f"☁️ « {date} · {titre} » est sur Bunny (collection Stories AI Funnels). Vidéo et brouillons supprimés du VPS.")
+        anciennes = b.supprimer_anciennes(titre, vid)  # 1 seule version par histoire, après vérif que la nouvelle est en ligne
+        tg_texte(f"☁️ « {date} · {titre} » est sur Bunny (collection Stories AI Funnels). Vidéo et brouillons supprimés du VPS."
+                 + (f" Ancienne(s) version(s) supprimée(s) de Bunny : {anciennes}." if anciennes else ""))
 
 
 def test(h: Path) -> None:
