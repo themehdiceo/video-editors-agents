@@ -87,3 +87,7 @@ Pour toute vidéo « Pixar », « histoire animée » ou « comme Anas » : lis 
 en commençant par `README.md`, et applique `1-reglages/reglages-defaut.json` à CHAQUE fois sans qu'on le redemande. Le kit prime sur `style/pixar-story-v1/`.
 Ne touche jamais à la voix de Mehdi, annonce toujours crédits ET dollars, plafond 750 crédits/semaine (jamais d'achat).
 Après chaque retour de Mehdi, ajoute une ligne datée dans `2-style/lecons.md`.
+
+## Règle Video Editor (Mehdi 2026-11-20)
+
+Toujours choisir ce qui coûte le moins cher pour le meilleur résultat : réutiliser la banque avant de générer, jamais sacrifier la structure validée pour économiser.

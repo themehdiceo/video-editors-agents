@@ -2,20 +2,59 @@
 """Cron toutes les 15 min : prend la plus ancienne tâche de « Tâches VPS/ » dans le coffre et la fait avec claude -p.
 Une seule tâche à la fois (verrou partagé avec la chaîne de nuit et l'agent du lundi).
 Une tâche = un fichier .md (sauf README.md). Elle passe dans « en cours/ » puis « faites/ », résultat ajouté en bas.
+Avant les tâches : les réponses de Mehdi (texte libre) écrites par Claude dans « Tâches VPS/réponses/ »
+ou par le bot Telegram dans etat/reponses-tg/ sont appliquées au circuit Pixar (OK, refus, corrections).
 """
 import shutil, sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from commun import Verrou, VAULT, journal, lancer_claude, maintenant, nouveau_job, tg_texte
+from commun import ETAT, Verrou, VAULT, journal, lancer_claude, maintenant, nouveau_job, pret, tg_texte
 
 DOSSIER = VAULT / "Tâches VPS"
 BUDGET = 60  # crédits max par tâche
+REPONSES = [DOSSIER / "réponses", ETAT / "reponses-tg"]
+
+
+def reponses() -> None:
+    """Applique les réponses de Mehdi (« ok », « non », « change la scène 3… ») : 0 crédit, pas de génération."""
+    fichiers = sorted((p for d in REPONSES if d.is_dir() for p in d.iterdir()
+                       if p.is_file() and p.suffix in (".md", ".txt") and p.name != "README.md"), key=lambda p: p.stat().st_mtime)
+    if not fichiers:
+        return
+    textes = "\n\n".join(f"[{p.name}]\n{p.read_text().strip()}" for p in fichiers)
+    job = nouveau_job("reponses-mehdi")
+    prompt = (
+        f"Réponses de Mehdi en texte libre, à appliquer au circuit Pixar :\n\n{textes}\n\n"
+        "Circuit : /root/vault/Claude/Livrables/pixar-nuit/README.md (lis-le). Ce que veut dire chaque réponse :\n"
+        "- OK n°1 d'une histoire de a-valider/ : déplace le fichier dans histoires-validees/.\n"
+        "- OK sur une planche : « ok2: oui » dans le frontmatter. OK sur une vidéo : « ok3: oui ».\n"
+        "- Refus d'une vidéo : « ok3: refus » + « plans_critiques: s3, s7 » (les plans qu'il critique).\n"
+        "- Correction (« change la scène 3… ») : applique-la dans le texte de l'histoire, remets « planche: » et « ok2: » à vide "
+        "si les images changent, et ajoute 1 ligne datée dans /root/vault/Claude/Livrables/kit-pixar-v1/2-style/lecons.md.\n"
+        "- Chiffres organiques ou d'une pub : ajoute-les dans /root/vault/Claude/Livrables/kit-pixar-v1/2-style/registre-histoires.md.\n"
+        "Histoire non nommée : prends celle qui attend une réponse le plus récemment (planche avec ok2: non, ou vidéo avec ok3: non). "
+        "Si c'est vraiment ambigu : ne touche à rien et écris la question courte dans out/resultat.md. "
+        "Aucun outil Higgsfield, aucune génération, aucune publication. "
+        f"Termine par {job}/out/resultat.md : 1 à 4 lignes, ce que tu as changé."
+    )
+    lancer_claude(job, prompt, 0, quoi="j'applique ta réponse", minutes=3)
+    res = job / "out" / "resultat.md"
+    for p in fichiers:
+        fait = p.parent / "faites"
+        fait.mkdir(exist_ok=True)
+        shutil.move(p, fait / p.name)
+    tg_texte("✅ Réponse appliquée :\n" + (res.read_text().strip() if res.exists() else f"⚠️ pas de résultat, journal {job}/claude.log"))
 
 
 def main() -> None:
+    try:
+        with Verrou():
+            reponses()
+    except BlockingIOError:
+        pass  # un job tourne : réponses appliquées dans 15 min
     taches = sorted((p for p in DOSSIER.glob("*.md") if p.name != "README.md"), key=lambda p: p.stat().st_mtime)
-    if not taches:
+    if not taches or not pret("les tâches VPS"):
         return
     try:
         verrou = Verrou().__enter__()

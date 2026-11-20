@@ -1,14 +1,45 @@
 {
   "hooks": {
     "PreToolUse": [
-      {"matcher": "mcp__claude_ai_Higgsfield__.*", "hooks": [{"type": "command", "command": "python3 /opt/video-editors-agents/vps-auto/credits.py avant"}]}
+      {
+        "matcher": "mcp__claude_ai_Higgsfield__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /opt/video-editors-agents/vps-auto/credits.py avant"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__claude_ai_Supabase__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /opt/video-editors-agents/vps-auto/lecture_seule.py"
+          }
+        ]
+      }
     ],
     "PostToolUse": [
-      {"matcher": "mcp__claude_ai_Higgsfield__.*", "hooks": [{"type": "command", "command": "python3 /opt/video-editors-agents/vps-auto/credits.py apres"}]}
+      {
+        "matcher": "mcp__claude_ai_Higgsfield__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /opt/video-editors-agents/vps-auto/credits.py apres"
+          }
+        ]
+      }
     ]
   },
   "permissions": {
-    "deny": ["Read(/etc/video-editors-agents/**)", "Read(**/.env)", "Bash(rm *)", "Bash(sudo *)",
-             "mcp__claude_ai_Higgsfield__show_plans_and_credits", "mcp__claude_ai_Higgsfield__cancel_trial_auto_renewal"]
+    "deny": [
+      "Read(/etc/video-editors-agents/**)",
+      "Read(**/.env)",
+      "Bash(rm *)",
+      "Bash(sudo *)",
+      "mcp__claude_ai_Higgsfield__show_plans_and_credits",
+      "mcp__claude_ai_Higgsfield__cancel_trial_auto_renewal"
+    ]
   }
 }

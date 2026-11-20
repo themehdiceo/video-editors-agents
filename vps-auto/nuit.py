@@ -13,7 +13,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from commun import (ETAT, KIT, VAULT, Verrou, boite_matin, frontmatter, journal, lancer_claude,
-                    maj_frontmatter, maintenant, nouveau_job, tg_fichier, tg_texte)
+                    maj_frontmatter, maintenant, nouveau_job, pret, tg_fichier, tg_texte)
+
+REPONDRE = "Réponds dans Claude (ou en répondant à ce message) en texte libre : « ok », « non », « change la scène 3… »."
 
 PIXAR = VAULT / "Claude/Livrables/pixar-nuit"
 VALIDEES = PIXAR / "histoires-validees"
@@ -51,8 +53,9 @@ def prompt_planche(h: Path, job: Path, extra: str = "") -> str:
             f"Dossier de travail : {job}/. {LIRE_KIT}\n"
             "Fais : voix (tts-boucle.py) puis images (Nano Banana 2 + Elements <<<ID>>> de la banque, même personnage = même ID) "
             f"et la planche de tous les plans dans {job}/out/planche.jpg. AUCUNE vidéo Seedance (pas d'OK n°2). "
-            "Range les images générées dans kit-pixar-v1/5-banque-pixar/images/AAAA-MM-JJ-titre/ et copie-les aussi dans "
-            f"/root/vault/Claude/Livrables/kit-pixar-v1/5-banque-pixar/images/AAAA-MM-JJ-titre/. "
+            "Range les images générées (le jour même, règle banque) dans "
+            "/root/vault/Claude/Livrables/kit-pixar-v1/5-banque-pixar/images/AAAA-MM-JJ-titre/ (le coffre : la copie kit-pixar-v1/ "
+            "du dépôt est écrasée par la synchro toutes les 2 min, n'y écris jamais). "
             + CREDITS.format(b=25, j=job) +
             extra + f" Termine par {job}/out/resultat.md (3 à 6 lignes : plans prévus, lesquels en vidéo, coût prévu de la vidéo).")
 
@@ -125,7 +128,7 @@ def faire_planche(h: Path, test=False, extra="") -> bool:
     shutil.copy(planche, copie)
     maj_frontmatter(h, planche=str(copie), job_planche=str(job), ok2="oui" if test else "non")
     if not test:
-        boite_matin(f"🖼️ Planche prête : {h.stem}\n{lire(job / 'out/resultat.md')}\n\nOK n°2 ? Écris « ok2: oui » en haut du fichier {h.name}.", str(planche))
+        boite_matin(f"🖼️ Planche prête : {h.stem}\n{lire(job / 'out/resultat.md')}\n\nOK n°2 ? {REPONDRE}", str(planche))
     return True
 
 
@@ -146,13 +149,14 @@ def faire_video(h: Path, budget=BUDGET, extra="") -> bool:
     shutil.copy(video, copie)
     maj_frontmatter(h, video=str(copie), job_video=str(job), ok3="non")
     boite_matin(f"🎬 Pixar prêt : {h.stem}\n{ctl}\n{lire(job / 'out/resultat.md')}\n{lire(job / 'out/cout.md')}\n\n"
-                f"OK n°3 (Bunny) ? Écris « ok3: oui » en haut du fichier {h.name}. "
-                f"Refus : « ok3: refus » (+ « plans_critiques: s3, s7 » si des plans sont à jeter).", str(video))
+                f"OK n°3 (Bunny) ? {REPONDRE} Refus : dis quels plans jeter.", str(video))
     return True
 
 
 def nuit() -> None:
     if maintenant().hour != 23:  # cron lancé à 22h et 23h heure du VPS : on ne garde que 23h Maroc
+        return
+    if not pret("la nuit Pixar"):
         return
     faits = 0
     with Verrou(attente_s=2 * 3600):

@@ -124,7 +124,8 @@ OUTILS = [
 ] + [f"mcp__claude_ai_Higgsfield__{n}" for n in HIGGSFIELD_OK]
 
 
-def lancer_claude(job_dir: Path, prompt: str, budget: float, timeout_s: int = 3 * 3600, quoi: str = "", minutes: int = 30) -> int:
+def lancer_claude(job_dir: Path, prompt: str, budget: float, timeout_s: int = 3 * 3600, quoi: str = "", minutes: int = 30,
+                  outils: list[str] = ()) -> int:
     """claude -p à la racine du dépôt (agents, skills et kit du dépôt), plafond crédits par hooks."""
     # Règle Mehdi 20/11 : annoncer quoi + durée + coût AVANT, résultat à la fin (fait par l'appelant).
     tg_texte(f"▶️ Je commence : {quoi or job_dir.name} · durée estimée ≈ {minutes} min · "
@@ -136,7 +137,7 @@ def lancer_claude(job_dir: Path, prompt: str, budget: float, timeout_s: int = 3 
     # « user » obligatoire : sans lui, ni Higgsfield ni les skills anthropic-skills:* ne sont chargés.
     cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose",
            "--setting-sources", "user,project,local", "--settings", str(ICI / "claude-settings.json"),
-           "--permission-mode", "acceptEdits", "--allowedTools", *OUTILS]
+           "--permission-mode", "acceptEdits", "--allowedTools", *OUTILS, *outils]
     with open(job_dir / "claude.log", "ab") as log:
         try:
             code = subprocess.run(cmd, cwd=REPO, env=env, stdout=log, stderr=subprocess.STDOUT, timeout=timeout_s).returncode
@@ -171,3 +172,51 @@ def maj_frontmatter(chemin: Path, **champs) -> None:
         else:
             fm += f"\n{k}: {v}"
     chemin.write_text(f"---\n{fm.strip()}\n---\n{corps}")
+
+
+# ---------- Santé : rien ne se lance si un service ne répond pas (Mehdi 20/11) ----------
+
+def sante() -> list[str]:
+    """Teste Higgsfield, Supabase, Gemini, Telegram sans rien dépenser. Renvoie la liste de ceux qui ne répondent pas."""
+    ko = []
+    env = {k: v for k, v in os.environ.items() if k != "CLAUDE_CODE_OAUTH_TOKEN"}
+    try:
+        out = subprocess.run(["claude", "mcp", "list"], cwd=REPO, env=env, capture_output=True, text=True, timeout=180).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        out = ""
+    for nom in ("Higgsfield", "Supabase"):
+        if not re.search(rf"claude\.ai {nom}:.*Connected", out):
+            ko.append(nom)
+    s = secrets()
+    try:
+        with urllib.request.urlopen(f"https://generativelanguage.googleapis.com/v1beta/models?pageSize=1&key={s.get('GEMINI_API_KEY', '')}", timeout=30):
+            pass
+    except Exception:
+        ko.append("Gemini")
+    try:
+        with urllib.request.urlopen(f"https://api.telegram.org/bot{s['TELEGRAM_BOT_TOKEN']}/getMe", timeout=30) as r:
+            if not json.load(r).get("ok"):
+                ko.append("Telegram")
+    except Exception:
+        ko.append("Telegram")
+    return ko
+
+
+def pret(quoi: str) -> bool:
+    """Avant chaque nuit, tâche et lundi. Un service KO = alerte Telegram immédiate et rien ne se lance.
+    Même alerte pas renvoyée avant 3 h (pas de spam toutes les 15 min)."""
+    ko = sante()
+    if not ko:
+        (ETAT / "alerte.json").unlink(missing_ok=True)
+        return True
+    journal(f"santé KO ({', '.join(ko)}) : {quoi} en pause")
+    f = ETAT / "alerte.json"
+    try:
+        a = json.loads(f.read_text())
+    except (OSError, ValueError):
+        a = {}
+    if a.get("ko") != ko or time.time() - a.get("t", 0) > 3 * 3600:
+        lien = " Reconnecte-le ici : https://claude.ai/settings/connectors" if {"Higgsfield", "Supabase"} & set(ko) else ""
+        tg_texte(f"⚠️ {', '.join(ko)} ne répond plus, {quoi} en pause.{lien}")
+        f.write_text(json.dumps({"ko": ko, "t": time.time()}))
+    return False

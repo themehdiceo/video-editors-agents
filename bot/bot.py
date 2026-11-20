@@ -29,6 +29,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+import time
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (Application, CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters)
@@ -163,6 +164,15 @@ async def on_video(update: Update, ctx):
 @only_me
 async def on_text(update: Update, ctx):
     m = update.message
+    r = m.reply_to_message
+    if r and ((r.text or r.caption or "").startswith(("🖼️ Planche prête", "🎬 Pixar prêt"))):
+        # Réponse à un Pixar de la nuit : texte libre, appliqué par vps-auto/taches.py dans les 15 min.
+        d = Path(__file__).resolve().parent.parent / "etat/reponses-tg"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / f"{time.strftime('%Y-%m-%d-%H%M%S')}.txt").write_text(
+            f"Réponse à : {(r.text or r.caption or '')[:300]}\n\n{m.text or ''}")
+        await m.reply_text("👍 Reçu, je l'applique dans les 15 min.")
+        return
     if m.reply_to_message:
         parent = load_index().get(str(m.reply_to_message.message_id))
         pjob = JOBS / parent / "job.json" if parent else None
