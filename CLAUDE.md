@@ -101,3 +101,10 @@ Style par défaut : `style/style.json`. C'est la mémoire du goût de Mehdi. Le 
 ## Après validation de l'aperçu final (règle de Mehdi, 2026-11-17)
 - Dès que Mehdi a validé l'aperçu final (celui qu'il publie), mets à la Corbeille tous les aperçus et brouillons de cette vidéo (480p « a valider », v2…vN). Par défaut, sans lui demander. Corbeille seulement, jamais de suppression définitive.
 - Garde toujours la finale validée et TOUS les originaux (rushs bruts, audio CapCut, photos, sources des témoignages) : ils servent à refaire d'autres montages. Rangement : ~/Desktop/Profit Partners Capital/09 Sources vidéo brutes.
+
+## Pubs Pixar (kit validé par Mehdi, 20/11)
+Pour toute vidéo « Pixar », « histoire animée » ou « comme Anas » : lis d'abord le dossier `kit-pixar-v1/` du coffre Obsidian
+(VPS : `/root/vault/Claude/Livrables/kit-pixar-v1/` · Mac : `/Users/pro/Documents/Obsidian Vault/Claude/Livrables/kit-pixar-v1/`),
+en commençant par `README.md`, et applique `1-reglages/reglages-defaut.json` à CHAQUE fois sans qu'on le redemande. Le kit prime sur `style/pixar-story-v1/`.
+Ne touche jamais à la voix de Mehdi, annonce toujours crédits ET dollars, plafond 750 crédits/semaine (jamais d'achat).
+Après chaque retour de Mehdi, ajoute une ligne datée dans `2-style/lecons.md`.
