@@ -81,7 +81,7 @@ Modèles rejouables : `templates/faq/` (Python + Pillow, rendu qtrle avec alpha 
 - Ensuite : aperçus à la Corbeille, finale et originaux dans « 09 Sources vidéo brutes ».
 
 ## Pubs courtes et animations (Mehdi, 2026-11-20)
-- « Animations » = petits films de PERSONNAGES qui bougent (style montagne / grimpeur validé), pas des slides de texte. Modèles 9:16 : jobs/anti-guru-ads/work/anim9.py (gourou qui vend la formation puis laisse le gars seul, deal qui monte ensemble + win-win, balance lflous/lwe9t, panneaux contradictoires, train « lfourssa » qui part).
+- « Animations » = petits films de PERSONNAGES qui bougent (style montagne / grimpeur validé), pas des slides de texte. Modèles 9:16 : style/complet-v1/templates/ads9/anim9.py (copie de jobs/anti-guru-ads/work) (gourou qui vend la formation puis laisse le gars seul, deal qui monte ensemble + win-win, balance lflous/lwe9t, panneaux contradictoires, train « lfourssa » qui part).
 - Pub de 30-45 s : 2 à 3 écrans pleins de ~3-4 s chacun, pas plus (jamais un écran de 6 s). Entre eux : cartes motion SUR sa tête (le visage reste, des éléments apparaissent). Un élément visuel toutes les 10-15 s.
 - Quand il parle de son argent ou de sa vie (« 10 d lmlyon », « 20 3am », « millionnaire ») : défilé de SES photos (Rolex, business class, piscine, coucher de soleil), ~1-1,3 s par photo, clic photo (photos9.py). Ne jamais laisser ce moment avec juste sa tête.
 - Rush avec musique déjà dedans : ne rien ajouter sous la voix ; rap joyeux en outro sous l écran de fin seulement. Toujours laisser finir « ntla9aw f jiha lokhra ».
