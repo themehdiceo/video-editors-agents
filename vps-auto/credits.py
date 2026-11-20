@@ -66,7 +66,8 @@ def depense_job() -> float:
 def verifier(cout: float) -> str | None:
     """None si OK, sinon la raison du refus."""
     d = charger()
-    if d["depense"] + cout > PLAFOND:
+    # EXCEPTION_MEHDI : seulement pour un job que Mehdi a validé lui-même (ex. « go test » du 20/11) ; le budget du job reste bloquant.
+    if d["depense"] + cout > PLAFOND and not os.environ.get("EXCEPTION_MEHDI"):
         return (f"Plafond hebdo atteint : {d['depense']:.0f} + {cout:.0f} > {PLAFOND} crédits "
                 f"(≈ {PLAFOND * DOLLAR:.2f} $). Arrêt jusqu'à lundi. JAMAIS d'achat de crédits.")
     job_max = float(os.environ.get("CREDITS_JOB_MAX") or PLAFOND)

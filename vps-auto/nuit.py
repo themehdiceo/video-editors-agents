@@ -19,7 +19,7 @@ PIXAR = VAULT / "Claude/Livrables/pixar-nuit"
 VALIDEES = PIXAR / "histoires-validees"
 RESULTATS = PIXAR / "resultats"
 PAR_NUIT = 2
-BUDGET = 60  # crédits max par Pixar (cible ≈ 50, option mixte)
+BUDGET = 50  # crédits max par Pixar : 2 par nuit x 7 = 700 ≤ 750 (Mehdi 20/11)
 
 LIRE_KIT = (
     "Lis d'abord, dans cet ordre : kit-pixar-v1/README.md, kit-pixar-v1/1-reglages/reglages-defaut.json (OBLIGATOIRE), "
@@ -171,8 +171,7 @@ def bunny() -> None:
 def test(h: Path) -> None:
     """Test du 20/11 : planche puis vidéo dans la foulée, budget total 60 cr."""
     with Verrou(attente_s=3600):
-        import credits
-        extra = BANQUE_SEULE if credits.charger()["depense"] >= credits.PLAFOND else ""
+        extra = ""  # plus jamais de version 100 % banque (refusée par Mehdi le 20/11)
         if not frontmatter(h).get("planche"):
             faire_planche(h, test=True, extra=extra)
         if frontmatter(h).get("planche"):
