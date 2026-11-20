@@ -1,21 +1,38 @@
 {
-  "_doc": "Réglages par défaut des pubs Pixar (Profit Partners). Le skill pixar-ad les applique à chaque job. Un retour de Mehdi les met à jour (skill-keeper).",
+  "_doc": "SOURCE UNIQUE des réglages Pixar (Profit Partners). Le skill pixar-ad les applique à chaque job sans que Mehdi les redemande. Une valeur change seulement si Mehdi le dit : 1 ligne datée dans private/pixar/lecons.md + mise à jour ici (commit skills:). Textes, banque d'Elements et voix : private/pixar/pack/ (LISEZ-MOI-PIXAR.md).",
   "format": {"w": 1080, "h": 1920, "fps": 24},
-  "duration_s": {"max": 40, "rule": "écran compris : couper des mots, jamais une scène demandée"},
+  "duration_s": {"cible": [30, 45], "max": 45, "rule": "écran de fin compris : couper des mots, jamais une scène demandée"},
   "language": "darija latine (comme Mehdi) sauf consigne contraire",
-  "anti_flicker": {
-    "fps_unique": "tout le montage au fps des clips générés (24). Jamais minterpolate. Clip à un autre fps : fps=24 sur ce clip.",
-    "broll_zoom": 0,
-    "broll_blur_in": false,
-    "broll_vf": "deflicker=size=5:mode=pm",
-    "transitions": "coupe sèche entre scènes générées. Pas de fondu enchaîné ni de flash.",
-    "duree_plan": "dur d'un plan <= durée réelle du clip (ffprobe), sinon l'image du dessous apparaît une frame",
-    "generation": "chaque scène = image-to-video depuis une image clé validée, même fiche personnage et même seed. Négatif : flicker, strobe, flashing lights, morphing",
-    "qa": "python3 tools/flicker_check.py out/final.mp4 doit sortir 0 saut hors coupe"
+  "generation": {
+    "video_modele": "seedance_2_0", "video_resolution": "720p", "clip_max_s": 5,
+    "video_seulement_pour": "action ou dialogue ; plans calmes = images animées (option mixte, 0 $ en plus)",
+    "image_modele": "nano_banana_2", "image_qualite": "haute définition",
+    "elements": "toujours les Elements de private/pixar/pack/banque-pixar/INDEX.md (<<<ID>>>), même personnage = même ID dans tout le reel",
+    "image_reference": "chaque plan d'une même scène reprend une image du plan précédent (décor et lumière identiques)",
+    "negatif": "flicker, strobe, flashing lights, morphing",
+    "budget": "≈ 50 crédits (≈ 0,85 $) par Pixar ; plafond 750 crédits/semaine ; jamais acheter de crédits"
   },
+  "anti_flicker": {
+    "fps_unique": "24 i/s constant (-r 24 -fps_mode cfr), celui des clips Seedance. Jamais fps=30 sur des clips 24 i/s ni minterpolate.",
+    "clips_ia": "deflicker=size=5:mode=pm sur chaque clip IA avant montage (dans plan.json : \"vf\")",
+    "broll_zoom_video": 0,
+    "broll_blur_in": false,
+    "images_animees": "agrandir l'image x4 (scale=4320:-1:flags=lanczos) PUIS zoompan lent et linéaire, max x1.08 sur tout le plan, puis réduire à 1080x1920. Jamais zoompan sur l'image 1080 (tremblement).",
+    "exposition": "égaliser la luminosité entre plans voisins (mesurer YAVG, corriger avec eq=brightness) avant les fondus",
+    "transitions": "coupe franche ou fondu 0,25 s (xfade fade). Jamais de flash.",
+    "duree_plan": "dur d'un plan <= durée réelle du clip (ffprobe), sinon l'image du dessous apparaît une frame",
+    "texte_sous_titres": "pas d'apparition/disparition en moins de 0,3 s",
+    "qa": "python3 tools/flicker_check.py out/final.mp4 doit sortir 0 clignotement AVANT d'envoyer à Mehdi"
+  },
+  "encodage": {"codec": "libx264", "crf": 18, "preset": "slow", "pix_fmt": "yuv420p", "profil": "high", "audio": "aac 192k 48 kHz", "movflags": "+faststart"},
+  "voix": {"moteur": "Gemini TTS (private/pixar/pack/banque-pixar/voix/RECETTE.md)",
+           "voix": {"eleve_Anas": "Charon", "femme": "Kore", "Mehdi": "Orus", "hotesse": "Aoede"},
+           "traitement": "AUCUN (pas d'afftdn, loudnorm, étirement, pitch). On déplace seulement la position des phrases (shiftmap.py).",
+           "premier_et_dernier_mot": "toujours entiers"},
   "subtitles": {"size": 84, "y": 0.70, "max_words": 3, "uppercase": true},
-  "music": {"volume": 0.10, "duck": true, "mood": "émotion douce, piano ou cordes, sans voix"},
-  "loudness_lufs": -14,
+  "son": {"musique": "banque-pixar/sons/music.mp3 à 0,45, bouclée, baisse sous la voix (sidechain), fondu final 1,5 s",
+          "vente": "1 vente = 1 ka-ching (banque-pixar/sons/shopify-1.mp3)"},
+  "fin": {"ecran_fin": "private/pixar/pack/tools/pixar/endcard.py, 5 s, logo PPC animé, trait lime #d0fe16", "phrase": "faire valider par Mehdi si elle change"},
   "visuels_interdits": ["alcool", "cigarette", "enseigne ou drapeau de pays", "Mehdi en personnage Pixar (utiliser sa vraie vidéo)"],
   "notes": []
 }

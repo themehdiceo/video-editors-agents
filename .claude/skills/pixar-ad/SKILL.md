@@ -6,7 +6,7 @@ description: Créer ou monter une pub Pixar (Profit Partners) - script, scènes 
 
 ## 1. S'alimenter AVANT de commencer (obligatoire, à chaque job)
 1. `style/pixar-v1/style.json` : réglages par défaut. Ils priment sur `style/style.json`. Seule la note du job peut les changer.
-2. `private/pixar/contexte.md` : offre, cible, preuves autorisées, interdits, darija, pubs déjà validées.
+2. `private/pixar/pack/LISEZ-MOI-PIXAR.md` (textes, banque d Elements, voix), puis `private/pixar/contexte.md` : offre, cible, preuves autorisées, interdits, darija, pubs déjà validées.
 3. `private/pixar/lecons.md` : toutes les validations et tous les refus de Mehdi. Ne refais jamais une erreur qui y figure.
 4. Les jobs Pixar précédents : `ls jobs`, puis lis `job.json` et `out/summary.md` de ceux dont la note parle de Pixar. Reprends ce qui a été validé.
 Mehdi ne répète pas ses consignes : tout ce qui est dans ces fichiers reste valable.
@@ -21,8 +21,9 @@ Mehdi ne répète pas ses consignes : tout ce qui est dans ces fichiers reste va
 - Mehdi n'est jamais un personnage Pixar : utilise sa vraie vidéo.
 
 ## 4. Montage sans clignotement (réglages `anti_flicker`)
-- `format.fps` = fps des clips générés (24). Pas de minterpolate.
-- Dans plan.json, pour chaque B-roll : `"zoom": 0`, pas de `blur_in`, `"vf": "deflicker=size=5:mode=pm"`.
+- `format.fps` = 24 constant. Pas de minterpolate. Encodage : section `encodage` (crf 18, preset slow).
+- Clips vidéo IA dans plan.json : `"zoom": 0`, pas de `blur_in`, `"vf": "deflicker=size=5:mode=pm"`.
+- Images fixes animées : agrandies x4 puis zoom lent linéaire x1.08 max (`anti_flicker.images_animees`). Luminosité égalisée entre plans voisins.
 - `dur` de chaque plan <= durée réelle du clip (ffprobe). Coupes sèches, pas de fondu.
 
 ## 5. Contrôle qualité
