@@ -80,3 +80,10 @@ Style par défaut : `style/style.json`. C'est la mémoire du goût de Mehdi. Le 
 - Le B-roll vient de vraies sources : fichiers de Mehdi, captures de la vidéo elle-même, `tools/find_media.py` (Openverse, Wikimedia Commons, Pexels si clé), yt-dlp. Jamais d'image générée par IA sauf si Mehdi le demande.
 - Chaque média externe est noté dans `work/credits.json` ; résume les crédits à donner en description dans `out/credits.md`.
 - Montre la chose dont on parle, au mot près. Les jeux de mots visuels sont bienvenus (« fuite » → robinet qui goutte).
+
+## Pubs Pixar (kit validé par Mehdi, 20/11)
+Pour toute vidéo « Pixar », « histoire animée » ou « comme Anas » : lis d'abord le dossier `kit-pixar-v1/` du coffre Obsidian
+(VPS : `/root/vault/Claude/Livrables/kit-pixar-v1/` · Mac : `/Users/pro/Documents/Obsidian Vault/Claude/Livrables/kit-pixar-v1/`),
+en commençant par `README.md`, et applique `1-reglages/reglages-defaut.json` à CHAQUE fois sans qu'on le redemande. Le kit prime sur `style/pixar-story-v1/`.
+Ne touche jamais à la voix de Mehdi, annonce toujours crédits ET dollars, plafond 750 crédits/semaine (jamais d'achat).
+Après chaque retour de Mehdi, ajoute une ligne datée dans `2-style/lecons.md`.
