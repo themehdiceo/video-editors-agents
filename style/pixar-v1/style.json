@@ -1,0 +1,21 @@
+{
+  "_doc": "Réglages par défaut des pubs Pixar (Profit Partners). Le skill pixar-ad les applique à chaque job. Un retour de Mehdi les met à jour (skill-keeper).",
+  "format": {"w": 1080, "h": 1920, "fps": 24},
+  "duration_s": {"max": 40, "rule": "écran compris : couper des mots, jamais une scène demandée"},
+  "language": "darija latine (comme Mehdi) sauf consigne contraire",
+  "anti_flicker": {
+    "fps_unique": "tout le montage au fps des clips générés (24). Jamais minterpolate. Clip à un autre fps : fps=24 sur ce clip.",
+    "broll_zoom": 0,
+    "broll_blur_in": false,
+    "broll_vf": "deflicker=size=5:mode=pm",
+    "transitions": "coupe sèche entre scènes générées. Pas de fondu enchaîné ni de flash.",
+    "duree_plan": "dur d'un plan <= durée réelle du clip (ffprobe), sinon l'image du dessous apparaît une frame",
+    "generation": "chaque scène = image-to-video depuis une image clé validée, même fiche personnage et même seed. Négatif : flicker, strobe, flashing lights, morphing",
+    "qa": "python3 tools/flicker_check.py out/final.mp4 doit sortir 0 saut hors coupe"
+  },
+  "subtitles": {"size": 84, "y": 0.70, "max_words": 3, "uppercase": true},
+  "music": {"volume": 0.10, "duck": true, "mood": "émotion douce, piano ou cordes, sans voix"},
+  "loudness_lufs": -14,
+  "visuels_interdits": ["alcool", "cigarette", "enseigne ou drapeau de pays", "Mehdi en personnage Pixar (utiliser sa vraie vidéo)"],
+  "notes": []
+}

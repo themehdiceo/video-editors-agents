@@ -17,6 +17,7 @@ Types de job :
 | `clip` | une vidéo longue (fichier ou lien YouTube) | `long-to-short` | `out/final.mp4` (+ `out/clip_2.mp4`… si demandé) |
 | `style` | 2 à 5 vidéos de référence | `style-trainer` | `style/<nom>/STYLE.md` + résumé |
 | `feedback` | un retour sur un rendu précédent | skill du job d'origine, puis `skill-keeper` | nouvelle version + mise à jour des skills |
+| tout job dont la note parle de **Pixar** | script, scènes ou rushs | `pixar-ad` (prime sur les autres skills) | `out/final.mp4` |
 
 ## Règles de l'équipe
 
@@ -63,6 +64,7 @@ Personne ne peut valider une commande pendant un job. Pour que rien ne soit bloq
 | `compose.py work/plan.json` | assemblage (16:9 ou 9:16) en BROUILLON 480p ; B-roll vidéo ou image avec `zoom`, `blur_in`, `vf` couleur ; (le 1080p est rendu par le bot quand Mehdi valide, sans toi) : B-roll, split 50/50, overlays, sous-titres, musique avec ducking, SFX, loudnorm -14 LUFS |
 | `titles.py cartes.json titles.ass` | textes animés façon VSL (dans plan.json : `"titles"`). **Seulement si Mehdi le demande** : il préfère les sous-titres seuls |
 | `frames.py video sheet.jpg` | planche contact pour vérifier visuellement |
+| `flicker_check.py video` | clignotements hors coupe (0 attendu avant livraison) |
 | `analyze_refs.py video dossier/` | analyse image par image d'une vidéo de référence : coupes/min, durée des plans, couleurs, planches 1re/dernière image de chaque plan |
 | `find_media.py "requête" dossier/ [--video]` | vraies images et vidéos libres (Openverse, Wikimedia, Pexels) + crédits |
 | `music.py "ambiance" out.mp3 --dur 60` | musique de fond (ElevenLabs si clé, sinon bibliothèque `assets/music/`) |
