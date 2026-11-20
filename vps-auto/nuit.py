@@ -187,7 +187,7 @@ def matin() -> None:
 
 
 def garder_plans(h: Path, fm: dict) -> int:
-    """Version refusée : plans Seedance payés gardés dans la banque (sauf critiqués), avec une note."""
+    """Plans Seedance payés gardés dans la banque (version validée ou refusée, sauf plans critiqués), avec une note."""
     job = Path(fm.get("job_video") or "/x")
     critiques = {c.strip().lower() for c in str(fm.get("plans_critiques", "")).split(",") if c.strip()}
     dest = VAULT / "Claude/Livrables/kit-pixar-v1/5-banque-pixar/plans" / f"{maintenant():%Y-%m-%d}-{h.stem}"[:80]
@@ -199,7 +199,7 @@ def garder_plans(h: Path, fm: dict) -> int:
         shutil.copy(p, dest / p.name)
         n += 1
     if n:
-        (dest / "note.md").write_text(f"Plans payés de la version refusée de « {fm.get('titre') or h.stem} » ({h.name}). "
+        (dest / "note.md").write_text(f"Plans payés de « {fm.get('titre') or h.stem} » ({h.name}), version {'validée' if fm.get('ok3') == 'oui' else 'refusée'}. "
                                       f"Exclus (critiqués par Mehdi) : {', '.join(sorted(critiques)) or 'aucun'}.\n")
     return n
 
@@ -226,6 +226,7 @@ def bunny() -> None:
         if not vid:
             tg_texte(f"⚠️ Envoi Bunny raté pour « {titre} ». Rien supprimé, je réessaie dans 15 min.")
             continue
+        garder_plans(h, fm)  # règle banque Mehdi 20/11 : tout plan payé reste réutilisable
         for d in (fm.get("job_video"), fm.get("job_planche")):
             if d and Path(d).is_dir() and Path(d).parent.name == "jobs":
                 shutil.rmtree(d)
