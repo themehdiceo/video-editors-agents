@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cron 30 min : nouvelles vidéos du dossier Google Drive « PPC · À monter » -> job de montage complet (v1).
+"""DÉSACTIVÉ (2026-11-20 : rushs par Telegram, pas de Drive). Cron 30 min : nouvelles vidéos du dossier Google Drive « PPC · À monter » -> job de montage complet (v1).
 Inactif tant que le remote rclone « gdrive: » n'est pas autorisé par Mehdi (voir Tâches VPS/README.md).
 Le montage réutilise le runner du bot (bot/runner.py), lancé en utilisateur editor comme le bot.
 """
