@@ -44,8 +44,9 @@ def main() -> None:
         "quand la scène s'y prête, mais jamais d'histoire pensée pour économiser des crédits. Chaque histoire relue par l'ICP. "
         "AUCUN script à filmer.\n"
         "C. Ajoute une ligne par nouvelle histoire dans /root/vault/Claude/Livrables/kit-pixar-v1/2-style/registre-histoires.md.\n"
-        "Écris aussi chaque histoire dans un fichier /root/vault/Claude/Livrables/pixar-nuit/a-valider/"
-        f"{jour}-NN-titre.md au format de pixar-nuit/README.md (Mehdi la déplace dans histoires-validees/ = OK n°1).\n"
+        "Écris aussi chaque histoire dans un fichier /root/vault/Claude/Livrables/pixar-nuit/histoires-validees/"
+        f"{jour}-NN-titre.md au format de pixar-nuit/README.md, avec « ok1: jeremy » (Jérémy valide = OK n°1 ; "
+        "Mehdi garde un veto : la nuit en fabrique 2, dans l'ordre NN).\n"
         "Pas de génération Higgsfield (0 crédit). Français simple, style Hormozi."
     )
     with Verrou(attente_s=2 * 3600):

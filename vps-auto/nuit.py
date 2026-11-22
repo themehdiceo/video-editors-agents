@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Chaîne Pixar de nuit (SOP 1 v3).
 
-  nuit.py nuit          cron 23h Maroc : 2 Pixar max à partir de pixar-nuit/histoires-validees/
-                        - histoire sans planche -> voix + images + planche (OK n°2 attendu), pas de vidéo
-                        - histoire avec « ok2: oui » -> vidéos, montage, qc_clignote.py OK, résultat dans le coffre
+  nuit.py nuit          cron 23h Maroc : 2 Pixar finis par nuit à partir de pixar-nuit/histoires-validees/
+                        planche puis vidéo dans la foulée (plus d'OK n°2 : veto 2 h avant, Mehdi 21/11), contrôle bloquant
   nuit.py matin         cron 8h Maroc : envoie à Mehdi par Telegram ce que la nuit a produit
   nuit.py bunny         cron 15 min : histoires avec « ok3: oui » -> Bunny (bunny.py), puis suppression locale
   nuit.py test FICHIER  le test du 20/11 : script + planche considérés validés (« go build » de Mehdi), budget 60 cr
@@ -76,7 +75,10 @@ def prompt_video(h: Path, job: Path, planche: str, budget: int = BUDGET, extra: 
             f"Écris {job}/out/controle.json : {{\"qc_pixar\": \"OK|KO\", \"oeil\": \"…\", \"planche\": \"…\", \"judge\": \"…\", "
             "\"jeremy\": \"oui|non\", \"jeremy_avis\": \"…\", \"icp_note\": 0-10, \"icp_avis\": \"…\"}. "
             + CREDITS.format(b=budget, j=job) +
-            extra + f" Termine par {job}/out/resultat.md (3 à 6 lignes, verdict qc, doutes).")
+            extra + f" Écris {job}/out/legende.txt : la légende Instagram (guide kit-pixar-v1/2-style/legendes-instagram.md, "
+            "3 lignes max, français simple, aucun hashtag, dernière ligne mot pour mot : 💬 Commente « PLACE » pour recevoir la stratégie de @themehdiceo), "
+            "relue par Jérémy, jamais la même accroche que le Pixar d'avant (registre)."
+            f" Termine par {job}/out/resultat.md (3 à 6 lignes, verdict qc, doutes).")
 
 
 def qc_ok(video: Path) -> bool:
@@ -115,7 +117,7 @@ def lire(p: Path, defaut="") -> str:
     return p.read_text().strip() if p.exists() else defaut
 
 
-def faire_planche(h: Path, test=False, extra="") -> bool:
+def faire_planche(h: Path, test=False, extra="", auto=False) -> bool:
     job = nouveau_job("planche-" + h.stem)
     lancer_claude(job, prompt_planche(h, job, extra), 0 if extra else 25, quoi=f"planche Pixar « {h.stem} »", minutes=15)
     planche = job / "out/planche.jpg"
@@ -126,8 +128,8 @@ def faire_planche(h: Path, test=False, extra="") -> bool:
     RESULTATS.mkdir(parents=True, exist_ok=True)
     copie = RESULTATS / f"{h.stem}-planche.jpg"
     shutil.copy(planche, copie)
-    maj_frontmatter(h, planche=str(copie), job_planche=str(job), ok2="oui" if test else "non")
-    if not test:
+    maj_frontmatter(h, planche=str(copie), job_planche=str(job), ok2="oui" if test or auto else "non")
+    if not test and not auto:
         boite_matin(f"🖼️ Planche prête : {h.stem}\n{lire(job / 'out/resultat.md')}\n\nOK n°2 ? {REPONDRE}", str(planche))
     return True
 
@@ -148,7 +150,16 @@ def faire_video(h: Path, budget=BUDGET, extra="") -> bool:
     copie = RESULTATS / f"{h.stem}.mp4"
     shutil.copy(video, copie)
     maj_frontmatter(h, video=str(copie), job_video=str(job), ok3="non")
-    boite_matin(f"🎬 Pixar prêt : {h.stem}\n{ctl}\n{lire(job / 'out/resultat.md')}\n{lire(job / 'out/cout.md')}\n\n"
+    import publier
+    legende, titre = lire(job / "out/legende.txt"), fm.get("titre") or h.stem
+    quand = publier.file_attente(video, titre, legende) if "PLACE" in legende else None
+    if quand:
+        maj_frontmatter(h, instagram=quand)
+        ig = (f"📅 Part sur Instagram le {quand} (heure du Maroc), @themehdiceo en collab @profitpartnerscapital + @mehdiceotalks, "
+              f"sauf si tu dis « stop ».\nLégende :\n{legende}")
+    else:
+        ig = "⚠️ PAS mis en file Instagram (légende absente ou envoi raté) : à mettre à la main dans l'admin → Publier."
+    boite_matin(f"🎬 Pixar prêt : {h.stem}\n{ig}\n\n{ctl}\n{lire(job / 'out/resultat.md')}\n{lire(job / 'out/cout.md')}\n\n"
                 f"OK n°3 (Bunny) ? {REPONDRE} Refus : dis quels plans jeter.", str(video))
     return True
 
@@ -166,10 +177,10 @@ def nuit() -> None:
             fm = frontmatter(h)
             if fm.get("video") or fm.get("bunny"):
                 continue
-            if fm.get("ok2") == "oui":
-                faits += faire_video(h)
-            elif not fm.get("planche"):
-                faits += faire_planche(h)
+            # Veto 2 h avant (Mehdi 21/11) : plus d'OK n°2, Jérémy contrôle ; planche puis vidéo la même nuit.
+            if not fm.get("planche") and not faire_planche(h, auto=True):
+                continue
+            faits += faire_video(h)
     journal(f"nuit : {faits} Pixar avancé(s)")
 
 
