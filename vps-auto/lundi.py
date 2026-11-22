@@ -11,6 +11,11 @@ from commun import VAULT, Verrou, journal, lancer_claude, maintenant, nouveau_jo
 def main() -> None:
     if maintenant().hour != 6 and "--force" not in sys.argv:
         return
+    import time
+    recents = [f for f in (VAULT / "Claude/Livrables/scripts-semaine").glob("*.md") if time.time() - f.stat().st_mtime < 3 * 86400]
+    if recents and "--force" not in sys.argv:  # semaine déjà écrite (lancement anticipé) : pas de doublon
+        journal(f"lundi : déjà fait ({recents[0].name})")
+        return
     if not pret("les histoires du lundi"):
         return
     jour = f"{maintenant():%Y-%m-%d}"

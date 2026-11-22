@@ -2,6 +2,10 @@
 
 S'applique à toute VSL / vidéo face caméra de Mehdi (note « VSL », « lead magnet », « face caméra avec motion »). Ne pas faire répéter Mehdi : ces règles sont acquises.
 
+## 0. Après validation de l'aperçu final (règle de Mehdi, 2026-11-17)
+- Aperçu final validé par Mehdi = tous les aperçus et brouillons de cette vidéo (480p « a valider », v2…vN) vont à la Corbeille, par défaut, sans redemander. Jamais de suppression définitive.
+- La finale part sur Bunny. Sur le Mac, garder seulement la finale et les originaux (rushs, voix CapCut, photos) dans ~/Desktop/Profit Partners Capital/09 Sources vidéo brutes.
+
 ## 1. Voix et coupes
 - Mehdi fait la voix lui-même dans CapCut (« Normaliser le niveau sonore » + « Réduire le bruit », rien d'autre) et envoie un MP3 pleine longueur. On le garde TEL QUEL (pas d'afftdn / de-esser / loudnorm). Recaler par corrélation avec l'audio d'origine, puis couper. (Remplace le défaut « voix nettoyée » pour ce style.)
 - Coupes autorisées sans demander : silences, hésitations, ratés/reprises (garder la dernière prise), mots qu'il nomme.

@@ -28,7 +28,7 @@ def elevenlabs(prompt: str, dur: float, out: str) -> bool:
     req = urllib.request.Request("https://api.elevenlabs.io/v1/music", data=body, method="POST",
                                  headers={"xi-api-key": key, "Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=300) as r, open(out, "wb") as f:
+        with urllib.request.urlopen(req, timeout=600) as r, open(out, "wb") as f:
             shutil.copyfileobj(r, f)
         return os.path.getsize(out) > 10000
     except Exception as e:  # noqa: BLE001

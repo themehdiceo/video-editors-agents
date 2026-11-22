@@ -86,8 +86,11 @@ def build_events(words, st):
     ks = int(100 * st.get("keyword_scale", 1.6))
     ital = r"\i1" if st.get("keyword_italic", True) else ""
     lines = []
-    for g in group(words, st["max_words"], st["max_gap"]):
+    gs = group(words, st["max_words"], st["max_gap"])
+    for gi, g in enumerate(gs):
         end_g = g[-1]["end"] + st.get("hold", 0.25)
+        if gi + 1 < len(gs):  # jamais deux phrases à l'écran en même temps (chevauchement illisible)
+            end_g = min(end_g, gs[gi + 1][0]["start"])
         for i, w in enumerate(g):
             start = w["start"]
             end = g[i + 1]["start"] if i + 1 < len(g) else end_g

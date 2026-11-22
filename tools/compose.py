@@ -87,6 +87,19 @@ def main() -> int:
     g.append(cover("a_full_src", W, H, "base", cx, FPS))
     g.append(cover("a_half_src", W, H // 2, "ahalf", cx, FPS))
     cur = "base"
+    zooms = plan.get("zooms")  # [[début, fin, facteur], ...] en cut sec, recadrage ancré en haut (tête visible)
+    if zooms:
+        by_f = {}
+        for z0, z1, zf in zooms:
+            by_f.setdefault(float(zf), []).append(f"between(t,{float(z0):.3f},{float(z1):.3f})")
+        g.append(f"[base]split={1 + len(by_f)}[zb]" + "".join(f"[zs{n}]" for n in range(len(by_f))) + ";")
+        cur_z = "zb"
+        for n, (zf, wins) in enumerate(by_f.items()):
+            zw, zh = int(W * zf) // 2 * 2, int(H * zf) // 2 * 2
+            g.append(f"[zs{n}]scale={zw}:{zh},crop={W}:{H}:(iw-{W})/2:0,setsar=1[zc{n}];")
+            g.append(f"[{cur_z}][zc{n}]overlay=0:0:enable='{'+'.join(wins)}'[zo{n}];")
+            cur_z = f"zo{n}"
+        cur = cur_z
     idx = 1
     audio_mix = ["[0:a]aresample=48000[voice]"]
     extra_audio = []
@@ -197,8 +210,11 @@ def main() -> int:
             audio_mix.append(e)
             labels.append(e[e.rindex("["):])
     lufs = plan.get("loudness", -14)
-    audio_mix.append(f"{''.join(labels)}amix=inputs={len(labels)}:normalize=0:duration=first,"
-                     f"loudnorm=I={lufs}:TP=-1.0:LRA=11[aout]")
+    if plan.get("audio_raw") and len(labels) == 1:  # voix d'origine telle quelle (aucun traitement)
+        audio_mix.append(f"{labels[0]}anull[aout]")
+    else:
+        audio_mix.append(f"{''.join(labels)}amix=inputs={len(labels)}:normalize=0:duration=first,"
+                         f"loudnorm=I={lufs}:TP=-1.0:LRA=11[aout]")
 
     graph = "".join(g) + ";".join(audio_mix)
     out = P(plan.get("out", "out/final.mp4"))
@@ -207,8 +223,11 @@ def main() -> int:
     os.makedirs(os.path.dirname(out), exist_ok=True)
     cmd = ["ffmpeg", "-y", "-loglevel", "error", *inputs, "-filter_complex", graph,
            "-map", "[vout]", "-map", "[aout]", "-t", str(total),
-           "-c:v", "libx264", "-preset", "medium" if final else "veryfast", "-crf", "19" if final else "26",
-           "-profile:v", "high",
+           *(["-c:v", "h264_videotoolbox", "-b:v", "16M" if final else "1800k", "-profile:v", "high"]
+             if plan.get("encoder") == "videotoolbox" else
+             ["-c:v", "libx264", "-preset", "medium" if final else "veryfast", "-crf", "19" if final else "26",
+              "-profile:v", "high"]),
+           "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709",
            "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", out]
     if os.environ.get("COMPOSE_DEBUG"):
         print(" ".join(cmd))

@@ -41,7 +41,7 @@
     },
     "layout_default": "top",
     "pacing": {
-      "max_pause_s": 0.25,
+      "max_pause_s": 0.12,
       "broll_every_s": [
         1.8,
         3.6
@@ -49,13 +49,26 @@
       "target_duration_s": [
         30,
         60
-      ]
+      ],
+      "cuts": {
+        "rule": "Validé par Mehdi 2026-11-14 (pubs campagne 1) : coupes très courtes calées sur la voix réelle (énergie), pas sur les horodatages.",
+        "pause_fin_idee_s": 0.1,
+        "pause_milieu_s": 0.05,
+        "pad_debut_s": 0.03,
+        "pauses_internes_min_s": 0.2,
+        "garde_internes_s": 0.04,
+        "tete": "si la tête bouge juste avant de parler ou juste après le dernier mot, couper ces images (mouvement mesuré dans la zone du visage)",
+        "zoom_punch_in": 1.1,
+        "zoom": "une coupe sur deux",
+        "outil": "jobs/ads-c1/work/build_ad.py"
+      }
     },
     "subtitles": {
       "size": 84,
       "y": 0.52,
       "max_words": 3
     },
-    "hook": "Le premier plan montre la chose en action. Pas d'intro, pas de logo."
+    "hook": "Le premier plan montre la chose en action. Pas d'intro, pas de logo.",
+    "music_default": "assets/music/ads/rap-joyeux-2.mp3 (rap joyeux, volume 0.16 + ducking) — validée pour les pubs"
   }
 }
