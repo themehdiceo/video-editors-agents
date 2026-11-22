@@ -44,6 +44,10 @@ Types de job :
 - Pas de clé API dans le code ni dans les logs. Les secrets sont dans les variables d'environnement.
 - Si un outil échoue (téléchargement bloqué, API indisponible), utilise une alternative et note-le dans le résumé. Ne t'arrête pas.
 
+## 1 vidéo = 1 chat (forfait, règle Mehdi 2026-11-20)
+- Chaque message relit tout le chat. Un chat neuf par vidéo ou par sujet. Passé 150 tours, le hook `tools/chat_long.py` le rappelle : écris `work/reprise.md` (consignes, minutages, plan.json, style, reste à faire), puis propose un chat neuf à Mehdi.
+- Connecteurs inutiles au montage bloqués dans `.claude/settings.json` (deny). Pour en rebrancher un, retire sa ligne.
+
 ## Exécution sans surveillance (important)
 
 Personne ne peut valider une commande pendant un job. Pour que rien ne soit bloqué :
@@ -85,6 +89,7 @@ Style par défaut : `style/style.json`. C'est la mémoire du goût de Mehdi. Le 
 - Reel histoire animée Pixar (9:16, darija ; note « Pixar », « histoire animée », « comme Anas ») → `style/pixar-story-v1/STYLE.md` + `style/pixar-story-v1/feedback-video.md`, outils `tools/pixar/`. Validé à 100 % par Mehdi le 2026-11-16 (pub Anas v7). Ses règles de voix priment sur les défauts verrouillés : voix TTS jamais débruitée, étirée ni rognée, seule sa position bouge.
 
 - **« montage complet v1 »** (ou « montage complet ») dans la note → `style/complet-v1/STYLE.md` (validé à 100 % le 2026-11-18) : coupes, sous-titres darija, zooms ×1,08, cartes motion à côté de la tête + écrans noirs animés HyperFrames, musique calée sur sa voix (12-14 dB dessous), flou des données privées, 1080p Bunny. Applique tout sans demander.
+- **Reel / vidéo courte 9:16 (Instagram, TikTok, Facebook) face caméra** → SOP unique du coffre `Claude/Livrables/sop-videos-courtes/SOP-videos-courtes.md` (Mac : /Users/pro/Documents/Obsidian Vault/… · VPS : /root/vault/…), section 5 = montage complet v1 adapté en 9:16 (zone sûre, cartes sous le menton). Ne pas recopier ce SOP ici.
 
 - VSL / face caméra de Mehdi avec motion (note « VSL », « lead magnet », « motion ») → `style/vsl-v1/STYLE.md` (validé à 2000 % le 2026-11-16). Ses règles voix (MP3 CapCut de Mehdi, non retouché) et zooms ×1,08 priment sur les défauts verrouillés.
 
