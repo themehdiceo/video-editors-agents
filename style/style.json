@@ -15,14 +15,15 @@
   },
   "layout_default": "full",
   "subtitles": {
-    "font": "Montserrat ExtraBold",
+    "font": "Avenir Next Heavy",
     "size": 64,
     "color": "FFFFFF",
     "highlight": "FFD400",
     "outline": 6,
     "y": 0.88,
     "max_words": 4,
-    "uppercase": true
+    "uppercase": true,
+    "font_locked": true
   },
   "music": {
     "volume": 0.12,

@@ -1,0 +1,78 @@
+{
+ "type": "hook_interview",
+ "source": "input/source.mov",
+ "out": "out/final.mp4",
+ "format": {"w": 1920, "h": 1080, "fps": 30},
+ "black_s": 1.8,
+ "tiles": {
+  "A": {"name": "Anas", "x": 40, "y": 384, "w": 1454, "h": 1396, "face_x": 0.5},
+  "M": {"name": "Mehdi", "x": 1530, "y": 384, "w": 1460, "h": 1396, "face_x": 0.55}
+ },
+ "shots": [
+  {
+   "id": "1_mehdi_promesse",
+   "layout": "M",
+   "ranges": [[21.7, 33.2]],
+   "views": [[21.7, "M"], [26.5, "split"], [30.15, "M"]],
+   "text": [["Alors","f","had","la","partie","ghatchofo","kifach","Anas","li","kan","un","salarié","kitkhles","12000","dh","f","chher","qder","ykhrej","mn","salariat","w","kifach","sawbna","une","boutique","li","kadkhl","7alyan","50000","dollar","7tal","60000","dollar","f","chher","dial","rbe7"]],
+   "k": [13, 29, 32]
+  },
+  {
+   "id": "2_anas_peur",
+   "layout": "A",
+   "ranges": [[286.72, 302.30, "exact"], [303.05, 306.9], [308.1, 309.4], [310.5, 314.1]],
+   "views": [[286.6, "A"], [291.7, "split"], [296.24, "A"], [300.48, "split"], [304.8, "A"], [311.22, "split"]],
+   "text": [
+    ["kont","khayf","bzaf","surtout","pour","investir","wa7d","lflous","fhemti","Donc","kanqol","dak","hadi","tinvesti","wa7d","lflous","f","lakhir","tqder","ma","tjib","ta","chi","vente","Donc","kont","khayf","kima","kanqolo","n7ot","flousi","f","l'investissement","ma","tkounch","ma","ykounch","wa7d","le","résultat","wach","fhemti"],
+    ["Donc","la9itha","rassi","f","wa7d","lwad3iya","li","chwiya"],
+    ["délicate","w","kan9ol"],
+    ["sawa","hadi","nzo3","w","n7ot","lflous","sawa","hadi","nrje3","lsalariat"]
+   ],
+   "k": [1, 5, 62],
+   "join": [0, 1, 2]
+  },
+  {
+   "id": "3_anas_systeme",
+   "layout": "A",
+   "ranges": [[237.1, 244.75], [245.5, 248.0], [248.8, 250.62]],
+   "views": [[237.1, "A"], [239.84, "split"], [243.78, "A"], [247.1, "split"]],
+   "text": [
+    ["la","vérité","ana","ma","fhemt","walo","au","début","Parce","que","je","crois","le","système","3ndek","il","est","bien","organisé","3arf","chno","ktir","Donc","b7al","nta"],
+    ["le","pilote","w","ana","le","copilote","Donc","je","pense","que"],
+    ["je","pense","là","le","quatrième","jour"]
+   ],
+   "k": [13, 26, 30, 39],
+   "join": [0, 1]
+  },
+  {
+   "id": "4_mehdi_partager",
+   "layout": "M",
+   "ranges": [[583.33, 586.75, "exact"], [587.2, 589.36, "exact"]],
+   "views": [[583.37, "M"], [585.44, "split"]],
+   "text": [
+    ["Ok","t'peux","partager","t'peux","partager","mesela","nchoufou","lyoma","chhal","derti"],
+    ["Chhal","derna","Chhal","derna","lyoma"]
+   ],
+   "k": [2, 7, 14],
+   "join": [0]
+  },
+  {
+   "id": "5_preuve_shopify",
+   "layout": "A",
+   "ranges": [[622.65, 628.95]],
+   "text": [["C'est","bon","Maintenant","c'est","bien","Ok","Last","12","hours","17","521,50","dollars","Good"]],
+   "k": [9, 10, 11],
+   "cards": [
+    {"off": 0.0, "dur": 6.8, "text": "**17 521 $** en 12 h | Boutique **SHOPIFY** en direct", "pos": "top", "y": 0.14, "box": true, "size": 118}
+   ]
+  },
+  {
+   "id": "6_anas_vie",
+   "layout": "A",
+   "ranges": [[998.3, 1006.15]],
+   "views": [[998.3, "A"], [1000.35, "split"], [1002.5, "A"]],
+   "text": [["pour","moi","daba","hamdullah","je","suis","plus","épanoui","f","7yati","kanl9a","lwa9t","lrasi","kanl9a","lwa9t","l3ailti","kanfi9","fwa9t","li","bghit"]],
+   "k": [3, 7, 15]
+  }
+ ]
+}

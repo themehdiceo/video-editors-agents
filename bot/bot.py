@@ -7,11 +7,15 @@ Commandes (seul TELEGRAM_ALLOWED_USER_ID est écouté) :
   (envoi d'une vidéo)   montage d'un A-roll ; légende "clip" ou "clip 3" = vidéo longue
   (chemin d'un fichier) mode Mac : /Users/.../video.mov, puis ton prompt à la ligne suivante
   « style <nom> » dans le prompt : monte avec un style appris (sinon choix auto solo-v1 / interview-v1)
+  « mode guidé » dans le prompt (ou /phrases) : je t'envoie la liste numérotée des phrases, tu réponds
+    avec les numéros dans l'ordre (« intro : 12, 45, 7 ») et je monte exactement ça.
   « mode plan » dans le prompt : je t'envoie d'abord un PLAN (4 idées par scène), tu réponds
     avec tes choix (« 1B 2A… » ou « ok »), puis je monte.
   /style <nom> [liens]  apprend un style de montage sur 2 à 5 vidéos (liens, ou style/<nom>/refs.txt)
   (réponse à un rendu)  retour -> nouvelle version + mise à jour des skills
   « valide » en réponse  rendu final 1080p du brouillon (ffmpeg seul, sans Claude)
+  /musique [ambiance]   3 musiques de fond à écouter, tu choisis, je l'ajoute à ta dernière vidéo
+  /stop                 arrête tout (montage en cours + file d'attente), puis renvoie ta demande
   /statut               job en cours et file d'attente
   /mac                  le bot passe sur ton Mac (vidéos du Mac, montages longs)
   /serveur              le bot passe sur le serveur (24 h/24, Mac éteint possible)
@@ -28,14 +32,14 @@ import unicodedata
 import shutil
 import subprocess
 import sys
-from pathlib import Path
 import time
+from pathlib import Path
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (Application, CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters)
 
 import switch
-from runner import JOBS, REPO, new_job, run_job
+from runner import JOBS, PROCS, REPO, new_job, run_job
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("bot")
@@ -54,6 +58,7 @@ INDEX = JOBS / "index.json"  # message_id Telegram -> job id (pour les retours)
 
 queue: asyncio.Queue = asyncio.Queue()
 current: dict = {}  # jobs en cours : nom -> dossier
+current_bg: set = set()  # bilans en arrière-plan (pas de mise à jour/redémarrage pendant ce temps)
 MAX_JOBS = int(os.environ.get("MAX_JOBS", "1"))  # vidéos montées en même temps
 RATINGS = REPO / "style" / "ratings.jsonl"  # notes de Mehdi : la mémoire de ce qui marche
 
@@ -84,28 +89,77 @@ def only_me(fn):
 # « demande à Jeremy / Hormozi / au copywriter … » : une question à l'équipe, sans montage.
 ASK_RE = re.compile(r"\b(demande|demandes|demander|pose|question)\b.{0,40}\b(j[eé]r[eé]m\w*|haynes|hormo\w*|alex|copy\s*writ\w*|copywriter)", re.I | re.S)
 PLAN_RE = re.compile(r"\b(mode plan|avec (le )?plan|plan d'abord)\b", re.I)
+GUIDE_RE = re.compile(r"(mode guid|\bguid[ée]\b|je (te )?guide|liste des phrases|^/?phrases\s*$)", re.I)
 
 
 def set_phase(job_dir: Path) -> None:
     """Montage direct par défaut. « mode plan » dans le prompt : d'abord un plan que Mehdi valide."""
     job = json.loads((job_dir / "job.json").read_text())
     if job.get("type") == "edit" and not job.get("phase"):
-        job["phase"] = "plan" if PLAN_RE.search(job.get("note", "")) else "build"
+        note = job.get("note", "")
+        job["phase"] = "phrases" if GUIDE_RE.search(note) else "plan" if PLAN_RE.search(note) else "build"
         (job_dir / "job.json").write_text(json.dumps(job, ensure_ascii=False, indent=1))
+
+
+def derive_job(parent_id: str, **fields) -> Path:
+    """Nouveau job edit qui reprend la vidéo et le travail (work/) d'un job précédent."""
+    src = JOBS / parent_id
+    parent = json.loads((src / "job.json").read_text())
+    d = new_job("edit", parent=parent_id, **({"note": parent.get("note", ""), "input_file": parent.get("input_file"),
+                                              "source_path": parent.get("source_path")} | fields))
+    for f in (src / "input").iterdir():
+        try:
+            os.link(f, d / "input" / f.name)  # instantané, sans place en plus
+        except OSError:
+            if subprocess.run(["cp", "-c", str(f), str(d / "input" / f.name)], capture_output=True).returncode != 0:
+                shutil.copy2(f, d / "input" / f.name)
+    for f in (src / "work").iterdir():
+        if f.is_file():
+            shutil.copy2(f, d / "work" / f.name)
+    return d
+
+
+def parse_picks(text: str) -> list[int]:
+    """« intro : 12, 45, 7-9 » -> [12, 45, 7, 8, 9] (dans l'ordre donné)."""
+    out = []
+    # Les numéros sont dans la 1re phrase ; la suite (« commence la 221 à… ») est une consigne, pas un choix.
+    text = re.split(r"\n|\.\s+(?=[^\d\s])", text, maxsplit=1)[0]
+    for m in re.finditer(r"(?<![\d:.])(\d+)(?:\s*(?:-|à)\s*(\d+))?(?![\d:.]|\s*(?:s\b|sec|min|p\b|%|k\b|dh|\$|€))", text):
+        a, b = int(m.group(1)), int(m.group(2) or m.group(1))
+        out += list(range(a, b + 1)) if 0 <= b - a <= 30 else [a]
+    return list(dict.fromkeys(out))
+
+
+def start_guided(parent_id: str, text: str) -> tuple[Path | None, str]:
+    """Réponse à la liste des phrases : montage exact des phrases choisies par Mehdi."""
+    src = JOBS / parent_id
+    pj = src / "work" / "phrases.json"
+    if not pj.exists():
+        return None, "La liste des phrases est introuvable pour ce job."
+    phrases = {p["n"]: p for p in json.loads(pj.read_text()).get("phrases", [])}
+    nums = parse_picks(text)
+    picks = [phrases[n] for n in nums if n in phrases]
+    missing = [n for n in nums if n not in phrases]
+    if not picks:
+        return None, "Je n'ai pas trouvé de numéros de phrases. Exemple : « intro : 12, 45, 7 »."
+    pdata = json.loads((src / "job.json").read_text())
+    d = derive_job(parent_id, phase="guided", instruction=text, history=pdata.get("history", []),
+                   picks=[{k: p.get(k) for k in ("n", "start", "end", "speaker", "latin", "text", "cough")} for p in picks])
+    try:  # mémoire du goût : les vrais choix de Mehdi (le skill-keeper et le copywriter s'en inspirent)
+        with open(REPO / "style" / "guided_picks.jsonl", "a") as f:
+            f.write(json.dumps({"date": time.strftime("%Y-%m-%d"), "job": d.name, "source": pdata.get("source_path"),
+                                "instruction": text, "picks": [p.get("latin") or p.get("text") for p in picks]},
+                               ensure_ascii=False) + "\n")
+    except OSError:
+        pass
+    note = f"{len(picks)} phrases" + (f" (introuvables : {', '.join(map(str, missing))})" if missing else "")
+    return d, note
 
 
 def start_build(parent_id: str, choices: str) -> Path:
     """Réponse au plan : nouveau job qui reprend la vidéo et le travail de la phase plan."""
     src = JOBS / parent_id
-    parent = json.loads((src / "job.json").read_text())
-    d = new_job("edit", phase="build", parent=parent_id, choices=choices, note=parent.get("note", ""),
-                input_file=parent.get("input_file"), source_path=parent.get("source_path"))
-    for f in (src / "input").iterdir():
-        if subprocess.run(["cp", "-c", str(f), str(d / "input" / f.name)], capture_output=True).returncode != 0:
-            shutil.copy2(f, d / "input" / f.name)
-    for f in (src / "work").iterdir():
-        if f.is_file():
-            shutil.copy2(f, d / "work" / f.name)
+    d = derive_job(parent_id, phase="build", choices=choices)
     if (src / "out" / "plan.md").exists():
         shutil.copy2(src / "out" / "plan.md", d / "work" / "plan.md")
     return d
@@ -147,6 +201,92 @@ async def cmd_clip(update: Update, ctx):
     await enqueue(update, new_job("clip", url=urls[0], count=int(n.group(1)) if n else 1), "clip")
 
 
+MUSIC_RE = re.compile(r"(\b(propose|envoie|donne|choisir|choix|montre|cherche|trouve)\b.{0,30}\bmusiques?\b|^\s*/?musiques?\b)", re.I)
+MUSIC_MOODS = [
+    ("Suspense discret", "subtle conversational suspense, soft piano and light strings pad, slow pulse, calm tension, documentary interview"),
+    ("Tension moderne", "light modern tension, pizzicato strings and ambient pad, minimal, curious, documentary"),
+    ("Inspirant sobre", "minimal emotional piano with soft electronic pulse, hopeful, understated, entrepreneur story"),
+]
+
+
+async def propose_music(update: Update, ctx, extra: str = "") -> None:
+    """3 musiques de fond à écouter ; Mehdi choisit, le bot l'ajoute à la dernière vidéo."""
+    m = update.message
+    last = last_video_job()
+    dur = 45.0
+    if last and (last / "out" / "final.mp4").exists():
+        try:
+            out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0",
+                                  str(last / "out" / "final.mp4")], capture_output=True, text=True).stdout
+            dur = min(120.0, float(out.strip()) + 2)
+        except (OSError, ValueError):
+            pass
+    await m.reply_text(f"🎵 Je te prépare 3 musiques de {round(dur)} s (1 à 3 min)…")
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    sent = 0
+    for i, (label, mood) in enumerate(MUSIC_MOODS, 1):
+        prompt = f"{mood}. {extra}".strip(". ") if extra else mood
+        dst = REPO / "assets" / "music" / f"choix-{stamp}-{i}.mp3"
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        r = await asyncio.to_thread(subprocess.run, [sys.executable, str(REPO / "tools" / "music.py"), prompt, str(dst),
+                                                     "--dur", str(dur)], capture_output=True, text=True)
+        if r.returncode != 0 or not dst.exists():
+            continue
+        kb = InlineKeyboardMarkup([[InlineKeyboardButton(f"✅ Choisir la {i}", callback_data=f"music:{dst.name}")]])
+        with open(dst, "rb") as fh:
+            await m.reply_audio(fh, title=f"{i}. {label}", caption=f"{i}. {label}", reply_markup=kb)
+        sent += 1
+    if not sent:
+        await m.reply_text("⚠️ Je n'ai pas pu créer de musique (ElevenLabs refuse ou n'est pas configuré). "
+                           "Envoie-moi un mp3 que tu aimes, je l'utiliserai.")
+    else:
+        await m.reply_text("Écoute et appuie sur « Choisir » sous celle que tu veux : je l'ajoute à ta dernière vidéo. "
+                           "Aucune ne va ? Écris « musiques plus calmes » (ou ton ambiance) pour en avoir 3 autres.")
+
+
+async def on_music_pick(update: Update, ctx):
+    q = update.callback_query
+    if not q.from_user or q.from_user.id != ALLOWED:
+        return
+    name = q.data.split(":", 1)[1]
+    await q.answer("Choisie !")
+    await q.edit_message_reply_markup(None)
+    last = last_video_job()
+    if not last:
+        await q.message.reply_text("🎵 Gardée. Envoie ta vidéo, je l'utiliserai.")
+        return
+    root = root_job(last)
+    d = new_job("feedback", parent=last.name, source_job=root.name, history=history(last), conseils=recent_advice(),
+                feedback=f"Ajoute la musique de fond assets/music/{name} (choisie par Mehdi) sous l'intro, avec "
+                         "tools/add_music.py (volume ~0,08, baisse sous la voix, fondu avant le noir) et "
+                         "music_after dans plan.json. Ne change rien d'autre.")
+    await q.message.reply_text("🎵 Je l'ajoute à ta dernière vidéo, rien d'autre ne change.")
+    set_phase(d)
+    await queue.put((q.message.chat_id, d))
+
+
+@only_me
+async def cmd_musique(update: Update, ctx):
+    await propose_music(update, ctx, " ".join(ctx.args or []))
+
+
+@only_me
+async def on_audio(update: Update, ctx):
+    """Un mp3 envoyé = une musique de fond pour les prochains montages (assets/music/, choisie par ambiance)."""
+    m = update.message
+    media = m.audio or m.document
+    name = re.sub(r"[^\w.-]+", "-", (getattr(media, "file_name", None) or "musique.mp3").lower()).strip("-")
+    if (m.caption or "").strip():
+        name = re.sub(r"[^\w-]+", "-", m.caption.strip().lower())[:40].strip("-") + "-" + name
+    dst = REPO / "assets" / "music" / name
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    f = await ctx.bot.get_file(media.file_id)
+    await f.download_to_drive(dst)
+    await m.reply_text(f"🎵 Musique ajoutée à ta bibliothèque ({name}). Je l'utilise quand l'ambiance correspond "
+                       "(mets un mot dans la légende, ex. « suspense », pour l'aider). Dis « avec la musique "
+                       f"{name} » pour l'imposer.")
+
+
 @only_me
 async def on_video(update: Update, ctx):
     m = update.message
@@ -176,12 +316,21 @@ async def on_text(update: Update, ctx):
     if m.reply_to_message:
         parent = load_index().get(str(m.reply_to_message.message_id))
         pjob = JOBS / parent / "job.json" if parent else None
+        if pjob and pjob.exists() and json.loads(pjob.read_text()).get("phase") == "phrases":
+            d, info = await asyncio.to_thread(start_guided, parent, m.text or "")
+            if not d:
+                await m.reply_text(info)
+                return
+            await m.reply_text(f"👍 Je monte exactement tes {info}, dans ton ordre.")
+            await enqueue(update, d, "montage guidé")
+            return
         if pjob and pjob.exists() and json.loads(pjob.read_text()).get("phase") == "plan":
             await m.reply_text("👍 Plan reçu, je lance le montage avec tes choix.")
             await enqueue(update, await asyncio.to_thread(start_build, parent, m.text or "ok"), "montage")
             return
         if parent and VALIDATE_RE.match(m.text or ""):
-            await validate(update, ctx, parent)
+            # En tâche de fond : le bot reste à l'écoute (stop, statut…) pendant le rendu 1080p.
+            asyncio.create_task(validate(update, ctx, parent))
             return
         if parent and json.loads((JOBS / parent / "job.json").read_text()).get("type") == "ask":
             prev = json.loads((JOBS / parent / "job.json").read_text())
@@ -325,6 +474,19 @@ async def flush_text(update: Update, ctx) -> None:
         await m.reply_text("🧠 Je pose ta question à l'équipe (copywriter, Hormozi, Haynes), réponse dans quelques minutes.")
         await enqueue(update, new_job("ask", question=text), "question")
         return
+    if MUSIC_RE.search(first) and len(text) < 160:
+        extra = re.sub(r"(?i)\b(propose|envoie|donne|moi|des|3|trois|musiques?|de fond|choisir|stp)\b", " ", text)
+        await propose_music(update, ctx, " ".join(extra.split()))
+        return
+    if STOP_RE.fullmatch(text):
+        await stop_current(update)
+        return
+    if STATUS_RE.fullmatch(text):  # « alors ? » n'est pas une consigne de montage : on donne l'avancement
+        await cmd_statut(update, None)
+        return
+    if re.fullmatch(r"\s*(mode guid[ée]|guid[ée]|phrases|liste des phrases)\s*[.!]*\s*", text, re.I):
+        await start_phrases(update)
+        return
     # Pas de vidéo ni de lien : on continue sur la dernière vidéo travaillée (Mehdi n'a pas à tout redire).
     fb = ctx.chat_data.pop("feedback_for", None)
     last = JOBS / fb if fb and (JOBS / fb / "job.json").exists() else last_video_job()
@@ -341,6 +503,83 @@ async def flush_text(update: Update, ctx) -> None:
                            "Telegram (jusqu'à 2 Go), avec ton prompt en légende.")
         return
     await m.reply_text("Envoie un lien (script), une vidéo (montage), ou réponds à un rendu pour donner un retour.")
+
+
+async def start_phrases(update: Update) -> None:
+    """Mode guidé sur la dernière vidéo : liste numérotée des phrases, Mehdi choisit."""
+    last = last_video_job()
+    if not last:
+        await update.message.reply_text("Envoie d'abord une vidéo (ou son chemin sur le Mac) avec « mode guidé ».")
+        return
+    root = root_job(last)
+    d = await asyncio.to_thread(derive_job, root.name, phase="phrases", history=history(last))
+    await update.message.reply_text("📝 Je te prépare la liste numérotée des phrases (5 à 10 min). Tu me répondras "
+                                    "avec les numéros, dans l'ordre que tu veux.")
+    await enqueue(update, d, "liste des phrases")
+
+
+STATUS_RE = re.compile(r"\s*(alors|et alors|alors frérot|\?+|ça avance|ca avance|t'?en es où|t'?en es ou|statut|status|"
+                       r"c'est bon|cbon|ça donne quoi|ca donne quoi|il en est où|il en est ou|toujours rien)\s*[?!.]*\s*", re.I)
+STOP_RE = re.compile(r"\s*/?(stop|stoppe|stopper|arr[eê]te|arr[eê]te tout|annule le montage)\s*[.!]*\s*", re.I)
+
+
+async def stop_current(update: Update) -> None:
+    """Arrête tout : le montage en cours et ceux en attente. Mehdi renvoie ensuite UNE demande propre."""
+    dropped = 0
+    while not queue.empty():
+        try:
+            _, d = queue.get_nowait()
+            queue.task_done()
+            dropped += 1
+            j = json.loads((d / "job.json").read_text())
+            j["stopped"] = True
+            (d / "job.json").write_text(json.dumps(j, ensure_ascii=False, indent=1))
+        except (asyncio.QueueEmpty, OSError, ValueError):
+            break
+    if not current and not dropped:
+        await update.message.reply_text("Rien ne tourne en ce moment.")
+        return
+    for name, d in list(current.items()):
+        try:
+            j = json.loads((d / "job.json").read_text())
+            j["stopped"] = True
+            (d / "job.json").write_text(json.dumps(j, ensure_ascii=False, indent=1))
+        except (OSError, ValueError):
+            pass
+        proc = PROCS.get(name)
+        if proc and proc.returncode is None:
+            try:
+                if os.getpgid(proc.pid) == os.getpgid(0):
+                    raise OSError("même groupe que le bot")  # ne jamais tuer le bot lui-même
+                os.killpg(proc.pid, 9)  # rendu 1080p : tout le groupe, ffmpeg compris
+            except (ProcessLookupError, PermissionError, OSError):
+                try:
+                    proc.kill()
+                except ProcessLookupError:
+                    pass
+    await update.message.reply_text(f"🛑 Tout est arrêté ({len(current)} en cours, {dropped} en attente). "
+                                    "Envoie ta nouvelle demande, je repars de la dernière version que tu as reçue.")
+
+
+@only_me
+async def cmd_renvoie(update: Update, ctx):
+    """Renvoie le dernier rendu (si l'envoi a échoué à cause d'internet)."""
+    jobs = [d for d in sorted(JOBS.glob("2*-*"), reverse=True) if any((d / "out").glob("*.mp4")) or (d / "out" / "summary.md").exists()]
+    if not jobs:
+        await update.message.reply_text("Aucun rendu à renvoyer.")
+        return
+    await update.message.reply_text(f"📤 Je renvoie {jobs[0].name}…")
+    await send_outputs(ctx.application, update.effective_chat.id, jobs[0], 0)
+
+
+@only_me
+async def cmd_stop(update: Update, ctx):
+    await stop_current(update)
+
+
+@only_me
+async def cmd_phrases(update: Update, ctx):
+    await start_phrases(update)
 
 
 def recent_advice(limit: int = 3) -> list:
@@ -414,12 +653,37 @@ async def validate(update: Update, ctx, job_id: str) -> None:
         await update.message.reply_text("Je ne trouve pas le plan de montage de ce job, impossible de faire le 1080p.")
         return
     await update.message.reply_text("👍 Validé. Rendu final en 1080p (sans Claude, ça ne consomme rien)…")
-    r = await asyncio.to_thread(subprocess.run, [sys.executable, str(REPO / "tools" / "compose.py"), str(plan),
-                                                 "--final"], capture_output=True, text=True)
+    # Intro d'interview montée avec hook_build.py (plan de type hook_interview) : même outil pour le 1080p.
+    tool = "hook_build.py" if json.loads(plan.read_text()).get("type") == "hook_interview" else "compose.py"
+    key = f"1080-{job_id}"
+    proc = await asyncio.create_subprocess_exec(sys.executable, str(REPO / "tools" / tool), str(plan), "--final",
+                                                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
+                                                start_new_session=True)  # groupe à part : /stop tue aussi ffmpeg
+    PROCS[key], current[key] = proc, JOBS / job_id
+    try:
+        out = (await proc.communicate())[0].decode(errors="replace")
+    finally:
+        PROCS.pop(key, None)
+        current.pop(key, None)
+    if proc.returncode in (-9, -15):
+        return  # arrêté par /stop : stop_current a déjà répondu
     final = JOBS / job_id / "out" / "final_1080.mp4"
-    if r.returncode != 0 or not final.exists():
-        await update.message.reply_text(f"⚠️ Échec du rendu final :\n{(r.stderr or r.stdout)[-800:]}")
+    if proc.returncode != 0 or not final.exists():
+        await update.message.reply_text(f"⚠️ Échec du rendu final :\n{out[-800:]}")
         return
+    ma = json.loads(plan.read_text()).get("music_after")  # musique posée après coup (tools/add_music.py)
+    if ma and ma.get("file") and tool == "compose.py":  # hook_build.py pose déjà la musique lui-même
+        tmp = final.with_name("final_1080_music.mp4")
+        cmd = [sys.executable, str(REPO / "tools" / "add_music.py"), str(final), str(JOBS / job_id / ma["file"]
+               if not Path(ma["file"]).is_absolute() and (JOBS / job_id / ma["file"]).exists() else REPO / ma["file"]),
+               str(tmp), "--volume", str(ma.get("volume", 0.08))]
+        if ma.get("until"):
+            cmd += ["--until", str(ma["until"])]
+        if ma.get("duck") is False:
+            cmd.append("--no-duck")
+        r2 = await asyncio.to_thread(subprocess.run, cmd, capture_output=True, text=True)
+        if r2.returncode == 0 and tmp.exists():
+            tmp.replace(final)
     if not API_URL and final.stat().st_size > 49 * 1024 * 1024:
         await update.message.reply_text(f"🎞️ Version finale prête (trop lourde pour Telegram) :\n{final}")
         return
@@ -483,8 +747,21 @@ def git(*args) -> subprocess.CompletedProcess:
     return subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True)
 
 
+def heal_conflicts() -> list:
+    """Fichiers restés en conflit (modif locale d'un agent remise par-dessus une mise à jour) : la version
+    du dépôt gagne, la modif locale reste de côté dans « git stash ». Sans ça, plus aucune mise à jour ne passe
+    et le fichier garde des marques <<<<<<< qui cassent les rendus."""
+    files = [f for f in git("diff", "--name-only", "--diff-filter=U").stdout.split() if f]
+    for f in files:
+        git("checkout", "HEAD", "--", f)
+    if files:
+        git("reset", "-q")
+    return files
+
+
 def pull_updates():
     """Récupère les nouveautés de GitHub. Renvoie (True, liste des changements), (False, erreur) ou None si rien."""
+    heal_conflicts()
     if git("fetch", "-q", "origin", "main").returncode != 0:
         return None
     if git("rev-list", "--count", "HEAD..origin/main").stdout.strip() in ("", "0"):
@@ -493,11 +770,21 @@ def pull_updates():
     r = git("pull", "-q", "--rebase", "--autostash", "origin", "main")
     if r.returncode != 0:
         git("rebase", "--abort")
-        return False, r.stderr.strip()[-300:]
+        # Conflit sur une leçon écrite ici : on garde la version locale des passages en conflit et on avance.
+        r = git("pull", "-q", "--rebase", "--autostash", "-X", "theirs", "origin", "main")
+        if r.returncode != 0:
+            git("rebase", "--abort")
+            heal_conflicts()
+            return False, r.stderr.strip()[-300:]
+    healed = heal_conflicts()
+    if healed:
+        log.warning("Modifs locales mises de côté (git stash) : %s", ", ".join(healed))
     return True, news
 
 
 async def update_and_restart(app: Application, force_msg: bool = False) -> None:
+    if current_bg:
+        return  # un bilan tourne en arrière-plan : on se mettra à jour après
     res = await asyncio.to_thread(pull_updates)
     if res is None:
         if force_msg:
@@ -537,10 +824,15 @@ async def send_outputs(app: Application, chat_id: int, job_dir: Path, code: int)
     for script in sorted(out.glob("*.md")):
         if script.name in ("summary.md", "skill_update.md"):
             continue
-        text = script.read_text()
-        for i in range(0, len(text), 3900):
-            msg = await app.bot.send_message(chat_id, text[i:i + 3900])
-            remember(msg.message_id, job_dir.name)
+        chunk = ""
+        for line in script.read_text().splitlines(keepends=True) + ["\0"]:
+            if line == "\0" or len(chunk) + len(line) > 3900:
+                if chunk.strip():
+                    msg = await app.bot.send_message(chat_id, chunk[:3900])
+                    remember(msg.message_id, job_dir.name)
+                chunk = ""
+            if line != "\0":
+                chunk += line
         sent_any = True
     for video in sorted(v for v in out.glob("*.mp4") if not v.name.endswith("_1080.mp4")):
         if not API_URL and video.stat().st_size > 49 * 1024 * 1024:
@@ -572,6 +864,15 @@ async def send_outputs(app: Application, chat_id: int, job_dir: Path, code: int)
     if not sent_any:
         await app.bot.send_message(chat_id, f"⚠️ Job {job_dir.name} terminé sans livrable (code {code}). "
                                             f"Journal : {job_dir / 'claude.log'}")
+    elif (out / "question.md").exists() and not any(out.glob("*.mp4")):
+        msg = await app.bot.send_message(chat_id, "❓ J'ai besoin de ta réponse avant de monter. Réponds à ma question "
+                                                  "(glisse le message vers la droite).")
+        remember(msg.message_id, job_dir.name)
+    elif job.get("phase") == "phrases":
+        msg = await app.bot.send_message(chat_id, "☝️ Réponds à un de ces messages (glisse vers la droite) avec les numéros "
+                                                  "dans l'ordre voulu. Ex. « intro : 12, 45, 7-9 ». Ajoute tes consignes si "
+                                                  "besoin (« coupe la fin de la 45 »).")
+        remember(msg.message_id, job_dir.name)
     elif is_plan:
         await app.bot.send_message(chat_id, "☝️ Réponds au PLAN (glisse le message vers la droite) avec tes choix : "
                                             "« 1B 2A 3C… », tes idées, ou « ok » pour mes ⭐.")
@@ -608,8 +909,24 @@ async def on_rate(update: Update, ctx) -> None:
         await q.message.reply_text(f"{'⭐' * n} noté. Je garde ce qui a marché pour les prochaines vidéos.")
     done = sum(1 for _ in open(RATINGS))
     if done % 5 == 0:
-        await q.message.reply_text("🧠 5 nouvelles notes : je relis tous tes retours et j'améliore les styles.")
-        await queue.put((q.message.chat_id, new_job("bilan", auto=True)))
+        # En arrière-plan, sans passer par la file : le bilan ne doit jamais retarder un montage (retour du 09/11).
+        d = new_job("bilan", auto=True)
+        asyncio.get_running_loop().create_task(background_bilan(ctx.bot, q.message.chat_id, d))
+
+
+async def background_bilan(bot, chat_id: int, d: Path) -> None:
+    """Bilan des notes en silence, à côté des montages. Un seul message à la fin, s'il a changé quelque chose."""
+    current_bg.add(d.name)
+    try:
+        code = await run_job(d)
+        summary = (d / "out" / "summary.md")
+        if code == 0 and summary.exists():
+            await bot.send_message(chat_id, "🧠 J'ai relu tes 5 dernières notes et mis à jour ton style :\n"
+                                   + summary.read_text()[:1500])
+    except Exception:  # noqa: BLE001
+        log.exception("bilan")
+    finally:
+        current_bg.discard(d.name)
 
 
 def last_claude_text(log_path: Path) -> str:
@@ -626,32 +943,108 @@ def last_claude_text(log_path: Path) -> str:
             d = json.loads(line)
         except ValueError:
             continue
-        content = (d.get("message") or {}).get("content")
+        if not isinstance(d, dict) or not isinstance(d.get("message"), dict):
+            continue  # ligne coupée ou d'un autre format (cause du blocage du 09/11)
+        content = d["message"].get("content")
         if d.get("type") == "assistant" and isinstance(content, list):
             for c in reversed(content):
-                if c.get("type") == "text" and c.get("text", "").strip():
+                if isinstance(c, dict) and c.get("type") == "text" and str(c.get("text", "")).strip():
                     return c["text"].strip().splitlines()[0]
     return ""
 
 
-DUREES = {"edit": ("montage complet v1", 45), "build": ("montage du plan validé", 30), "plan": ("plan de montage", 15),
-          "clip": ("clips depuis la vidéo longue", 30), "script": ("script", 10), "feedback": ("corrections", 20),
-          "ask": ("réponse de l'équipe", 3), "style": ("apprentissage du style", 20), "bilan": ("bilan", 10)}
+DURATIONS = JOBS / "durees.jsonl"
+DEFAULT_MIN = {"phrases": 10, "guided": 20, "build": 25, "plan": 20, "feedback": 25, "edit": 25, "clip": 30,
+               "script": 8, "ask": 4, "style": 40, "bilan": 10}
+
+
+def job_kind(job_dir: Path) -> str:
+    try:
+        j = json.loads((job_dir / "job.json").read_text())
+    except (OSError, ValueError):
+        return "edit"
+    return j.get("phase") or j.get("type") or "edit"
+
+
+def estimate_min(kind: str) -> float:
+    """Durée prévue : médiane des 5 derniers jobs du même genre (sinon une valeur par défaut)."""
+    past = []
+    try:
+        for line in DURATIONS.read_text().splitlines()[-200:]:
+            d = json.loads(line)
+            if d.get("kind") == kind and d.get("ok"):
+                past.append(d["min"])
+    except (OSError, ValueError):
+        pass
+    if not past:  # pas encore d'historique : on mesure les anciens jobs (nom = heure de départ, claude.log = fin)
+        for d in sorted(JOBS.glob("2*-*"))[-60:]:
+            try:
+                if job_kind(d) != kind or not any((d / "out").glob("*")):
+                    continue
+                start = time.mktime(time.strptime(d.name[:15], "%Y%m%d-%H%M%S"))
+                m = ((d / "claude.log").stat().st_mtime - start) / 60
+                if 1 < m < 180:
+                    past.append(round(m, 1))
+            except (OSError, ValueError):
+                continue
+    past = sorted(past[-5:])
+    return past[len(past) // 2] if past else DEFAULT_MIN.get(kind, 25)
+
+
+def progress_bar(elapsed: float, total: float) -> str:
+    frac = min(elapsed / total, 0.97) if total else 0
+    n = round(frac * 12)
+    left = total - elapsed
+    eta = (f"encore ~{round(left)} min" if left >= 1.5 else "moins d'1 min" if left > 0
+           else "presque fini (un peu plus long que prévu)")
+    return f"{'▰' * n}{'▱' * (12 - n)} {round(frac * 100)} % · {eta}"
 
 
 async def worker(app: Application) -> None:
+    """Ne meurt jamais : une erreur sur un job ne bloque pas toute la file (blocage du 09/11)."""
     while True:
         chat_id, job_dir = await queue.get()
+        try:
+            await process_job(app, chat_id, job_dir)
+        except Exception as e:  # noqa: BLE001
+            log.exception("job %s", job_dir.name)
+            current.pop(job_dir.name, None)
+            queue.task_done()
+            try:
+                await app.bot.send_message(chat_id, f"⚠️ {job_dir.name} a planté ({type(e).__name__}), je passe à la suite.")
+            except Exception:  # noqa: BLE001
+                pass
+
+
+async def process_job(app: Application, chat_id: int, job_dir: Path) -> None:
+    if True:  # (corps historique du worker)
         current[job_dir.name] = job_dir
-        # Règle Mehdi 20/11 : quoi + durée + coût AVANT de commencer (le montage ne génère rien sur Higgsfield).
-        kind = json.loads((job_dir / "job.json").read_text()).get("phase") or json.loads((job_dir / "job.json").read_text()).get("type")
-        quoi, minutes = DUREES.get(kind, ("job " + str(kind), 30))
-        await app.bot.send_message(chat_id, f"🎬 Je commence : {quoi} ({job_dir.name}) · durée estimée ≈ {minutes} min · coût estimé 0 crédit (0 $)")
+        kind, t0 = job_kind(job_dir), time.time()
+        total = estimate_min(kind)
+        bar_msg = await app.bot.send_message(chat_id, f"🎬 Je commence {job_dir.name} · coût estimé 0 crédit (0 $)\n" + progress_bar(0, total))
+        bar_at, bar_text = t0, ""
         task = asyncio.create_task(run_job(job_dir))
         seen, quiet, last_note = 0, 0, ""
         while not task.done():
             await asyncio.sleep(20)
-            lines = (job_dir / "progress.log").read_text().splitlines()
+            el = (time.time() - t0) / 60
+            text = f"⏳ {job_dir.name}\n" + progress_bar(el, total)
+            try:
+                if time.time() - bar_at >= 300:  # toutes les 5 min : nouvelle barre en bas de la conversation
+                    try:
+                        await bar_msg.delete()
+                    except Exception:  # noqa: BLE001
+                        pass
+                    bar_msg, bar_at = await app.bot.send_message(chat_id, text), time.time()
+                elif text != bar_text:
+                    await bar_msg.edit_text(text)
+                bar_text = text
+            except Exception:  # noqa: BLE001
+                log.debug("barre", exc_info=True)
+            try:
+                lines = (job_dir / "progress.log").read_text().splitlines()
+            except OSError:
+                lines = []
             if len(lines) > seen:
                 await app.bot.send_message(chat_id, "\n".join("• " + x for x in lines[seen:])[-3900:])
                 seen, quiet = len(lines), 0
@@ -664,11 +1057,30 @@ async def worker(app: Application) -> None:
                     await app.bot.send_message(chat_id, "⏳ " + note[:600])
                     last_note = note
                 quiet = 0
+        stopped = json.loads((job_dir / "job.json").read_text()).get("stopped")
         try:
-            await send_outputs(app, chat_id, job_dir, task.result())
-        except Exception as e:  # noqa: BLE001
-            log.exception("envoi")
-            await app.bot.send_message(chat_id, f"⚠️ Erreur à l'envoi : {e}")
+            await bar_msg.edit_text(f"{'✅' if not stopped else '🛑'} {job_dir.name} · {round((time.time() - t0) / 60)} min")
+            ok = not stopped and task.exception() is None and task.result() == 0
+            with open(DURATIONS, "a") as f:
+                f.write(json.dumps({"kind": kind, "min": round((time.time() - t0) / 60, 1), "ok": ok}) + "\n")
+        except Exception:  # noqa: BLE001
+            pass
+        # Coupure internet au moment d'envoyer (NetworkError du 09/11) : on réessaie 5 fois avant d'abandonner.
+        for attempt in range(5):
+            try:
+                if not stopped:
+                    await send_outputs(app, chat_id, job_dir, task.result())
+                break
+            except Exception as e:  # noqa: BLE001
+                log.exception("envoi (essai %s)", attempt + 1)
+                if attempt == 4:
+                    try:
+                        await app.bot.send_message(chat_id, f"⚠️ Impossible d'envoyer {job_dir.name} ({type(e).__name__}). "
+                                                            f"Le rendu est prêt : {job_dir / 'out'}. Envoie /renvoie.")
+                    except Exception:  # noqa: BLE001
+                        pass
+                else:
+                    await asyncio.sleep(30 * (attempt + 1))
         current.pop(job_dir.name, None)
         queue.task_done()
         if queue.empty() and not current:  # job fini : on installe les améliorations en attente
@@ -698,6 +1110,12 @@ async def post_init(app: Application) -> None:
                                    "🟢 Je tourne maintenant sur le serveur, 24 h/24. Envoie tes vidéos directement ici. "
                                    "/mac pour repasser sur ton Mac.")
     asyncio.get_running_loop().create_task(watch_switch(app))
+    try:  # nom choisi par Mehdi (08/11)
+        if (await app.bot.get_my_name()).name != BOT_NAME:
+            await app.bot.set_my_name(BOT_NAME)
+            await app.bot.set_my_short_description("Ton monteur vidéo : interviews, intros, shorts. Darija et français.")
+    except Exception:  # noqa: BLE001
+        log.exception("nom du bot")
     for _ in range(MAX_JOBS):
         asyncio.get_running_loop().create_task(worker(app))
     asyncio.get_running_loop().create_task(updater(app))
@@ -827,6 +1245,7 @@ def stop_other_bots() -> None:
 
 
 WOKE_UP = False
+BOT_NAME = "Cutmaster"
 
 
 def main() -> None:
@@ -849,8 +1268,14 @@ def main() -> None:
     app.add_error_handler(on_error)
     app.add_handler(CommandHandler("vps", cmd_vps))
     app.add_handler(CommandHandler(["mac", "serveur", "server"], cmd_switch))
+    app.add_handler(CommandHandler(["phrases", "guide"], cmd_phrases))
+    app.add_handler(CommandHandler(["stop", "stoppe"], cmd_stop))
+    app.add_handler(CommandHandler(["renvoie", "renvoyer", "renvoi"], cmd_renvoie))
     app.add_handler(CallbackQueryHandler(on_rate, pattern=r"^rate:"))
+    app.add_handler(CallbackQueryHandler(on_music_pick, pattern=r"^music:"))
+    app.add_handler(CommandHandler(["musique", "musiques"], cmd_musique))
     app.add_handler(MessageHandler(filters.VIDEO | filters.Document.VIDEO, on_video))
+    app.add_handler(MessageHandler(filters.AUDIO | filters.Document.AUDIO, on_audio))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 

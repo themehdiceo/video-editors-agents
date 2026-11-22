@@ -15,6 +15,7 @@ from pathlib import Path
 
 REPO = Path(os.environ.get("REPO_DIR", Path(__file__).resolve().parents[1]))
 JOBS = Path(os.environ.get("JOBS_DIR", REPO / "jobs"))
+PROCS: dict = {}  # job -> processus en cours (pour /stop)
 TIMEOUT = int(os.environ.get("JOB_TIMEOUT_S", "7200"))
 
 JOB_TOOLS = [
@@ -39,12 +40,28 @@ PROMPTS = {
     "build": ("Job de type edit, phase build : Mehdi a validé le plan (champ choices de job.json, plan dans work/plan.md). "
               "Suis la skill short-editor en montant exactement les scènes choisies. "
               "Si job.json contient history, ce sont les consignes déjà données sur cette vidéo : applique-les aussi."),
+    "phrases": ("Job de type edit, phase phrases (MODE GUIDÉ, étape 1) : Mehdi choisira lui-même les phrases. Ne monte rien. "
+                "1) python3 tools/phrases.py <job>/work/words.json <job>/work/phrases.json. "
+                "2) Lis phrases.json et ajoute à chaque phrase un champ latin : le texte réécrit en darija latine, comme Mehdi "
+                "écrit (« kifach », « 3ndek », mots français tels quels), fidèle à ce qui est dit, sans résumer. Ne change ni n, "
+                "ni start, ni end. Écris le fichier avec Write. "
+                "3) Écris out/phrases.md : une ligne par phrase, « N. [mm:ss] (durée en s) A : texte latin », ex. « 12. [04:31] (6 s) B : … » (A/B = locuteur ; ajoute 🤧 si "
+                "cough est vrai). Pas d'introduction, pas de résumé, pas de summary.md. Va vite : moins de 10 min. "
+                "Écris progress.log toutes les 3 min (ex. « phrases réécrites : 120/250 »)."),
+    "guided": ("Job de type edit, phase guided (MODE GUIDÉ, étape 2) : Mehdi a choisi LUI-MÊME les phrases, dans l'ordre "
+               "(champ picks de job.json : n, start, end, latin ; son message brut dans instruction). Monte EXACTEMENT ces "
+               "phrases dans cet ordre, rien d'autre : ne choisis pas d'autres passages, ne réordonne pas, ne raccourcis pas, "
+               "sauf si instruction le demande. Coupes : start/end de chaque phrase, calés sur les bords de mots "
+               "(silences.py) ; enlève les toux (events) à l'intérieur avec \"mute\" ou une coupe entre deux mots. "
+               "Sous-titres karaoké en darija latine depuis le champ latin. Le reste (format, style, sous-titres, pas de titre "
+               "en haut) suit la skill short-editor, le style et history. Le copywriter ne choisit pas les phrases : "
+               "consulte-le seulement pour les mots-clés colorés des sous-titres. Termine par summary.md."),
     "clip": "Job de type clip. Suis la skill long-to-short.",
     "feedback": ("Job de type feedback : Mehdi continue sur la vidéo du job parent (champ parent de job.json) ; "
                  "la vidéo source est dans jobs/<source_job>/input/ et la transcription la plus à jour (Scribe) "
                  "dans jobs/<source_job>/work/words.json. Son message est dans feedback, et history liste "
                  "TOUTES les consignes déjà données sur cette vidéo : elles restent valables sauf si feedback les contredit. "
-                 "Repars des fichiers de work/ du job parent (copie-les), ne refais que ce qui est demandé, "
+                 "Repars des fichiers de work/ du job parent (copie-les), ne refais que ce qui est demandé (si le message peut se lire de deux façons, applique la règle « Consigne ambiguë » de CLAUDE.md : question d'abord), "
                  "puis applique la skill skill-keeper pour que ce retour serve aux prochaines vidéos."),
     "style": "Job de type style. Suis la skill style-trainer.",
     "ask": ("Job de type ask : Mehdi pose une question à son équipe (champ question de job.json ; history = l'échange "
@@ -85,6 +102,8 @@ async def pretranscribe(job_dir: Path, job: dict) -> None:
         return
     if job["type"] not in ("edit", "clip"):
         return
+    if job.get("phase") == "guided" and (job_dir / "work" / "words.json").exists():
+        return  # transcription déjà faite à l'étape phrases
     srcs = sorted((job_dir / "input").glob("source.*")) or sorted(p for p in (job_dir / "input").iterdir() if p.is_file())
     if not srcs:
         return
@@ -107,6 +126,7 @@ async def pretranscribe(job_dir: Path, job: dict) -> None:
            "--model", BIG_MODEL, "--lang", lang, "--prompt", HINT, "--progress", str(plog)]
     with open(job_dir / "transcribe.log", "wb") as log:
         proc = await asyncio.create_subprocess_exec(*cmd, cwd=REPO, stdout=log, stderr=asyncio.subprocess.STDOUT)
+        PROCS[job_dir.name] = proc
         code = await proc.wait()
     with open(plog, "a") as p:
         p.write("Transcription terminée.\n" if code == 0 else f"Transcription soignée en échec (code {code}), l'équipe fera avec un modèle plus petit.\n")
@@ -134,7 +154,10 @@ async def run_job(job_dir: Path) -> int:
     if os.environ.get("CLAUDE_MODEL"):
         cmd += ["--model", os.environ["CLAUDE_MODEL"]]
     with open(job_dir / "claude.log", "wb") as log:
+        if json.loads((job_dir / "job.json").read_text()).get("stopped"):
+            return -9
         proc = await asyncio.create_subprocess_exec(*cmd, cwd=REPO, stdout=log, stderr=asyncio.subprocess.STDOUT)
+        PROCS[job_dir.name] = proc
         try:
             return await asyncio.wait_for(proc.wait(), TIMEOUT)
         except asyncio.TimeoutError:

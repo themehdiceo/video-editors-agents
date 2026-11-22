@@ -47,6 +47,19 @@ Le hook ne contient JAMAIS l'intro « bonjour, aujourd'hui avec X ». Il commenc
 - SFX : aucun mesuré. Un son très bas (≈ -36 dB) sous l'écran noir. Ne pas ajouter de whoosh. Règle prudente : si on ajoute un SFX, un seul « hit » doux sur la coupe hook → noir.
 - Au changement d'extrait du hook : la voix de l'extrait suivant démarre **sur la coupe**, sans respiration.
 
+## Règles de Mehdi (obligatoires, répétées 2 fois ou plus, bilan auto 2026-11-09)
+1. **Phrases entières, mots jamais coupés** : retour répété (202828 note 1, 120936, 152957). Chaque extrait garde tous les mots de la phrase du premier au dernier. Contrôle = `audit_cuts.py` + re-transcription du rendu, avant toute livraison.
+2. **L'image montre la chose dont on parle** (dashboard, preuve), pas celui qui parle. Le son reste continu.
+3. **Mehdi donne des numéros de phrases (`phrases.md`)** : 1 shot par numéro, ordre respecté, rien ajouté ni retiré. Ça a donné 5 étoiles (120936, 152957).
+
+## À refaire (notes 4-5, bilan auto 2026-11-09)
+- Intro ~35 s + 1,8 s de noir, 6 à 7 shots, plans image de 2 à 3,5 s en alternant plein écran / split sur les pauses, 0 titre en haut, 0 toux.
+- Ordre type validé (5 étoiles) : peur d'investir → chiffre montré sur le dashboard → 4e jour / 1re vente → remerciement final.
+- Exemples à imiter : `style/interview-v1/exemples/*.json` (120936 et 152957 = 5 étoiles).
+
+## Garde-fou issu d'une note 1 (202828)
+- Aucun rendu sans contrôle de coupes (31 bornes sur 44 étaient hors silence). Borne hors creux non vérifiée à la main : ne pas livrer.
+
 ## Retours de Mehdi (prioritaires sur tout le reste)
 
 ### Structure du hook (méthodes Hormozi et Haynes, validée par Mehdi le 2026-11-08)
@@ -85,6 +98,14 @@ Pour une pub Meta : jamais de promesse de revenus (retirer l'étape 1 chiffrée)
 3. **Autocritique obligatoire** (Mehdi, énervé) : avant de livrer, relis chaque correction demandée, vérifie-la sur la planche contact ET sur les mots de fin d'extrait, puis écris dans summary.md « vérifié : … ». Pas de « corrigé » sans preuve.
 6. **Mot soufflé inaudible** (2026-11-08, « 9der » à 26,64 s) : un mot de début d'extrait peut être 10-15 dB sous le reste (consonne douce, mot dit bas). Subtitle visible + son absent = Mehdi croit à un bug. Pour le 1er mot de chaque extrait, mesure l'énergie (astats, tranches de 10 ms) sur le rendu ; s'il est > 8 dB sous la phrase, ajoute `"boost": [[début_src, fin_src, dB]]` au shot dans plan.json (géré par `tools/hook_build.py`) et remesure.
 
+### 2026-11-08 – intro v10 (ordre validé par Mehdi)
+- **Ordre du hook : preuve d'abord** (plan Shopify dès la 1re image, avec le geste, ≥ 5 s), puis l'ouverture de Mehdi (12 000 DH → 60 000 $), puis le storytelling (peur, décision, 1re vente, conseil). Mehdi : « les preuves, c'est important ».
+- Style et règles précédentes **verrouillés** pour les vidéos interview : ne rien changer d'autre quand il demande seulement un réordonnancement.
+
+### 2026-11-08 – intro v11
+- **La peur ne s'arrête jamais sur « j'avais peur »** : après l'aveu, garde toujours le passage où l'invité est **rassuré** (« ça m'a donné la confiance », « la peur est partie avec le temps »). Peur → soulagement dans le même shot.
+- **Pas de question de Mehdi quand la réponse seule suffit** : pour la décision de quitter le salariat, on garde uniquement la réponse d'Anas (pas le bandeau/la question).
+
 ## Garde-fous (vérifiables)
 
 1. Hook entre **20 et 35 s**, idéal 25 s (retour de Mehdi, intro v2).
@@ -120,3 +141,61 @@ Pour une pub Meta : jamais de promesse de revenus (retirer l'étape 1 chiffrée)
 - 2026-11-08 (remplace le zoom ci-dessus, préféré par Mehdi) : garder la vue entière (layout "A") et cacher le nom avec une GROSSE carte à bandeau (2 lignes, size ~118, `"y": 0.21` = position verticale libre dans titles.py) qui reste tout le plan. Le téléphone bouge : le nom change de hauteur (50-260 px en 1080p). Vérifier une planche contact de CHAQUE image du plan (fps=3), pas une seule.
 - 2026-11-08 (retour Mehdi) : le plan dashboard/preuve ne doit PAS être trop court (« ça fait fake »). Minimum ~5 s, avec le geste du téléphone (« Maintenant c'est bien. Ok. ») avant le chiffre. Le dashboard n'est net que de 623 à 628,8 s dans la source : au-delà il floute puis disparaît. Avant d'allonger un plan écran, sonder la source (1 image/s) pour voir jusqu'où l'écran reste visible. La carte bandeau doit durer exactement le plan.
 - **Toux de Mehdi pendant que l'invité parle** : si Scribe ne note pas de mot mais que l'énergie audio sursaute dans un trou de la voix de l'invité, c'est la toux. Finir l'extrait sur la dernière phrase complète avant (silence à l'énergie < 150). Vérifier l'énergie (rms 50 ms) de chaque extrait avant de livrer.
+
+### 2026-11-09 – phrase sans contexte (retour de Mehdi, 00:48)
+Anas dit « le 4e jour » mais la coupe tombe avant « … on a fait la première vente » : la phrase ne veut plus rien dire. Règle : un extrait qui annonce quelque chose (« le 4e jour », « ce qui m'a fait changer… ») doit contenir sa réponse. Sinon : prolonger, ou placer la question de Mehdi juste avant, ou un autre passage complet ; et si rien ne marche, poser la question à Mehdi (`out/question.md`) AVANT de monter.
+Plus de cuts à l'image dans une même phrase (plein écran de celui qui parle ↔ écran partagé, toutes les 3-5 s, plan ≥ 2 s, son continu), mais pas trop.
+
+### 2026-11-09 – musique dans l'intro (demande de Mehdi)
+Le hook a une musique de fond : suspense discret « de conversation », pas de suspense de film, rien de hardcore (nappe piano/cordes douces, pulsation lente, sans grosses percussions, sans voix). Elle reste loin derrière la voix (volume ~0,08, baisse auto quand on parle) et s'arrête en fondu juste avant le noir final. Pas de musique pendant l'interview. Remplace la règle « pas de musique » ci-dessus pour le hook.
+**Mehdi choisit la musique lui-même** (/musique dans le bot : 3 propositions, il en choisit une). Ne mets PAS de musique de ta propre initiative : seulement celle qu'il a choisie (fichier cité dans sa consigne).
+Comment : `python3 tools/music.py "<mood de style.json>" work/music.mp3 --dur <durée du hook>` puis `python3 tools/add_music.py out/final.mp4 work/music.mp3 out/final_music.mp4 --until <début du noir>` (renomme ensuite en out/final.mp4), et ajoute `"music_after": {"file": "work/music.mp3", "volume": 0.08, "until": <s>}` dans plan.json pour le 1080p.
+
+### 2026-11-10 – musique trop faible (« j'entends pas du tout la musique »)
+`add_music.py` normalise maintenant la musique avant de la mixer : volume standard **0,3** (environ 12-15 dB sous la voix, la voix reste claire), baisse légère sous la voix (ratio 3), départ 1 s après le début (`delay: 1`). `hook_build.py` repose la musique de `music_after` à CHAQUE rendu : ne l'enlève jamais en refaisant un montage.
+
+### 2026-11-10 – « garde le format YouTube » (puis « ils zooment trop dans la tête »)
+Chaque plan doit remplir tout l'écran 16:9 : PAS de bande verticale avec du flou sur les côtés. Mais les tuiles de l'appel vidéo sont presque carrées (~1450x1400). Pour remplir le 16:9 avec une seule personne, il faut couper ~40 % de la hauteur. Résultat : front et menton coupés, et un zoom qui saute à chaque passage solo ↔ split. Mehdi a refusé les deux (bande floue ET zoom serré).
+→ Pour ces sources : **split 50/50 sur tous les plans** (têtes entières, même cadrage partout). Le seul plein écran autorisé est la preuve (dashboard). Le rythme vient des coupes son/phrases, pas des changements de cadre. Ne réponds jamais « c'est déjà en 16:9 » : regarde la planche contact.
+### 2026-11-10 – « garde le format YouTube »
+Un fichier 1920x1080 ne suffit pas : **chaque plan doit remplir tout l'écran 16:9**. Les sources (appel vidéo) sont des tuiles verticales : un plan « une seule personne » rendu en bande verticale avec du flou sur les côtés est perçu comme du vertical → refusé. Pour un plan solo : recadre en 16:9 sur le visage (zoom, yeux au tiers haut), sans bords flous. Si le zoom rend l'image trop floue, utilise le split 50/50. Le dashboard (écran de téléphone) peut garder un fond flou. Ne réponds jamais « c'est déjà en 16:9 » : regarde la planche contact et cherche les bandes verticales.
+Si Mehdi cite un fichier `assets/music/choix-….mp3` : pas de music.py, utilise-le tel quel (add_music.py + `music_after.file` = ce chemin). `until` = durée de la vidéo − 1,8 s de noir.
+Sinon : `python3 tools/music.py "<mood de style.json>" work/music.mp3 --dur <durée du hook>` puis `python3 tools/add_music.py out/final.mp4 work/music.mp3 out/final_music.mp4 --until <début du noir>` (renomme ensuite en out/final.mp4), et ajoute `"music_after": {"file": "work/music.mp3", "volume": 0.08, "until": <s>}` dans plan.json pour le 1080p.
+### 2026-11-09 – intro v3 (7 nouveaux extraits imposés, retour Mehdi)
+- Mehdi donne ses phrases en darija latine, mais la source est en arabe/français : elles ne sont JAMAIS mot pour mot. Chercher le passage au SENS dans `dump_words.py`, le garder en entier, et lister dans le résumé ce qui diffère (jamais inventer un texte).
+- Une phrase attribuée à Anas peut être dite par Mehdi dans la source (ex. « C'est bon… 17 521,50 »). Vérifier le locuteur, le dire dans le résumé.
+- Plan = généré par script (ranges + `views` calculées sur les pauses entre mots : plans 2,2-5,3 s, alternance plein écran/split). Les timestamps Scribe dérivent parfois de ~0,7 s : sonder l'énergie (`tools/rms_probe.py`) pour les bornes « PAS DE CREUX » et les mettre en `"exact"`.
+- Le bandeau Shopify reste (nom de boutique lisible sinon), même avec « pas de titre en haut » : ce dernier vise les titres d'intro.
+
+### 2026-11-08 – intro v12 (retour Mehdi : « donne plus confiance dans ses réponses »)
+- **Les réponses de l'invité font la confiance** : garder les moments émotionnels ET les phrases clés, sans perdre le contexte d'intro (preuve, promesse, question). Pas de coupe sèche qui ne garde que le chiffre.
+- Pour la 1re vente : garder la raison (l'invité remercie le système / l'accompagnement) avant « pilote / copilote » et « 4e jour ».
+- Après la peur rassurée : ajouter la phrase de mindset (« la peur de rester où tu es > la peur d'échouer », dite par Mehdi, validée par « Exactement »). Vérifier QUI dit la phrase avant de l'attribuer.
+- Durée : la règle 20-35 s cède quand Mehdi demande plus de réponses fortes ; v12 = 60 s. Proposer de raccourcir dans le résumé.
+- Outil : `"join": [index_range]` dans un shot de plan.json garde la phrase de sous-titres continue sur deux ranges.
+- **Mots coupés = bug de pipeline, priorité 1 (2026-11-08)** : les timestamps Scribe dérivent de 0,1-0,3 s ; couper dessus coupe des mots. `tools/hook_build.py` recale maintenant chaque borne sur un creux d'énergie (snap, rapport `work/snap_report.txt`). Bornes « PAS DE CREUX » = parole continue : les vérifier à la main (décaler à la fin d'une phrase).
+- **Boucle de contrôle obligatoire avant de livrer** : (1) `python3 tools/audit_cuts.py work/plan.json work/words.json`, (2) re-transcrire le rendu (`tools/transcribe.py out/final.mp4 work/check.json --engine scribe`, puis `dump_words.py`) et lire : chaque phrase doit avoir un sens complet, début et fin. Corriger puis relancer. Ne jamais livrer sans.
+- **Contexte cassé = ranges qui sautent un morceau de phrase (2026-11-08)** : les timestamps seuls ne suffisent pas, il faut lire le SENS. Cas réel : « Donc b7al nta le pilote w ana le copilote » avait perdu « b7al nta » car la coupe tombait à 243,76 puis reprenait à 245,58. Règle : quand deux ranges sont séparés de moins de ~2 s dans la source (ex. 243,76 → 245,58), les recoller en un seul sauf si la partie sautée est un vrai bégaiement. Lors de la relecture du check.txt, chaque jonction doit se lire comme une phrase de la source, pas comme une phrase tronquée. Contrôler aussi les références (« daksi », « had l9dya ») : si le mot auquel elles renvoient est coupé, ajouter le passage ou changer d'extrait.
+
+### 2026-11-09 – intro par numéros de phrases (retour 152957)
+- Quand Mehdi donne des numéros de `out/phrases.md` : 1 shot par phrase (ou une paire contiguë en un range), dans l'ordre donné, bornes = début/fin de `phrases.json`. Locuteur : `speaker_0` = Mehdi (tuile M), `speaker_1` = Anas (tuile A).
+- « Commence à tel mot » : mettre la borne en `"exact"` 0,03 s avant le mot (le snap a avalé « vraiment » sinon). Fin d'une phrase suivie d'une autre voix collée (« Good » après 17 521,50) : `"exact"` aussi, vérifié par re-transcription.
+- `tools/audit_cuts.py` plante sur les ranges `"exact"` (3e valeur chaîne) : se fier à la re-transcription du rendu.
+
+### 2026-11-09 – chiffres : montrer le dashboard, pas Mehdi (retour 153614)
+- Quand Mehdi (tuile M) lit un chiffre que l'interviewé montre à l'écran (« Last 12 hours 17 521,50 »), l'IMAGE = tuile de l'interviewé (A, qui tient le dashboard), le SON reste celui de Mehdi : `layout: "A"` sur ce shot. Règle générale : l'image montre la chose dont on parle, pas celui qui parle.
+- Si Mehdi demande de « remplacer » un passage Q/R qui n'est pas dans l'intro (ex. « tu as quitté le salariat ? »), vérifier d'abord le plan : ne rien inventer, le dire dans le résumé.
+
+### 2026-11-09 – fin d intro : question + réponse (retour 154345)
+- « Remplacer le remerciement » = retirer 221+222 et finir par la question de Mehdi (234 « Tu penses fouqach tu peux quitter ? », image M) puis la réponse entière de l interviewé (236, image A puis split vers la fin). Phrases entières, jamais coupées. Le numéro de phrase donné par Mehdi prime : retrouver les bornes dans work/phrases.json du job source.
+
+### 2026-11-09 – cacher une marque à l'écran (retour 160308)
+- Quand l'interviewé montre un dashboard avec le nom de sa marque (ex. « BenzSkin »), le cacher : `masks` dans le shot du plan (`[[x, y, w, h, "TEXTE"]]`, pixels SOURCE ; aplat gris foncé + texte court blanc, ex. « BOUTIQUE »). Géré par `tools/hook_build.py`. Source 3024x1964 : la marque est à x≈190-570 sur le dashboard de la tuile A.
+- **Le téléphone BOUGE** (la marque se déplace de y≈470 à 800 en 4 s) : un masque fixe rate la marque (retour de Mehdi : « ca doit pas apparaitre du tout »). Toujours un masque SUIVI : `python3 tools/track_mask.py source.mov t0 t1 --out work/masks.json` (suit le haut de la carte claire, la marque est juste au-dessus) puis coller la liste dans `masks` (entrées à 7 valeurs avec temps source). Vérifier une planche à 5 images/s sur tout le plan : zéro image où la marque se voit.
+- Le masque se pose avant le recadrage : il couvre la marque dans tous les plans du shot. Toujours le faire sans qu'on le redemande quand une marque/nom d'interviewé client est lisible.
+- hook_build ne pose PAS la musique : relancer `tools/add_music.py` avec `music_after` après chaque rendu.
+
+### 2026-11-10 – plans solo : plein cadre 16:9, jamais de bandes floues (retour 062022)
+- Mehdi veut des plans solo qui REMPLISSENT le 16:9 : pas de tuile verticale sur fond flou. Dans plan.json : `"fill": true` (géré par `tools/hook_build.py`) = zoom sur une bande 16:9 de la tuile (≈1,3x sur la source 3024 px, net en 1080p). Réglage vertical `fy` (0 haut → 1 bas) par tuile ou par shot : 0,3 pour les visages, 0,5 pour le dashboard (chiffres visibles).
+- Le front est un peu rogné (la tuile Meet est presque carrée) : normal. Si un zoom devient trop flou, garder le `split`.
+- Le format reste TOUJOURS 16:9 1920x1080. Ne jamais produire de vertical pour un YouTube.

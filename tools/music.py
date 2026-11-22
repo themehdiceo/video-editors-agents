@@ -38,6 +38,8 @@ def elevenlabs(prompt: str, dur: float, out: str) -> bool:
 
 def library(prompt: str, out: str) -> bool:
     lib = os.path.join(ROOT, "assets", "music")
+    if not os.path.isdir(lib):
+        return False
     files = [f for f in os.listdir(lib) if f.lower().endswith((".mp3", ".wav", ".m4a", ".ogg"))]
     if not files:
         return False

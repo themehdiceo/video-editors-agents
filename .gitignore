@@ -12,3 +12,6 @@ private/
 .vps-host
 kit-pixar-v1/
 etat/
+assets/music/*.mp3
+assets/music/*.m4a
+assets/music/*.wav

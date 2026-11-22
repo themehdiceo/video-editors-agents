@@ -14,6 +14,8 @@ Types de job :
 | `script` | un lien (article, vidéo, page produit) | `short-script` | `out/script.md` |
 | `edit` (phase `build`, par défaut) | une vidéo brute, ou le plan validé par Mehdi | `short-editor` | `out/final.mp4` |
 | `edit`, phase `plan` (« mode plan » dans le prompt) | une vidéo brute | `edit-plan` | `out/plan.md` (Mehdi choisit les scènes) |
+| `edit`, phase `phrases` (« mode guidé ») | une vidéo | `tools/phrases.py` + darija latine | `out/phrases.md` (liste numérotée, Mehdi choisit) |
+| `edit`, phase `guided` | les numéros choisis par Mehdi (`picks`) | `short-editor`, phrases imposées | `out/final.mp4` |
 | `clip` | une vidéo longue (fichier ou lien YouTube) | `long-to-short` | `out/final.mp4` (+ `out/clip_2.mp4`… si demandé) |
 | `style` | 2 à 5 vidéos de référence | `style-trainer` | `style/<nom>/STYLE.md` + résumé |
 | `feedback` | un retour sur un rendu précédent | skill du job d'origine, puis `skill-keeper` | nouvelle version + mise à jour des skills |
@@ -28,6 +30,10 @@ Types de job :
 - **Budget temps** : un montage doit arriver en moins de 45 min. Ne relance pas de transcription complète (le bot l'a faite). Si une phrase de la note reste introuvable après 10 min, prends le meilleur passage proche et note-le dans le résumé : Mehdi corrigera.
 - Termine toujours par `jobs/<id>/out/summary.md` : 3 à 6 lignes sur ce que tu as fait et ce qui reste douteux.
 - **Coupes** : décide-les avec la transcription ET la forme d'onde (`tools/silences.py`). Une coupe ne tombe jamais au milieu d'un mot, ni au milieu d'une phrase : chaque extrait garde une idée complète.
+- **Fins de phrase (erreur grave, 10/11)** : une borne se choisit TOUJOURS dans `words.json` mot à mot (Scribe d'origine, darija + français, jamais une version traduite ni un résumé par tours : leurs lignes longues sont tronquées et cachent la fin de la phrase). Avant tout rendu, lance `python3 tools/check_phrases.py work/words.json work/keep.json` sur les extraits choisis : il montre les mots juste après chaque coupe et échoue si une phrase est coupée (« c'est la… » sans « continuité »). Un échec bloque le rendu : corrige la borne. Un `--allow` n'est permis que si l'idée est complète, et se note dans la fiche.
+- **Témoignage = conversation** : garde les questions de Mehdi avant chaque réponse (il parle, l'invité répond). Ne supprime pas ses questions pour gagner du temps.
+- **Contexte (règle n° 1 de Mehdi)** : relis chaque extrait SEUL. S'il ne veut rien dire sans la suite (ex. « le 4e jour… » sans « on a fait la première vente »), alors : 1) prolonge jusqu'à la fin de l'idée, ou 2) mets juste avant la question de Mehdi qui l'amène (« chhal dl weqt jbna awl mabi3a ? ») pour que la réponse soit claire, ou 3) prends un autre passage qui dit la même chose en entier. Si aucune des trois ne marche : NE MONTE PAS. Écris `out/question.md` (2-3 lignes : le problème, 2 options avec minutage) et arrête-toi sans vidéo ni summary.md ; le bot lui envoie ta question et sa réponse relance le montage.
+- **Consigne ambiguë** : si un message de Mehdi peut se lire de deux façons (ex. « remplace ça par le remerciement » : quoi remplace quoi ?), ne devine pas. Écris `out/question.md` avec les deux lectures numérotées (1 ou 2, en une ligne chacune) et arrête-toi sans vidéo. Il répond « 1 » ou « 2 ». Une question coûte 1 min, un mauvais montage 20 min.
 - **Toux et bruits** : `work/words.json` liste les toux dans `events` (Scribe). Enlève-les : coupe entre deux phrases, ou coupe la voix avec `"mute"` dans plan.json.
 - **Contrôle qualité** : avant de livrer, regarde la planche contact (`tools/frames.py`). Lis l'image. Corrige ce qui ne va pas.
 - Livre toujours un brouillon 480p et garde `work/plan.json` rejouable : le bot s'en sert pour le rendu final 1080p.
@@ -39,6 +45,10 @@ Types de job :
 - Pas de clé API dans le code ni dans les logs. Les secrets sont dans les variables d'environnement.
 - Si un outil échoue (téléchargement bloqué, API indisponible), utilise une alternative et note-le dans le résumé. Ne t'arrête pas.
 
+## 1 vidéo = 1 chat (forfait, règle Mehdi 2026-11-20)
+- Chaque message relit tout le chat. Un chat neuf par vidéo ou par sujet. Passé 150 tours, le hook `tools/chat_long.py` le rappelle : écris `work/reprise.md` (consignes, minutages, plan.json, style, reste à faire), puis propose un chat neuf à Mehdi.
+- Connecteurs inutiles au montage bloqués dans `.claude/settings.json` (deny). Pour en rebrancher un, retire sa ligne.
+
 ## Exécution sans surveillance (important)
 
 Personne ne peut valider une commande pendant un job. Pour que rien ne soit bloqué :
@@ -49,6 +59,8 @@ Personne ne peut valider une commande pendant un job. Pour que rien ne soit bloq
 - **Commande refusée** (« The user doesn't want to proceed… ») : ce n'est PAS Mehdi, c'est la liste des commandes autorisées. Ne t'arrête jamais pour ça : reformule et continue.
 - Commandes shell autorisées : `ffmpeg`, `ffprobe`, `yt-dlp`, `python3 tools/…`, `ls`, `head`, `tail`, `cp`, `wc`, `mkdir -p jobs/…`, `git` (skills). Si une commande est refusée, reformule-la ainsi. Ne demande jamais d'autorisation : personne ne répondra.
 - Le bot transcrit la vidéo AVANT de te lancer (ElevenLabs Scribe si la clé existe, sinon Whisper large-v3-turbo) : `work/words.json` existe déjà. Avec Scribe, chaque mot a un champ `speaker` (qui parle) : sers-t'en pour l'alternance A/B. Utilise-le, ne retranscris pas. S'il manque, lance `python3 tools/transcribe.py … --model large-v3-turbo --lang ar` au premier plan avec un timeout de 600000 ms.
+- **Transcription sur le Mac (règle Mehdi 2026-11-18, ne jamais l'oublier)** : TOUJOURS ElevenLabs Scribe, jamais Whisper (mauvais en darija). Clé dans `~/.video-editors-agents.env`. Commande : `set -a; . ~/.video-editors-agents.env; set +a; .venv/bin/python tools/transcribe.py <audio.opus> <out.json> --engine scribe` (audio extrait en opus mono 48k, piste 0:a:0 de l'original).
+- **Mise à jour 2026-11-18 (choix de Mehdi)** : ElevenLabs trop cher / clé refusée → **Gemini** (`GEMINI_API_KEY` dans ~/.claude/secrets.env, gemini-3.8-flash) pour transcrire et pour réécouter chaque montage avant livraison (`style/complet-v1/templates/faq/gemini_check.py`). Minutages Gemini approximatifs : couper sur la forme d'onde.
 - **Darija** : la transcription peut être en lettres arabes, avec des mots français. C'est normal. Lis-la, comprends-la, et réécris toi-même les sous-titres en darija latine (« kifach », « 3ndek ») en gardant les horodatages des mots. Les phrases citées dans la note t'aident à retrouver les bons passages.
 - **« intro seulement »** dans la note : ne monte et ne rends que l'intro (hook). Livraison rapide, Mehdi valide avant la suite.
 - **Ne bloque jamais sans livrable.** Si la transcription est douteuse, livre quand même le meilleur brouillon possible (passages choisis à l'image et au son, sous-titres, preuve à l'écran) et liste les doutes dans le résumé. Mehdi corrigera en répondant au rendu.
@@ -67,6 +79,7 @@ Personne ne peut valider une commande pendant un job. Pour que rien ne soit bloq
 | `flicker_check.py video` | clignotements hors coupe (0 attendu avant livraison) |
 | `analyze_refs.py video dossier/` | analyse image par image d'une vidéo de référence : coupes/min, durée des plans, couleurs, planches 1re/dernière image de chaque plan |
 | `find_media.py "requête" dossier/ [--video]` | vraies images et vidéos libres (Openverse, Wikimedia, Pexels) + crédits |
+| `add_music.py video.mp4 music.mp3 out.mp4 --until 35` | pose une musique sous un rendu déjà fait (hook_build.py…), baisse auto sous la voix, fondu ; mets `music_after` dans plan.json pour le 1080p |
 | `music.py "ambiance" out.mp3 --dur 60` | musique de fond (ElevenLabs si clé, sinon bibliothèque `assets/music/`) |
 
 Style par défaut : `style/style.json`. C'est la mémoire du goût de Mehdi. Le `skill-keeper` le met à jour après chaque retour.
@@ -75,11 +88,28 @@ Style par défaut : `style/style.json`. C'est la mémoire du goût de Mehdi. Le 
 - Si la note dit « style <nom> », lis `style/<nom>/STYLE.md` et applique `style/<nom>/style.json` par-dessus `style/style.json`. Respecte ses garde-fous chiffrés.
 - Si la note ne nomme aucun style : une seule personne face caméra → `solo-v1` ; deux personnes, interview ou témoignage → `interview-v1` (si le dossier contient un STYLE.md). Dis dans le résumé quel style tu as pris.
 - Les retours de Mehdi sur une vidéo montée avec un style modifient ce style (`style/<nom>/STYLE.md`), pas les règles générales.
+- Reel histoire animée Pixar (9:16, darija ; note « Pixar », « histoire animée », « comme Anas ») → `style/pixar-story-v1/STYLE.md` + `style/pixar-story-v1/feedback-video.md`, outils `tools/pixar/`. Validé à 100 % par Mehdi le 2026-11-16 (pub Anas v7). Ses règles de voix priment sur les défauts verrouillés : voix TTS jamais débruitée, étirée ni rognée, seule sa position bouge.
+
+- **« montage complet v1 »** (ou « montage complet ») dans la note → `style/complet-v1/STYLE.md` (validé à 100 % le 2026-11-18) : coupes, sous-titres darija, zooms ×1,08, cartes motion à côté de la tête + écrans noirs animés HyperFrames, musique calée sur sa voix (12-14 dB dessous), flou des données privées, 1080p Bunny. Applique tout sans demander.
+- **Reel / vidéo courte 9:16 (Instagram, TikTok, Facebook) face caméra** → SOP unique du coffre `Claude/Livrables/sop-videos-courtes/SOP-videos-courtes.md` (Mac : /Users/pro/Documents/Obsidian Vault/… · VPS : /root/vault/…), section 5 = montage complet v1 adapté en 9:16 (zone sûre, cartes sous le menton). Ne pas recopier ce SOP ici.
+
+- VSL / face caméra de Mehdi avec motion (note « VSL », « lead magnet », « motion ») → `style/vsl-v1/STYLE.md` (validé à 2000 % le 2026-11-16). Ses règles voix (MP3 CapCut de Mehdi, non retouché) et zooms ×1,08 priment sur les défauts verrouillés.
 
 ## Vraies images, pas d'images générées
 - Le B-roll vient de vraies sources : fichiers de Mehdi, captures de la vidéo elle-même, `tools/find_media.py` (Openverse, Wikimedia Commons, Pexels si clé), yt-dlp. Jamais d'image générée par IA sauf si Mehdi le demande.
 - Chaque média externe est noté dans `work/credits.json` ; résume les crédits à donner en description dans `out/credits.md`.
 - Montre la chose dont on parle, au mot près. Les jeux de mots visuels sont bienvenus (« fuite » → robinet qui goutte).
+
+## Défauts verrouillés de Mehdi (2026-11-10) — s'appliquent à chaque vidéo sans qu'il le demande
+- Voix nettoyée : `afftdn=nf=-25` puis `loudnorm=I=-14:TP=-1.5:LRA=11`. Voix toujours devant la musique.
+- Sous-titres sur toute la vidéo (interview comprise) : style de `style/interview-v1/style.json` (blanc, mots-clés verts 1FBF6F en italique, phrase qui se construit).
+- Police VERROUILLÉE : **Avenir Next Heavy** (choisie par Mehdi le 2026-11-10). Ne jamais en changer sauf s'il demande un test. Police système Mac (Avenir Next.ttc) : absente sur Linux/VPS, donc le rendu avec sous-titres se fait sur le Mac.
+- Musique : sous l'intro/hook avec `tools/add_music.py --volume 0.5` (baisse auto sous la voix, ratio 3).
+- Ces défauts priment sur les anciennes règles « 0 sous-titre / pas de musique » de STYLE.md.
+
+## Après validation de l'aperçu final (règle de Mehdi, 2026-11-17)
+- Dès que Mehdi a validé l'aperçu final (celui qu'il publie), mets à la Corbeille tous les aperçus et brouillons de cette vidéo (480p « a valider », v2…vN). Par défaut, sans lui demander. Corbeille seulement, jamais de suppression définitive.
+- Garde toujours la finale validée et TOUS les originaux (rushs bruts, audio CapCut, photos, sources des témoignages) : ils servent à refaire d'autres montages. Rangement : ~/Desktop/Profit Partners Capital/09 Sources vidéo brutes.
 
 ## Pubs Pixar (kit validé par Mehdi, 20/11)
 Pour toute vidéo « Pixar », « histoire animée » ou « comme Anas » : lis d'abord le dossier `kit-pixar-v1/` du coffre Obsidian
