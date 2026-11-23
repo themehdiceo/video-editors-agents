@@ -43,7 +43,7 @@ def main() -> None:
         "kit-pixar-v1/2-style/temps-forts.md. Écris l'histoire AUTOUR de ces 4 moments (le moule ne change pas) ; la preuve P doit "
         "répondre à l'incident I (même objet, même personne ou même lieu). Applique aussi kit-pixar-v1/2-style/storytelling-v2.md "
         "(G1-G6 + V1-V4 validés ; la phrase de changement V3 est nouvelle à chaque histoire). Écris « temps_forts: I.. C.. R.. P.. » "
-        "dans chaque histoire et dans sa ligne du registre. "
+        "dans chaque histoire et dans sa ligne du registre, + « grille: N » (le N de la banque) dans le frontmatter. Darija : kit-pixar-v1/2-style/darija-pixar.md. Chaque plan a une colonne « Logique du lieu ». Jamais une phrase reprise d'une autre histoire. "
         "Passe leur statut à « écrite ». Histoire ≤ 42 s + fin 3 s, ICP salarié frustré, dialogues en darija, "
         "règles fixes du kit (README). VARIÉTÉ OBLIGATOIRE : lis kit-pixar-v1/2-style/matrice-histoires.md et "
         "kit-pixar-v1/2-style/registre-histoires.md. Chaque histoire prend une case nouvelle (métier × douleur × objection × raison "
