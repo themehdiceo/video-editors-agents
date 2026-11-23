@@ -21,7 +21,7 @@ REPONDRE = "Réponds dans Claude (ou en répondant à ce message) en texte libre
 PIXAR = VAULT / "Claude/Livrables/pixar-nuit"
 VALIDEES = PIXAR / "histoires-validees"
 RESULTATS = PIXAR / "resultats"
-PAR_NUIT = 2  # Mehdi 2026-11-23 12h : 2 Pixar par jour (10h00, 18h30), moule du prof v3, sans OK à chaque fois (veto « stop »)
+PAR_NUIT = 1  # Mehdi 2026-11-23 12h27 : 1 Pixar par jour (10h00), moule du prof v3, sans OK à chaque fois (veto « stop »)
 BUDGET = 140  # crédits max pour la vidéo (Seedance 2.0 720p ≈ 6 clips × 22,5) ; planche ≈ 25 cr
 GEL = ETAT / "pixar-gel"  # fichier présent = automatique gelé (Mehdi valide d'abord un Pixar test)
 
