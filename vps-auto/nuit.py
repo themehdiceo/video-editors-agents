@@ -28,7 +28,7 @@ LIRE_KIT = (
     "(section Garde-fous), kit-pixar-v1/1-reglages/reglages-defaut.json (OBLIGATOIRE), kit-pixar-v1/2-style/lecons.md "
     "(une correction déjà faite ne revient JAMAIS), la skill anthropic-skills:montage-video-mehdi, puis kit-pixar-v1/README.md, "
     "kit-pixar-v1/2-style/STYLE.md, kit-pixar-v1/2-style/feedback-video.md, kit-pixar-v1/4-voix/REGLES-VOIX.md, kit-pixar-v1/5-banque-pixar/INDEX.md. "
-    "Écrans de téléphone/chat TOUJOURS en français ou darija (jamais en anglais). Interdits : histoire écrite ou coupée pour économiser des crédits (budget insuffisant = arrête-toi et écris-le dans resultat.md), "
+    "Darija : kit-pixar-v1/2-style/darija-pixar.md OBLIGATOIRE (Casablanca de la rue, « les clients », jamais un mot rare). Chaque plan respecte sa colonne « Logique du lieu » (objets du métier, personne debout sur un meuble, geste réaliste) : vérifie-le sur la planche, refais l'image sinon. Écrans de téléphone/chat TOUJOURS en français ou darija (jamais en anglais), en lien avec l'histoire. Interdits : histoire écrite ou coupée pour économiser des crédits (budget insuffisant = arrête-toi et écris-le dans resultat.md), "
     "personnage en image fixe, version au rabais. Les chemins « banque-pixar/ » et « tools/pixar/ » du kit = kit-pixar-v1/5-banque-pixar/ et kit-pixar-v1/6-outils/. "
     "N'utilise JAMAIS mapwarp.py. Voix : kit-pixar-v1/4-voix/tts-boucle.py (Gemini, jamais de voix clonée, aucun traitement)."
 )
