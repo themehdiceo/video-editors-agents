@@ -128,8 +128,8 @@ def lancer_claude(job_dir: Path, prompt: str, budget: float, timeout_s: int = 3 
                   outils: list[str] = ()) -> int:
     """claude -p à la racine du dépôt (agents, skills et kit du dépôt), plafond crédits par hooks."""
     # Règle Mehdi 20/11 : annoncer quoi + durée + coût AVANT, résultat à la fin (fait par l'appelant).
-    tg_texte(f"▶️ Je commence : {quoi or job_dir.name} · durée estimée ≈ {minutes} min · "
-             f"coût estimé ≤ {budget:g} crédits ({budget * 0.017:.2f} $)")
+    # Mehdi 2026-11-23 : Telegram = seulement le résultat utile (quoi, décision, coût). Le reste va au journal.
+    journal(f"début : {quoi or job_dir.name} · ≈ {minutes} min · ≤ {budget:g} cr")
     s = secrets()
     env = {k: v for k, v in os.environ.items() if k != "CLAUDE_CODE_OAUTH_TOKEN"}
     env.update(GEMINI_API_KEY=s.get("GEMINI_API_KEY", ""), JOB_DIR=str(job_dir), CREDITS_JOB_MAX=str(budget),

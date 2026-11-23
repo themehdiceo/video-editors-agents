@@ -124,14 +124,14 @@ def faire_planche(h: Path, test=False, extra="", auto=False) -> bool:
     planche = job / "out/planche.jpg"
     if not planche.exists():
         journal(f"planche ratée pour {h.name} ({job.name})")
-        boite_matin(f"⚠️ Planche ratée : {h.stem}. Journal : {job}/claude.log")
+        boite_matin(f"⚠️ Pixar « {frontmatter(h).get('titre') or h.stem} » : images ratées, rien publié.")
         return False
     RESULTATS.mkdir(parents=True, exist_ok=True)
     copie = RESULTATS / f"{h.stem}-planche.jpg"
     shutil.copy(planche, copie)
     maj_frontmatter(h, planche=str(copie), job_planche=str(job), ok2="oui" if test or auto else "non")
     if not test and not auto:
-        boite_matin(f"🖼️ Planche prête : {h.stem}\n{lire(job / 'out/resultat.md')}\n\nOK n°2 ? {REPONDRE}", str(planche))
+        boite_matin(f"🖼️ Images prêtes : {frontmatter(h).get('titre') or h.stem}. OK pour la vidéo ? Réponds « ok » ou ce qu'il faut changer.", str(planche))
     return True
 
 
@@ -144,7 +144,7 @@ def faire_video(h: Path, budget=BUDGET, extra="", file=True) -> bool:
     ok, ctl = controle(job) if video.exists() else (False, "vidéo absente")
     if not ok:
         journal(f"vidéo ratée ou contrôle KO pour {h.name} ({job.name})")
-        boite_matin(f"⚠️ Vidéo Pixar pas livrable (contrôle bloquant) : {h.stem}\n{ctl}\nJournal : {job}/claude.log")
+        boite_matin(f"⚠️ Pixar « {fm.get('titre') or h.stem} » pas assez bon au contrôle, rien publié.")
         maj_frontmatter(h, video="ratee", job_video=str(job))
         return False
     RESULTATS.mkdir(parents=True, exist_ok=True)
@@ -156,13 +156,15 @@ def faire_video(h: Path, budget=BUDGET, extra="", file=True) -> bool:
     quand = publier.file_attente(video, titre, legende) if file and "PLACE" in legende else None
     if quand:
         maj_frontmatter(h, instagram=quand)
-        ig = (f"📅 Part sur Instagram le {quand} (heure du Maroc), @themehdiceo en collab @profitpartnerscapital + @mehdiceotalks, "
-              f"sauf si tu dis « stop ».\nLégende :\n{legende}")
+        ig = f"Part le {quand} sur Instagram, sauf si tu réponds « stop »."
     else:
-        ig = ("🧪 TEST : pas mis en file, Mehdi valide d'abord." if not file else
-              "⚠️ PAS mis en file Instagram (légende absente ou envoi raté) : à mettre à la main dans l'admin → Publier.")
-    boite_matin(f"🎬 Pixar prêt : {h.stem}\n{ig}\n\n{ctl}\n{lire(job / 'out/resultat.md')}\n{lire(job / 'out/cout.md')}\n\n"
-                f"OK n°3 (Bunny) ? {REPONDRE} Refus : dis quels plans jeter.", str(video))
+        ig = ("Test : regarde-le et réponds « ok » ou ce qu'il faut changer." if not file else
+              "⚠️ Pas mis en file Instagram (envoi raté).")
+    cout = lire(job / "out/cout.md")
+    import re as _re
+    tot = _re.findall(r"Total[^|]*\|[^|]*\|\s*\**([\d,.]+)", cout)
+    cr = f" · {tot[-1]} crédits" if tot else ""
+    boite_matin(f"🎬 {titre}{cr}\n{ig}", str(video))
     return True
 
 
