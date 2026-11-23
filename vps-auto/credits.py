@@ -2,7 +2,7 @@
 """Plafond de crédits Higgsfield : 750 / semaine (lundi→dimanche, heure du Maroc). Jamais d'achat.
 
 Branché en hook sur chaque génération Higgsfield (claude-settings.json) :
-  credits.py avant   (PreToolUse)  -> estime le coût, BLOQUE si semaine > 750 ou job > CREDITS_JOB_MAX, prévient Mehdi
+  credits.py avant   (PreToolUse)  -> estime le coût, BLOQUE si semaine > PLAFOND ou job > CREDITS_JOB_MAX, prévient Mehdi
   credits.py apres   (PostToolUse) -> ajoute l'estimation au compteur
   credits.py etat                  -> affiche le compteur de la semaine
   credits.py test                  -> auto-contrôle
@@ -14,7 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from commun import ETAT, journal, maintenant, tg_texte
 
-PLAFOND = 750
+PLAFOND = 1500  # Mehdi 2026-11-23 : 3 Pixar/jour en Kling (21 × ≈ 70 cr)
 DOLLAR = 0.017  # 1 crédit Ultra
 FICHIER = ETAT / "credits.json"
 TAUX_VIDEO = {"kling_4_0_flash": 1.5, "kling3_0_turbo": 1.5, "wan2_6": 1.5, "minimax_hailuo": 1.0, "grok_video_v15_lite": 1.0}

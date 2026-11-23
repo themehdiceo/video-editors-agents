@@ -19,8 +19,8 @@ REPONDRE = "Réponds dans Claude (ou en répondant à ce message) en texte libre
 PIXAR = VAULT / "Claude/Livrables/pixar-nuit"
 VALIDEES = PIXAR / "histoires-validees"
 RESULTATS = PIXAR / "resultats"
-PAR_NUIT = 2
-BUDGET = 50  # crédits max par Pixar : 2 par nuit x 7 = 700 ≤ 750 (Mehdi 20/11)
+PAR_NUIT = 3  # Mehdi 2026-11-23 : 3 Pixar par jour, postés seuls à 10h, 16h, 20h
+BUDGET = 70  # crédits max pour la vidéo (Kling 4.0 Flash ≈ 47 cr) ; planche ≈ 25 cr ; 21/semaine ≈ 1 500 cr
 
 LIRE_KIT = (
     "Lis d'abord, dans cet ordre : kit-pixar-v1/3-exemple-prof-v3/README.md + structure.md (modèle OBLIGATOIRE, un moule : "
@@ -28,14 +28,14 @@ LIRE_KIT = (
     "(section Garde-fous), kit-pixar-v1/1-reglages/reglages-defaut.json (OBLIGATOIRE), kit-pixar-v1/2-style/lecons.md "
     "(une correction déjà faite ne revient JAMAIS), la skill anthropic-skills:montage-video-mehdi, puis kit-pixar-v1/README.md, "
     "kit-pixar-v1/2-style/STYLE.md, kit-pixar-v1/2-style/feedback-video.md, kit-pixar-v1/4-voix/REGLES-VOIX.md, kit-pixar-v1/5-banque-pixar/INDEX.md. "
-    "Interdits : histoire écrite ou coupée pour économiser des crédits (budget insuffisant = arrête-toi et écris-le dans resultat.md), "
+    "Écrans de téléphone/chat TOUJOURS en français ou darija (jamais en anglais). Interdits : histoire écrite ou coupée pour économiser des crédits (budget insuffisant = arrête-toi et écris-le dans resultat.md), "
     "personnage en image fixe, version au rabais. Les chemins « banque-pixar/ » et « tools/pixar/ » du kit = kit-pixar-v1/5-banque-pixar/ et kit-pixar-v1/6-outils/. "
     "N'utilise JAMAIS mapwarp.py. Voix : kit-pixar-v1/4-voix/tts-boucle.py (Gemini, jamais de voix clonée, aucun traitement)."
 )
 CREDITS = (
     "Crédits Higgsfield : budget {b} crédits MAX pour ce Pixar (bloqué automatiquement au-delà), plafond 750/semaine. "
     "Prends les plans les moins chers : plans de kit-pixar-v1/5-banque-pixar/plans/ = 0 crédit, images animées pour les plans calmes, "
-    "Seedance 2.0 720p 5 s max SEULEMENT pour action/dialogue. Vérifie avec estimate_video_cost / estimate_image_cost avant. "
+    "Clips vidéo en Kling 4.0 Flash (model kling_4_0_flash, 720p, 9:16, 5 s ≈ 7,5 cr) par défaut (Mehdi 2026-11-23) ; Seedance seulement si Mehdi le demande. Vérifie avec estimate_video_cost / estimate_image_cost avant. "
     "Jamais d'achat de crédits. Écris le coût réel dans {j}/out/cout.md : crédits ET dollars (1 cr = 0,017 $)."
 )
 
@@ -62,8 +62,8 @@ def prompt_planche(h: Path, job: Path, extra: str = "") -> str:
 def prompt_video(h: Path, job: Path, planche: str, budget: int = BUDGET, extra: str = "") -> str:
     return (f"Pixar de nuit, étape VIDÉO. Histoire : {h}. Planche validée (OK n°2) : {planche} "
             f"(voix et images dans le dossier du job de la planche, à réutiliser). Dossier de travail : {job}/. {LIRE_KIT}\n"
-            "Fais : vidéos (Seedance 720p seulement action/dialogue, sinon images animées x4 + zoom ≤ 1.08 ou plans banque), "
-            f"range chaque clip Seedance payé dans {job}/plans/ (nom = scène), "
+            "Fais : vidéos (Kling 4.0 Flash pour action/dialogue, sinon images animées x4 + zoom ≤ 1.08 ou plans banque), "
+            f"range chaque clip payé dans {job}/plans/ (nom = scène), "
             f"montage avec une copie adaptée de kit-pixar-v1/3-exemple-prof-v3/build.py lancée depuis {job}/ (sous-titres darija latine "
             "Avenir Next + mots-clés verts sur toute l'histoire, écran de fin 3 s, mix pic ≤ -1 dB), 24 i/s, 1080x1920, ≤ 45 s. prog.py est interdit (pas de sous-titres). "
             f"Livrable : {job}/out/final.mp4 + {job}/subs.ass. CONTRÔLE BLOQUANT (corrige et revérifie jusqu'à tout OK) : "
