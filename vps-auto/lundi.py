@@ -4,6 +4,8 @@ import sys, urllib.parse
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+import commun as _c
+_c.SUJET = "🎬 Pixar"
 import meta
 from commun import ETAT, VAULT, Verrou, journal, lancer_claude, maintenant, nouveau_job, pret, tg_texte
 

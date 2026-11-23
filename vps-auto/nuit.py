@@ -11,6 +11,8 @@ import json, shutil, subprocess, sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+import commun as _c
+_c.SUJET = "🎬 Pixar"
 from commun import (ETAT, KIT, VAULT, Verrou, boite_matin, frontmatter, journal, lancer_claude,
                     maj_frontmatter, maintenant, nouveau_job, pret, tg_fichier, tg_texte)
 
@@ -164,7 +166,7 @@ def faire_video(h: Path, budget=BUDGET, extra="", file=True) -> bool:
     import re as _re
     tot = _re.findall(r"Total[^|]*\|[^|]*\|\s*\**([\d,.]+)", cout)
     cr = f" · {tot[-1]} crédits" if tot else ""
-    boite_matin(f"🎬 {titre}{cr}\n{ig}", str(video))
+    boite_matin(f"{titre}{cr}\n{ig}", str(video))
     return True
 
 

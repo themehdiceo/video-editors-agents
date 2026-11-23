@@ -9,6 +9,8 @@ import shutil, sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+import commun as _c
+_c.SUJET = "🛠️ VPS"
 from commun import ETAT, Verrou, VAULT, journal, lancer_claude, maintenant, nouveau_job, pret, tg_texte
 
 DOSSIER = VAULT / "Tâches VPS"

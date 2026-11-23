@@ -62,12 +62,19 @@ def _tg(method: str, fields: dict, fichier: tuple | None = None) -> bool:
         return False
 
 
+SUJET = ""  # préfixe des messages Telegram (Mehdi 2026-11-23) : chaque script le fixe ("🎬 Pixar", "✂️ Montage"…)
+
+
+def _sujet(t: str) -> str:
+    return f"{SUJET} · {t}" if SUJET and not t.startswith(SUJET) else t
+
+
 def tg_texte(texte: str) -> bool:
-    return _tg("sendMessage", {"text": texte[:4000]})
+    return _tg("sendMessage", {"text": _sujet(texte)[:4000]})
 
 
 def tg_fichier(chemin, legende: str = "") -> bool:
-    p = Path(chemin)
+    p, legende = Path(chemin), _sujet(legende)
     if p.suffix.lower() == ".mp4" and p.stat().st_size < 49e6:
         return _tg("sendVideo", {"caption": legende[:1000], "supports_streaming": "true"}, ("video", p))
     if p.suffix.lower() in (".jpg", ".jpeg", ".png") and p.stat().st_size < 9e6:
