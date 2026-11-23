@@ -38,6 +38,7 @@ def main() -> None:
         "+ les 2-3 Pixar à proposer à Mehdi pour un test en publicité (rien n'est publié : c'est Mehdi qui décide).\n"
         "B. Prends les 21 PROCHAINES idées au statut « à faire » de kit-pixar-v1/2-style/banque-histoires-6-mois.md (dans l'ordre ; "
         "Jérémy peut en échanger une s'il a une raison chiffrée) et développe-les en 21 histoires Pixar (3 par jour, Mehdi 2026-11-23). "
+        "ICP VERROUILLÉ : héros = salarié 25-35 ans, 6 000-10 000 dh, métier UNIQUEMENT dans la liste officielle de kit-pixar-v1/2-style/matrice-histoires.md § 1 ; une idée de la banque avec un métier interdit = remplace-la par la suivante. "
         "TEMPS FORTS (Mehdi 2026-11-23, obligatoire) : chaque idée a 4 codes dans kit-pixar-v1/2-style/grille-temps-forts.csv "
         "(colonne n = N de la banque) : incident I, croyance fausse C, rebondissement R, preuve du changement P, décrits dans "
         "kit-pixar-v1/2-style/temps-forts.md. Écris l'histoire AUTOUR de ces 4 moments (le moule ne change pas) ; la preuve P doit "
