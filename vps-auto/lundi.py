@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 import meta
-from commun import VAULT, Verrou, journal, lancer_claude, maintenant, nouveau_job, pret, tg_texte
+from commun import ETAT, VAULT, Verrou, journal, lancer_claude, maintenant, nouveau_job, pret, tg_texte
 
 
 def main() -> None:
@@ -15,6 +15,9 @@ def main() -> None:
     recents = [f for f in (VAULT / "Claude/Livrables/scripts-semaine").glob("*.md") if time.time() - f.stat().st_mtime < 3 * 86400]
     if recents and "--force" not in sys.argv:  # semaine déjà écrite (lancement anticipé) : pas de doublon
         journal(f"lundi : déjà fait ({recents[0].name})")
+        return
+    if (ETAT / "pixar-gel").exists():
+        journal("lundi : automatique Pixar gelé (etat/pixar-gel)")
         return
     if not pret("les histoires du lundi"):
         return

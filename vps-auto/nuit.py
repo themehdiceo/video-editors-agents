@@ -19,8 +19,9 @@ REPONDRE = "Réponds dans Claude (ou en répondant à ce message) en texte libre
 PIXAR = VAULT / "Claude/Livrables/pixar-nuit"
 VALIDEES = PIXAR / "histoires-validees"
 RESULTATS = PIXAR / "resultats"
-PAR_NUIT = 3  # Mehdi 2026-11-23 : 3 Pixar par jour, postés seuls à 10h, 16h, 20h
-BUDGET = 70  # crédits max pour la vidéo (Kling 4.0 Flash ≈ 47 cr) ; planche ≈ 25 cr ; 21/semaine ≈ 1 500 cr
+PAR_NUIT = 1  # Jérémy + Mehdi 2026-11-23 : retour au moule du prof v3, 1 par jour, 1 changement à la fois
+BUDGET = 140  # crédits max pour la vidéo (Seedance 2.0 720p ≈ 6 clips × 22,5) ; planche ≈ 25 cr
+GEL = ETAT / "pixar-gel"  # fichier présent = automatique gelé (Mehdi valide d'abord un Pixar test)
 
 LIRE_KIT = (
     "Lis d'abord, dans cet ordre : kit-pixar-v1/3-exemple-prof-v3/README.md + structure.md (modèle OBLIGATOIRE, un moule : "
@@ -35,7 +36,7 @@ LIRE_KIT = (
 CREDITS = (
     "Crédits Higgsfield : budget {b} crédits MAX pour ce Pixar (bloqué automatiquement au-delà), plafond 750/semaine. "
     "Prends les plans les moins chers : plans de kit-pixar-v1/5-banque-pixar/plans/ = 0 crédit, images animées pour les plans calmes, "
-    "Clips vidéo en Kling 4.0 Flash (model kling_4_0_flash, 720p, 9:16, 5 s ≈ 7,5 cr) par défaut (Mehdi 2026-11-23) ; Seedance seulement si Mehdi le demande. Vérifie avec estimate_video_cost / estimate_image_cost avant. "
+    "Seedance 2.0 720p 5 s max (lip-sync) pour action/dialogue, comme le prof v3 validé (Kling gelé le 2026-11-23 : pas de lip-sync). Vérifie avec estimate_video_cost / estimate_image_cost avant. "
     "Jamais d'achat de crédits. Écris le coût réel dans {j}/out/cout.md : crédits ET dollars (1 cr = 0,017 $)."
 )
 
@@ -62,7 +63,7 @@ def prompt_planche(h: Path, job: Path, extra: str = "") -> str:
 def prompt_video(h: Path, job: Path, planche: str, budget: int = BUDGET, extra: str = "") -> str:
     return (f"Pixar de nuit, étape VIDÉO. Histoire : {h}. Planche validée (OK n°2) : {planche} "
             f"(voix et images dans le dossier du job de la planche, à réutiliser). Dossier de travail : {job}/. {LIRE_KIT}\n"
-            "Fais : vidéos (Kling 4.0 Flash pour action/dialogue, sinon images animées x4 + zoom ≤ 1.08 ou plans banque), "
+            "Fais : vidéos (Seedance 720p pour action/dialogue, sinon images animées x4 + zoom ≤ 1.08 ou plans banque), "
             f"range chaque clip payé dans {job}/plans/ (nom = scène), "
             f"montage avec une copie adaptée de kit-pixar-v1/3-exemple-prof-v3/build.py lancée depuis {job}/ (sous-titres darija latine "
             "Avenir Next + mots-clés verts sur toute l'histoire, écran de fin 3 s, mix pic ≤ -1 dB), 24 i/s, 1080x1920, ≤ 45 s. prog.py est interdit (pas de sous-titres). "
@@ -134,7 +135,7 @@ def faire_planche(h: Path, test=False, extra="", auto=False) -> bool:
     return True
 
 
-def faire_video(h: Path, budget=BUDGET, extra="") -> bool:
+def faire_video(h: Path, budget=BUDGET, extra="", file=True) -> bool:
     fm = frontmatter(h)
     job = nouveau_job("video-" + h.stem)
     lancer_claude(job, prompt_video(h, job, f"{fm.get('planche')} (job {fm.get('job_planche')})", budget, extra), budget,
@@ -152,13 +153,14 @@ def faire_video(h: Path, budget=BUDGET, extra="") -> bool:
     maj_frontmatter(h, video=str(copie), job_video=str(job), ok3="non")
     import publier
     legende, titre = lire(job / "out/legende.txt"), fm.get("titre") or h.stem
-    quand = publier.file_attente(video, titre, legende) if "PLACE" in legende else None
+    quand = publier.file_attente(video, titre, legende) if file and "PLACE" in legende else None
     if quand:
         maj_frontmatter(h, instagram=quand)
         ig = (f"📅 Part sur Instagram le {quand} (heure du Maroc), @themehdiceo en collab @profitpartnerscapital + @mehdiceotalks, "
               f"sauf si tu dis « stop ».\nLégende :\n{legende}")
     else:
-        ig = "⚠️ PAS mis en file Instagram (légende absente ou envoi raté) : à mettre à la main dans l'admin → Publier."
+        ig = ("🧪 TEST : pas mis en file, Mehdi valide d'abord." if not file else
+              "⚠️ PAS mis en file Instagram (légende absente ou envoi raté) : à mettre à la main dans l'admin → Publier.")
     boite_matin(f"🎬 Pixar prêt : {h.stem}\n{ig}\n\n{ctl}\n{lire(job / 'out/resultat.md')}\n{lire(job / 'out/cout.md')}\n\n"
                 f"OK n°3 (Bunny) ? {REPONDRE} Refus : dis quels plans jeter.", str(video))
     return True
@@ -166,6 +168,9 @@ def faire_video(h: Path, budget=BUDGET, extra="") -> bool:
 
 def nuit() -> None:
     if maintenant().hour != 23:  # cron lancé à 22h et 23h heure du VPS : on ne garde que 23h Maroc
+        return
+    if GEL.exists():
+        journal("nuit : automatique gelé (etat/pixar-gel)")
         return
     if not pret("la nuit Pixar"):
         return
