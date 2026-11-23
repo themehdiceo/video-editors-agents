@@ -301,10 +301,29 @@ async def on_video(update: Update, ctx):
     await enqueue(update, job_dir, "montage" if kind == "edit" else "clip")
 
 
+EDU_STOP_RE = re.compile(r"\s*/?stop\s+([ée]du(catif)?|[ée]ducation|s[ée]rie)\s*[.!]*\s*", re.I)
+
+
+def edu_stop() -> str:
+    """« stop edu » : annule les posts Série Éducation encore en file (24 h). La clé est sur le VPS : ssh depuis le Mac."""
+    racine = Path(__file__).resolve().parent.parent
+    cmd = ["python3", "serie-education/edu_nuit.py", "stop"]
+    if not Path("/etc/video-editors-agents/.env").exists():
+        cmd = ["ssh", "-o", "ConnectTimeout=15", "root@169.58.204.140", "cd /opt/video-editors-agents && " + " ".join(cmd)]
+    try:
+        r = subprocess.run(cmd, cwd=racine, capture_output=True, text=True, timeout=120)
+        return r.stdout.strip() or f"🎓 Éducatif · stop raté : {r.stderr.strip()[-200:]}"
+    except Exception as e:
+        return f"🎓 Éducatif · stop raté : {type(e).__name__}"
+
+
 @only_me
 async def on_text(update: Update, ctx):
     m = update.message
     r = m.reply_to_message
+    if EDU_STOP_RE.fullmatch(m.text or "") or (r and (r.text or r.caption or "").startswith("🎓") and STOP_RE.fullmatch(m.text or "")):
+        await m.reply_text(await asyncio.to_thread(edu_stop))  # n'arrête pas les montages (/stop reste pour eux)
+        return
     if r and ((r.text or r.caption or "").startswith(("🖼️ Planche prête", "🎬 Pixar prêt"))):
         # Réponse à un Pixar de la nuit : texte libre, appliqué par vps-auto/taches.py dans les 15 min.
         d = Path(__file__).resolve().parent.parent / "etat/reponses-tg"
