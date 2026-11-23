@@ -17,6 +17,7 @@ from commun import ETAT, journal, maintenant, tg_texte
 PLAFOND = 750
 DOLLAR = 0.017  # 1 crédit Ultra
 FICHIER = ETAT / "credits.json"
+TAUX_VIDEO = {"kling_4_0_flash": 1.5, "kling3_0_turbo": 1.5, "wan2_6": 1.5, "minimax_hailuo": 1.0, "grok_video_v15_lite": 1.0}
 
 
 def semaine() -> str:
@@ -45,8 +46,11 @@ def estimer(outil: str, entree: dict) -> float:
     for d in _demandes(entree) or [{}]:
         n = int(d.get("count") or 1)
         if "video" in outil:
-            res = str(d.get("resolution", "720p"))
-            taux = 4.5 if (str(d.get("model", "")).startswith("seedance") and "720" in res) else 9.0
+            res, mod = str(d.get("resolution", "720p")), str(d.get("model", ""))
+            # crédits par seconde, devis Higgsfield 2026-11-23 (9:16) ; modèle inconnu = 9/s (prudent)
+            taux = TAUX_VIDEO.get(mod, 9.0)
+            if mod == "seedance_2_0":
+                taux = 3.0 if "480" in res else 4.5
             total += n * taux * float(d.get("duration") or 5)
         else:
             total += n * (1.5 if d.get("model") == "nano_banana_2" else 3.0)
