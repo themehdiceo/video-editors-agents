@@ -96,12 +96,13 @@ def _test() -> None:
     assert not verifier_metier(h("a5.md", "livreur"))[0]
     assert verifier_metier(h("b1.md", "comptable"))[0]
     assert verifier_metier(h("b2.md", "Infirmière (F, Rabat)"))[0]
-    assert verifier_metier(h("b3.md", "chef d'équipe en usine", "| 1 | x | v | Adam m'a tout préparé |"))[0]
+    assert verifier_metier(h("b3.md", "comptable", "| 1 | x | v | Adam m'a tout préparé |"))[0]
+    assert not verifier_metier(h("b6.md", "chef d'équipe en usine"))[0]
     assert not verifier_metier(h("b4.md", "chef d'équipe en usine", "| 1 | x | v | je répare 30 machines par jour |"))[0]
     assert not verifier_metier(h("b5.md", "comptable"), legende="Il répare 30 machines par jour")[0]
     assert verifier_metier(h("c1.md", "policier"))[0]
     assert not verifier_metier(h("c2.md", "militaire"))[0]  # 2e rare sur 50 = refus
-    print("icp.py : test OK (réparateur refusé, comptable accepté, rares 1/50)")
+    print("icp.py : test OK (réparateur + chef d équipe refusés, comptable accepté, rares 1/50)")
 
 
 if __name__ == "__main__":
