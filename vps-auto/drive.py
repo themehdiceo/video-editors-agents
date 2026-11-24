@@ -7,6 +7,8 @@ import asyncio, json, shutil, subprocess, sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+import commun as _c
+_c.SUJET = "✂️ Montage"
 from commun import ETAT, REPO, Verrou, journal, secrets, tg_fichier, tg_texte
 
 DOSSIER = "gdrive:PPC · À monter"

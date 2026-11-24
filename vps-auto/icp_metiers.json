@@ -1,0 +1,29 @@
+{
+  "_source": "Liste UNIQUE des métiers Pixar (Mehdi 22-23/11, mise à jour 2026-11-24). Lue par vps-auto/icp.py avant toute planche, vidéo et mise en file Instagram. kit-pixar-v1/2-style/matrice-histoires.md § 1 renvoie ici.",
+  "_icp": "salarié 25-35 ans, 6 000-10 000 dh/mois",
+  "autorises": [
+    "employé de banque", "comptable", "commercial salarié", "infirmier", "prof", "cadre administratif",
+    "développeur junior", "responsable de magasin", "gestionnaire en assurance", "assistante de direction",
+    "superviseur de centre d'appels", "chef d'équipe en usine", "chargé RH", "responsable logistique",
+    "délégué médical", "conducteur de travaux"
+  ],
+  "rares": ["policier", "militaire", "étudiant de bonne famille"],
+  "rares_max_sur_50": 1,
+  "interdits": [
+    "technicien de maintenance", "réparateur", "réparateur de machines", "technicien",
+    "livreur", "serveur", "caissière", "caissier", "magasinier", "agent de sécurité", "coiffeuse", "coiffeur",
+    "aide-soignante", "ouvrier d'usine", "ouvrier", "chauffeur", "cuisinier", "vendeur en boutique", "vendeuse",
+    "secrétaire", "mécanicien", "femme de ménage", "agent immobilier", "artisan", "sans emploi", "étudiant"
+  ],
+  "_interdits_pourquoi": "Mehdi 2026-11-23 : salaire ~3 000-5 000 dh, commission, pas de salaire. 2026-11-24 : « technicien de maintenance » sorti des autorisés (Pixar « 12 l3am f lkra » = « je répare 30 machines par jour » = réparateur, refusé par Mehdi).",
+  "mots_interdits": ["répar", "kanssle7", "machines par jour", "livreur", "chauffeur", "coiffeu", "caissi", "magasinier", "mécanicien", "ouvrier", "femme de ménage", "agent de sécurité"],
+  "alias": {
+    "employée de banque": "employé de banque", "guichetier de banque": "employé de banque", "guichetière de banque": "employé de banque",
+    "commerciale salariée": "commercial salarié", "infirmière": "infirmier", "professeur": "prof", "professeure": "prof",
+    "cadre administrative": "cadre administratif", "développeuse junior": "développeur junior",
+    "responsable du magasin": "responsable de magasin", "assistant de direction": "assistante de direction",
+    "superviseure de centre d'appels": "superviseur de centre d'appels", "cheffe d'équipe en usine": "chef d'équipe en usine",
+    "chargée rh": "chargé RH", "déléguée médicale": "délégué médical", "policière": "policier",
+    "étudiante de bonne famille": "étudiant de bonne famille"
+  }
+}

@@ -62,12 +62,19 @@ def _tg(method: str, fields: dict, fichier: tuple | None = None) -> bool:
         return False
 
 
+SUJET = ""  # préfixe des messages Telegram (Mehdi 2026-11-23) : chaque script le fixe ("🎬 Pixar", "✂️ Montage"…)
+
+
+def _sujet(t: str) -> str:
+    return f"{SUJET} · {t}" if SUJET and not t.startswith(SUJET) else t
+
+
 def tg_texte(texte: str) -> bool:
-    return _tg("sendMessage", {"text": texte[:4000]})
+    return _tg("sendMessage", {"text": _sujet(texte)[:4000]})
 
 
 def tg_fichier(chemin, legende: str = "") -> bool:
-    p = Path(chemin)
+    p, legende = Path(chemin), _sujet(legende)
     if p.suffix.lower() == ".mp4" and p.stat().st_size < 49e6:
         return _tg("sendVideo", {"caption": legende[:1000], "supports_streaming": "true"}, ("video", p))
     if p.suffix.lower() in (".jpg", ".jpeg", ".png") and p.stat().st_size < 9e6:
@@ -128,8 +135,8 @@ def lancer_claude(job_dir: Path, prompt: str, budget: float, timeout_s: int = 3 
                   outils: list[str] = ()) -> int:
     """claude -p à la racine du dépôt (agents, skills et kit du dépôt), plafond crédits par hooks."""
     # Règle Mehdi 20/11 : annoncer quoi + durée + coût AVANT, résultat à la fin (fait par l'appelant).
-    tg_texte(f"▶️ Je commence : {quoi or job_dir.name} · durée estimée ≈ {minutes} min · "
-             f"coût estimé ≤ {budget:g} crédits ({budget * 0.017:.2f} $)")
+    # Mehdi 2026-11-23 : Telegram = seulement le résultat utile (quoi, décision, coût). Le reste va au journal.
+    journal(f"début : {quoi or job_dir.name} · ≈ {minutes} min · ≤ {budget:g} cr")
     s = secrets()
     env = {k: v for k, v in os.environ.items() if k != "CLAUDE_CODE_OAUTH_TOKEN"}
     env.update(GEMINI_API_KEY=s.get("GEMINI_API_KEY", ""), JOB_DIR=str(job_dir), CREDITS_JOB_MAX=str(budget),

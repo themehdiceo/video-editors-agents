@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Chaîne Pixar de nuit (SOP 1 v3).
 
-  nuit.py nuit          cron 23h Maroc : 2 Pixar max à partir de pixar-nuit/histoires-validees/
-                        - histoire sans planche -> voix + images + planche (OK n°2 attendu), pas de vidéo
-                        - histoire avec « ok2: oui » -> vidéos, montage, qc_clignote.py OK, résultat dans le coffre
+  nuit.py nuit          cron 23h Maroc : 2 Pixar finis par nuit à partir de pixar-nuit/histoires-validees/
+                        planche puis vidéo dans la foulée (plus d'OK n°2 : veto 2 h avant, Mehdi 21/11), contrôle bloquant
   nuit.py matin         cron 8h Maroc : envoie à Mehdi par Telegram ce que la nuit a produit
   nuit.py bunny         cron 15 min : histoires avec « ok3: oui » -> Bunny (bunny.py), puis suppression locale
   nuit.py test FICHIER  le test du 20/11 : script + planche considérés validés (« go build » de Mehdi), budget 60 cr
@@ -12,6 +11,8 @@ import json, shutil, subprocess, sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+import commun as _c
+_c.SUJET = "🎬 Pixar"
 from commun import (ETAT, KIT, VAULT, Verrou, boite_matin, frontmatter, journal, lancer_claude,
                     maj_frontmatter, maintenant, nouveau_job, pret, tg_fichier, tg_texte)
 
@@ -20,8 +21,9 @@ REPONDRE = "Réponds dans Claude (ou en répondant à ce message) en texte libre
 PIXAR = VAULT / "Claude/Livrables/pixar-nuit"
 VALIDEES = PIXAR / "histoires-validees"
 RESULTATS = PIXAR / "resultats"
-PAR_NUIT = 2
-BUDGET = 50  # crédits max par Pixar : 2 par nuit x 7 = 700 ≤ 750 (Mehdi 20/11)
+PAR_NUIT = 1  # Mehdi 2026-11-23 12h27 : 1 Pixar par jour (10h00), moule du prof v3, sans OK à chaque fois (veto « stop »)
+BUDGET = 140  # crédits max pour la vidéo (Seedance 2.0 720p ≈ 6 clips × 22,5) ; planche ≈ 25 cr
+GEL = ETAT / "pixar-gel"  # fichier présent = automatique gelé (Mehdi valide d'abord un Pixar test)
 
 LIRE_KIT = (
     "Lis d'abord, dans cet ordre : kit-pixar-v1/3-exemple-prof-v3/README.md + structure.md (modèle OBLIGATOIRE, un moule : "
@@ -29,14 +31,14 @@ LIRE_KIT = (
     "(section Garde-fous), kit-pixar-v1/1-reglages/reglages-defaut.json (OBLIGATOIRE), kit-pixar-v1/2-style/lecons.md "
     "(une correction déjà faite ne revient JAMAIS), la skill anthropic-skills:montage-video-mehdi, puis kit-pixar-v1/README.md, "
     "kit-pixar-v1/2-style/STYLE.md, kit-pixar-v1/2-style/feedback-video.md, kit-pixar-v1/4-voix/REGLES-VOIX.md, kit-pixar-v1/5-banque-pixar/INDEX.md. "
-    "Interdits : histoire écrite ou coupée pour économiser des crédits (budget insuffisant = arrête-toi et écris-le dans resultat.md), "
+    "ICP : si le métier du héros n'est pas dans vps-auto/icp_metiers.json « autorises » (ou « rares »), ou si le hook le montre en réparateur/ouvrier (« je répare… »), ARRÊTE-TOI sans rien générer et écris-le dans resultat.md. Darija : kit-pixar-v1/2-style/darija-pixar.md OBLIGATOIRE (Casablanca de la rue, « les clients », jamais un mot rare). Chaque plan respecte sa colonne « Logique du lieu » (objets du métier, personne debout sur un meuble, geste réaliste) : vérifie-le sur la planche, refais l'image sinon. Écrans de téléphone/chat TOUJOURS en français ou darija (jamais en anglais), en lien avec l'histoire. Interdits : histoire écrite ou coupée pour économiser des crédits (budget insuffisant = arrête-toi et écris-le dans resultat.md), "
     "personnage en image fixe, version au rabais. Les chemins « banque-pixar/ » et « tools/pixar/ » du kit = kit-pixar-v1/5-banque-pixar/ et kit-pixar-v1/6-outils/. "
     "N'utilise JAMAIS mapwarp.py. Voix : kit-pixar-v1/4-voix/tts-boucle.py (Gemini, jamais de voix clonée, aucun traitement)."
 )
 CREDITS = (
     "Crédits Higgsfield : budget {b} crédits MAX pour ce Pixar (bloqué automatiquement au-delà), plafond 750/semaine. "
     "Prends les plans les moins chers : plans de kit-pixar-v1/5-banque-pixar/plans/ = 0 crédit, images animées pour les plans calmes, "
-    "Seedance 2.0 720p 5 s max SEULEMENT pour action/dialogue. Vérifie avec estimate_video_cost / estimate_image_cost avant. "
+    "Seedance 2.0 720p 5 s max (lip-sync) pour action/dialogue, comme le prof v3 validé (Kling gelé le 2026-11-23 : pas de lip-sync). Vérifie avec estimate_video_cost / estimate_image_cost avant. "
     "Jamais d'achat de crédits. Écris le coût réel dans {j}/out/cout.md : crédits ET dollars (1 cr = 0,017 $)."
 )
 
@@ -63,8 +65,8 @@ def prompt_planche(h: Path, job: Path, extra: str = "") -> str:
 def prompt_video(h: Path, job: Path, planche: str, budget: int = BUDGET, extra: str = "") -> str:
     return (f"Pixar de nuit, étape VIDÉO. Histoire : {h}. Planche validée (OK n°2) : {planche} "
             f"(voix et images dans le dossier du job de la planche, à réutiliser). Dossier de travail : {job}/. {LIRE_KIT}\n"
-            "Fais : vidéos (Seedance 720p seulement action/dialogue, sinon images animées x4 + zoom ≤ 1.08 ou plans banque), "
-            f"range chaque clip Seedance payé dans {job}/plans/ (nom = scène), "
+            "Fais : vidéos (Seedance 720p pour action/dialogue, sinon images animées x4 + zoom ≤ 1.08 ou plans banque), "
+            f"range chaque clip payé dans {job}/plans/ (nom = scène), "
             f"montage avec une copie adaptée de kit-pixar-v1/3-exemple-prof-v3/build.py lancée depuis {job}/ (sous-titres darija latine "
             "Avenir Next + mots-clés verts sur toute l'histoire, écran de fin 3 s, mix pic ≤ -1 dB), 24 i/s, 1080x1920, ≤ 45 s. prog.py est interdit (pas de sous-titres). "
             f"Livrable : {job}/out/final.mp4 + {job}/subs.ass. CONTRÔLE BLOQUANT (corrige et revérifie jusqu'à tout OK) : "
@@ -76,7 +78,10 @@ def prompt_video(h: Path, job: Path, planche: str, budget: int = BUDGET, extra: 
             f"Écris {job}/out/controle.json : {{\"qc_pixar\": \"OK|KO\", \"oeil\": \"…\", \"planche\": \"…\", \"judge\": \"…\", "
             "\"jeremy\": \"oui|non\", \"jeremy_avis\": \"…\", \"icp_note\": 0-10, \"icp_avis\": \"…\"}. "
             + CREDITS.format(b=budget, j=job) +
-            extra + f" Termine par {job}/out/resultat.md (3 à 6 lignes, verdict qc, doutes).")
+            extra + f" Écris {job}/out/legende.txt : la légende Instagram (guide kit-pixar-v1/2-style/legendes-instagram.md, "
+            "3 lignes max, français simple, aucun hashtag, dernière ligne mot pour mot : 💬 Commente « PLACE » pour recevoir la stratégie de @themehdiceo), "
+            "relue par Jérémy, jamais la même accroche que le Pixar d'avant (registre)."
+            f" Termine par {job}/out/resultat.md (3 à 6 lignes, verdict qc, doutes).")
 
 
 def qc_ok(video: Path) -> bool:
@@ -115,24 +120,39 @@ def lire(p: Path, defaut="") -> str:
     return p.read_text().strip() if p.exists() else defaut
 
 
-def faire_planche(h: Path, test=False, extra="") -> bool:
+def icp_ok(h: Path, legende: str = "") -> bool:
+    """Garde-fou BLOQUANT (Mehdi 2026-11-24) : métier hors liste = 0 crédit, rien en file, message court."""
+    import icp
+    ok, raison = icp.verifier_metier(h, legende)
+    if not ok:
+        journal(f"ICP refus {h.name} : {raison}")
+        maj_frontmatter(h, icp="refus", icp_raison=raison)
+        tg_texte(f"⛔ Pixar « {frontmatter(h).get('titre') or h.stem} » bloqué : {raison}. 0 crédit dépensé.")
+    return ok
+
+
+def faire_planche(h: Path, test=False, extra="", auto=False) -> bool:
+    if not icp_ok(h):
+        return False
     job = nouveau_job("planche-" + h.stem)
     lancer_claude(job, prompt_planche(h, job, extra), 0 if extra else 25, quoi=f"planche Pixar « {h.stem} »", minutes=15)
     planche = job / "out/planche.jpg"
     if not planche.exists():
         journal(f"planche ratée pour {h.name} ({job.name})")
-        boite_matin(f"⚠️ Planche ratée : {h.stem}. Journal : {job}/claude.log")
+        boite_matin(f"⚠️ Pixar « {frontmatter(h).get('titre') or h.stem} » : images ratées, rien publié.")
         return False
     RESULTATS.mkdir(parents=True, exist_ok=True)
     copie = RESULTATS / f"{h.stem}-planche.jpg"
     shutil.copy(planche, copie)
-    maj_frontmatter(h, planche=str(copie), job_planche=str(job), ok2="oui" if test else "non")
-    if not test:
-        boite_matin(f"🖼️ Planche prête : {h.stem}\n{lire(job / 'out/resultat.md')}\n\nOK n°2 ? {REPONDRE}", str(planche))
+    maj_frontmatter(h, planche=str(copie), job_planche=str(job), ok2="oui" if test or auto else "non")
+    if not test and not auto:
+        boite_matin(f"🖼️ Images prêtes : {frontmatter(h).get('titre') or h.stem}. OK pour la vidéo ? Réponds « ok » ou ce qu'il faut changer.", str(planche))
     return True
 
 
-def faire_video(h: Path, budget=BUDGET, extra="") -> bool:
+def faire_video(h: Path, budget=BUDGET, extra="", file=True) -> bool:
+    if not icp_ok(h):
+        return False
     fm = frontmatter(h)
     job = nouveau_job("video-" + h.stem)
     lancer_claude(job, prompt_video(h, job, f"{fm.get('planche')} (job {fm.get('job_planche')})", budget, extra), budget,
@@ -141,20 +161,35 @@ def faire_video(h: Path, budget=BUDGET, extra="") -> bool:
     ok, ctl = controle(job) if video.exists() else (False, "vidéo absente")
     if not ok:
         journal(f"vidéo ratée ou contrôle KO pour {h.name} ({job.name})")
-        boite_matin(f"⚠️ Vidéo Pixar pas livrable (contrôle bloquant) : {h.stem}\n{ctl}\nJournal : {job}/claude.log")
+        boite_matin(f"⚠️ Pixar « {fm.get('titre') or h.stem} » pas assez bon au contrôle, rien publié.")
         maj_frontmatter(h, video="ratee", job_video=str(job))
         return False
     RESULTATS.mkdir(parents=True, exist_ok=True)
     copie = RESULTATS / f"{h.stem}.mp4"
     shutil.copy(video, copie)
     maj_frontmatter(h, video=str(copie), job_video=str(job), ok3="non")
-    boite_matin(f"🎬 Pixar prêt : {h.stem}\n{ctl}\n{lire(job / 'out/resultat.md')}\n{lire(job / 'out/cout.md')}\n\n"
-                f"OK n°3 (Bunny) ? {REPONDRE} Refus : dis quels plans jeter.", str(video))
+    import publier
+    legende, titre = lire(job / "out/legende.txt"), fm.get("titre") or h.stem
+    quand = publier.file_attente(video, titre, legende, h) if file and "PLACE" in legende and icp_ok(h, legende) else None
+    if quand:
+        maj_frontmatter(h, instagram=quand)
+        ig = f"Part le {quand} sur Instagram, sauf si tu réponds « stop »."
+    else:
+        ig = ("Test : regarde-le et réponds « ok » ou ce qu'il faut changer." if not file else
+              "⚠️ Pas mis en file Instagram (envoi raté).")
+    cout = lire(job / "out/cout.md")
+    import re as _re
+    tot = _re.findall(r"Total[^|]*\|[^|]*\|\s*\**([\d,.]+)", cout)
+    cr = f" · {tot[-1]} crédits" if tot else ""
+    boite_matin(f"{titre}{cr}\n{ig}", str(video))
     return True
 
 
 def nuit() -> None:
     if maintenant().hour != 23:  # cron lancé à 22h et 23h heure du VPS : on ne garde que 23h Maroc
+        return
+    if GEL.exists():
+        journal("nuit : automatique gelé (etat/pixar-gel)")
         return
     if not pret("la nuit Pixar"):
         return
@@ -164,12 +199,12 @@ def nuit() -> None:
             if faits >= PAR_NUIT:
                 break
             fm = frontmatter(h)
-            if fm.get("video") or fm.get("bunny"):
+            if fm.get("video") or fm.get("bunny") or fm.get("icp") == "refus":
                 continue
-            if fm.get("ok2") == "oui":
-                faits += faire_video(h)
-            elif not fm.get("planche"):
-                faits += faire_planche(h)
+            # Veto 2 h avant (Mehdi 21/11) : plus d'OK n°2, Jérémy contrôle ; planche puis vidéo la même nuit.
+            if not fm.get("planche") and not faire_planche(h, auto=True):
+                continue
+            faits += faire_video(h)
     journal(f"nuit : {faits} Pixar avancé(s)")
 
 
