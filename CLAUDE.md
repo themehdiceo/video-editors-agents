@@ -93,6 +93,8 @@ Style par défaut : `style/style.json`. C'est la mémoire du goût de Mehdi. Le 
 - **« montage complet v1 »** (ou « montage complet ») dans la note → `style/complet-v1/STYLE.md` (validé à 100 % le 2026-11-18) : coupes, sous-titres darija, zooms ×1,08, cartes motion à côté de la tête + écrans noirs animés HyperFrames, musique calée sur sa voix (12-14 dB dessous), flou des données privées, 1080p Bunny. Applique tout sans demander.
 - **Reel / vidéo courte 9:16 (Instagram, TikTok, Facebook) face caméra** → SOP unique du coffre `Claude/Livrables/sop-videos-courtes/SOP-videos-courtes.md` (Mac : /Users/pro/Documents/Obsidian Vault/… · VPS : /root/vault/…), section 5 = montage complet v1 adapté en 9:16 (zone sûre, cartes sous le menton). Ne pas recopier ce SOP ici.
 
+- **Pubs / ads Meta (Reels 9:16)** → SOP du coffre `Claude/Livrables/sop-montage-ads/SOP-montage-ads.md` (montage V1 + règles pubs : outil œil, CTA manquant, fin de pub). Outils : `jobs/reels-25nov/work/`.
+
 - VSL / face caméra de Mehdi avec motion (note « VSL », « lead magnet », « motion ») → `style/vsl-v1/STYLE.md` (validé à 2000 % le 2026-11-16). Ses règles voix (MP3 CapCut de Mehdi, non retouché) et zooms ×1,08 priment sur les défauts verrouillés.
 
 ## Vraies images, pas d'images générées
@@ -121,3 +123,6 @@ Après chaque retour de Mehdi, ajoute une ligne datée dans `2-style/lecons.md`.
 ## Règle Video Editor (Mehdi 2026-11-20)
 
 Toujours choisir ce qui coûte le moins cher pour le meilleur résultat : réutiliser la banque avant de générer, jamais sacrifier la structure validée pour économiser.
+
+## Money loves speed (Mehdi 2026-11-25)
+Logique de tout le projet : la vitesse avec le meilleur résultat. Juste du premier coup (contrôles auto avant envoi), rendus en parallèle, livraison au fil de l'eau, une erreur trouvée = corrigée partout d'un coup dans l'outil, mais on envoie d'abord 2 vidéos corrigées à Mehdi ; le reste seulement après son OK.

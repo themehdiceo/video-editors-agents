@@ -40,6 +40,15 @@ Lis `style/style.json` avant de commencer. C'est le goût de Mehdi, et il prime 
 - Sous-titres toujours présents, mot actif surligné.
 - Musique sous la voix avec ducking. Jamais de musique plus forte que la voix.
 
+## Coupes : les 6 règles qui ne se discutent plus (Mehdi 2026-11-25, pubs Reels)
+1. **Laisse-le finir chaque mot.** La fin d'un mot se mesure sur la forme d'onde, JAMAIS sur les minutages Gemini/Whisper (faux de 0,3 à 1 s, même sur un extrait court). Fin de passage = voix contiguë + sifflantes (« s », « ch » : bande > 3,5 kHz, invisibles dans la bande voix) + 0,20 s. Début = attaque « h »/« ch » comprise + 0,08 s. Ex. ratés : « mgharba » sans son « a », « kay7bes » sans « s », « hadchi » sans « ha ».
+2. **Aucun gros blanc.** Le bruit de fond après la voix n'est pas de la voix. Blanc > 0,22 s dans une phrase = coupé ; jamais plus de ~0,35 s entre deux passages.
+3. **Outil œil.** Couper AVANT qu'il bouge la tête ou regarde ailleurs (début, fin et pauses), puis regarder une planche des 1res/dernières images de chaque passage (jobs/reels-25nov/work/eye.py).
+4. **Vidéo assemblée de plusieurs prises** : chaque morceau se coupe dans le 1er vrai silence (0,25 s) après la phrase. Si le mot enchaîne sur une reprise sans silence, trouver le creux d'énergie et demander à Gemini « dernier mot complet ? » sur l'extrait avant de poser la fin.
+5. **Contrôle avant envoi** : 0 blanc (contrôle auto), Gemini réécoute = 0 mot coupé, planche œil. Une erreur trouvée = cherchée et corrigée dans TOUTES les vidéos du lot.
+6. **Après une correction : 2 vidéos d'abord.** Envoyer 2 vidéos corrigées, attendre l'OK de Mehdi, puis refaire et envoyer le reste. Money loves speed : vitesse + meilleur résultat.
+Outils de référence : style/complet-v1/templates/ads9/reels/ (copie versionnée de jobs/reels-25nov/work/ : build_r.py, mkcomp.py, eye.py, wend.py, ship.py). SOP complet : coffre Claude/Livrables/sop-montage-ads/SOP-montage-ads.md.
+
 ## Leçons apprises
 <!-- Le skill-keeper ajoute ici les retours de Mehdi, datés. -->
 - 2026-11-08 (toutes les vidéos, pas seulement les interviews) : une coupe ne laisse jamais une phrase inachevée ni un début de phrase sans contexte. Chaque extrait = idée complète, du début à la fin de la phrase. Le suspense vient de l'ordre des extraits.
