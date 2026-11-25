@@ -25,3 +25,11 @@ Tu es le contrôle qualité et l'assembleur.
 5. **Contrôle avant envoi** : 0 blanc (contrôle auto), Gemini réécoute = 0 mot coupé, planche œil. Une erreur trouvée = cherchée et corrigée dans TOUTES les vidéos du lot.
 6. **Après une correction : 2 vidéos d'abord.** Envoyer 2 vidéos corrigées, attendre l'OK de Mehdi, puis refaire et envoyer le reste. Money loves speed : vitesse + meilleur résultat.
 Outils de référence : style/complet-v1/templates/ads9/reels/ (copie versionnée de jobs/reels-25nov/work/ : build_r.py, mkcomp.py, eye.py, wend.py, ship.py). SOP complet : coffre Claude/Livrables/sop-montage-ads/SOP-montage-ads.md.
+
+## Pubs Meta Reels : validé par Mehdi le 2026-11-25 (15 pubs du lot « 2026-11-25 Reels 9x16 LEAD »)
+- SOP complet : coffre `Claude/Livrables/sop-montage-ads/SOP-montage-ads.md`.
+- Export 1080x1920. Fin = écran noir PPC 5,5 s (jobs/anas-ads/work/endcard.py), identique sur toutes les pubs.
+- CTA pas filmé dans une pub = fait exprès : coller le CTA filmé dans une autre pub du lot, sans demander.
+- Phrase dite après le CTA : coupée. La pub finit sur « ntla9aw f jiha lokhra ».
+- Voix nettoyée, rap joyeux v2 13,5 dB sous la voix, cartes motion sur les pubs de plus de 30 s, zoom ×1,08 une coupe sur deux.
+- Livraison : finales GARDÉES sur le Mac, pas de Bunny, pas de suppression. Dossier campagne sur le Bureau, 1 sous-dossier par ad set, avec l'ORDRE et les NOMS donnés par Mehdi + l'étape funnel (TOF/MOF/BOF) entre parenthèses. On ne fusionne jamais ses ad sets.

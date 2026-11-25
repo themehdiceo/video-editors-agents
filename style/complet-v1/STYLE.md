@@ -95,3 +95,11 @@ Modèles rejouables : `templates/faq/` (Python + Pillow, rendu qtrle avec alpha 
 - Pub de 30-45 s : 2 à 3 écrans pleins de ~3-4 s chacun, pas plus (jamais un écran de 6 s). Entre eux : cartes motion SUR sa tête (le visage reste, des éléments apparaissent). Un élément visuel toutes les 10-15 s.
 - Quand il parle de son argent ou de sa vie (« 10 d lmlyon », « 20 3am », « millionnaire ») : défilé de SES photos (Rolex, business class, piscine, coucher de soleil), ~1-1,3 s par photo, clic photo (photos9.py). Ne jamais laisser ce moment avec juste sa tête.
 - Rush avec musique déjà dedans : ne rien ajouter sous la voix ; rap joyeux en outro sous l écran de fin seulement. Toujours laisser finir « ntla9aw f jiha lokhra ».
+
+## Pubs Meta Reels : validé par Mehdi le 2026-11-25 (15 pubs du lot « 2026-11-25 Reels 9x16 LEAD »)
+- SOP complet : coffre `Claude/Livrables/sop-montage-ads/SOP-montage-ads.md`.
+- Export 1080x1920. Fin = écran noir PPC 5,5 s (jobs/anas-ads/work/endcard.py), identique sur toutes les pubs.
+- CTA pas filmé dans une pub = fait exprès : coller le CTA filmé dans une autre pub du lot, sans demander.
+- Phrase dite après le CTA : coupée. La pub finit sur « ntla9aw f jiha lokhra ».
+- Voix nettoyée, rap joyeux v2 13,5 dB sous la voix, cartes motion sur les pubs de plus de 30 s, zoom ×1,08 une coupe sur deux.
+- Livraison : finales GARDÉES sur le Mac, pas de Bunny, pas de suppression. Dossier campagne sur le Bureau, 1 sous-dossier par ad set, avec l'ORDRE et les NOMS donnés par Mehdi + l'étape funnel (TOF/MOF/BOF) entre parenthèses. On ne fusionne jamais ses ad sets.
